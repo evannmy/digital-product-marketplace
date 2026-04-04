@@ -22,4 +22,14 @@ class ProductController extends Controller
             'products' => $products
         ]);
     }
+
+    public function show(Product $product): Response
+    {
+        // Eager load the relationships for this specific product
+        $product->load(['seller', 'category']);
+
+        return Inertia::render('products/show', [
+            'product' => $product
+        ]);
+    }
 }
