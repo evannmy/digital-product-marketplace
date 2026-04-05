@@ -34,6 +34,37 @@ class ProductController extends Controller
         ]);
     }
 
+    public function store(Request $request)
+    {
+        // 1. Strict Server-Side Validation
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'price' => 'required|numeric|min:0',
+            'description' => 'required|string',
+            'file' => 'required|file|max:51200', // Max file size: 50MB (51200 KB)
+        ]);
+
+        // 2. Secure File Storage
+        // We store this in the 'private' local disk so unauthorized users cannot download it via a public URL.
+        $filePath = $request->file('file')->store('digital_products');
+
+        // 3. Database Insertion
+        Product::create([
+            'seller_id' => $request->user()->id, // Automatically assign the logged-in user as the seller
+            'category_id' => $validated['category_id'],
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'price' => $validated['price'],
+            'file_path' => $filePath,
+            'is_active' => true, // Make it immediately available on the marketplace
+        ]);
+
+        // 4. Redirect mechanism
+        // Send the user back to the marketplace grid to see their newly uploaded product
+        return redirect()->route('products.index');
+    }
+
     public function show(Product $product): Response
     {
         // Eager load the relationships for this specific product
