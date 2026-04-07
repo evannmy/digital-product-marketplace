@@ -42,9 +42,18 @@ export default function Show({ product }: any) {
                                         <p>Created by: <span className="font-semibold text-gray-900">{product.seller.name}</span></p>
                                         <p className="mt-1">Status: {product.is_active ? 'Available for download' : 'Unavailable'}</p>
                                     </div>
-                                    <button className="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded hover:bg-blue-700 transition duration-150">
-                                        Purchase Now
-                                    </button>
+                                    {product.is_active ? (
+                                      <a 
+                                          href={`/products/${product.id}/download`}
+                                          className="block w-full text-center bg-blue-600 text-white font-semibold py-3 px-4 rounded hover:bg-blue-700 transition duration-150"
+                                      >
+                                          Download Product
+                                      </a>
+                                    ) : (
+                                      <button disabled className="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded cursor-not-allowed">
+                                          Currently Unavailable
+                                      </button>
+                                    )}
                                 </div>
                             </div>
 

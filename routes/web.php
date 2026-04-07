@@ -24,6 +24,10 @@ Route::get('/products/{product}', [ProductController::class, 'show'])
     ->middleware(['auth'])
     ->name('products.show');
 
+Route::get('/products/{product}/download', [ProductController::class, 'download'])
+    ->middleware(['auth'])
+    ->name('products.download');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });

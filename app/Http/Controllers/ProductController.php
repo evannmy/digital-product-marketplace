@@ -7,6 +7,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -73,5 +74,20 @@ class ProductController extends Controller
         return Inertia::render('products/show', [
             'product' => $product
         ]);
+    }
+
+    public function download(Product $product)
+    {
+        // 1. Security Check: Verify the file actually exists on the server's hard drive
+        if (!Storage::exists($product->file_path)) {
+            abort(404, 'Digital file not found on the server.');
+        }
+
+        // 2. The Delivery: Force the browser to download the file instead of displaying it.
+        // We inject the product title into the downloaded filename for better UX.
+        return Storage::download(
+            $product->file_path,
+            str_replace(' ', '_', $product->title) . '_' . basename($product->file_path)
+        );
     }
 }
