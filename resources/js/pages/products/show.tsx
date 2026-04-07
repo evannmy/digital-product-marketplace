@@ -1,77 +1,113 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, usePage, router } from '@inertiajs/react';
 import AppLayout from '../../layouts/app-layout';
 
 export default function Show({ product }: any) {
     const { auth } = usePage().props as any;
-    
+
     return (
         <AppLayout>
             <Head title={product.title} />
 
             <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {/* Back Navigation */}
                     <div className="mb-6">
-                        <Link href="/products" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        <Link
+                            href="/products"
+                            className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                        >
                             &larr; Back to Marketplace
                         </Link>
                     </div>
 
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-8 md:flex md:gap-8">
-                            
                             {/* Left Column: Product Details */}
                             <div className="md:w-2/3">
-                                <div className="text-sm text-blue-600 font-semibold mb-2">
+                                <div className="mb-2 text-sm font-semibold text-blue-600">
                                     {product.category.name}
                                 </div>
-                                <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                                <h1 className="mb-4 text-3xl font-bold text-gray-900">
                                     {product.title}
                                 </h1>
-                                <div className="prose max-w-none text-gray-700 mb-8">
-                                    <p className="whitespace-pre-wrap">{product.description}</p>
+                                <div className="prose mb-8 max-w-none text-gray-700">
+                                    <p className="whitespace-pre-wrap">
+                                        {product.description}
+                                    </p>
                                 </div>
                             </div>
 
                             {/* Right Column: Purchasing Block */}
-                            <div className="md:w-1/3 mt-8 md:mt-0">
-                                <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                                    <div className="text-3xl font-bold text-green-600 mb-4">
-                                        Rp {product.price.toLocaleString('id-ID')}
+                            <div className="mt-8 md:mt-0 md:w-1/3">
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
+                                    <div className="mb-4 text-3xl font-bold text-green-600">
+                                        Rp{' '}
+                                        {product.price.toLocaleString('id-ID')}
                                     </div>
                                     <div className="mb-6 text-sm text-gray-600">
-                                        <p>Created by: <span className="font-semibold text-gray-900">{product.seller.name}</span></p>
-                                        <p className="mt-1">Status: {product.is_active ? 'Available for download' : 'Unavailable'}</p>
+                                        <p>
+                                            Created by:{' '}
+                                            <span className="font-semibold text-gray-900">
+                                                {product.seller.name}
+                                            </span>
+                                        </p>
+                                        <p className="mt-1">
+                                            Status:{' '}
+                                            {product.is_active
+                                                ? 'Available for download'
+                                                : 'Unavailable'}
+                                        </p>
                                     </div>
+
                                     {product.is_active ? (
-                                      <a 
-                                          href={`/products/${product.id}/download`}
-                                          className="block w-full text-center bg-blue-600 text-white font-semibold py-3 px-4 rounded hover:bg-blue-700 transition duration-150"
-                                      >
-                                          Download Product
-                                      </a>
+                                        <a
+                                            href={`/products/${product.id}/download`}
+                                            className="block w-full rounded bg-blue-600 px-4 py-3 text-center font-semibold text-white transition duration-150 hover:bg-blue-700"
+                                        >
+                                            Download Product
+                                        </a>
                                     ) : (
-                                      <button disabled className="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded cursor-not-allowed">
-                                          Currently Unavailable
-                                      </button>
+                                        <button
+                                            disabled
+                                            className="w-full cursor-not-allowed rounded bg-gray-400 px-4 py-3 font-semibold text-white"
+                                        >
+                                            Currently Unavailable
+                                        </button>
                                     )}
-                                    {auth.user && auth.user.id === product.seller_id && (
-                                      <div className="mt-4 pt-4 border-t border-gray-200">
-                                          <Link 
-                                              href={`/products/${product.id}/edit`}
-                                              className="block w-full text-center bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded hover:bg-gray-200 transition duration-150"
-                                          >
-                                              Edit Product
-                                          </Link>
-                                      </div>
-                                    )}
+
+                                    {/* Edit and Delete buttons only appear for the product owner */}
+                                    {auth.user &&
+                                        auth.user.id === product.seller_id && (
+                                            <div className="mt-4 border-t border-gray-200 pt-4">
+                                                <Link
+                                                    href={`/products/${product.id}/edit`}
+                                                    className="mb-2 block w-full rounded bg-gray-100 px-4 py-2 text-center font-semibold text-gray-700 transition duration-150 hover:bg-gray-200"
+                                                >
+                                                    Edit Product
+                                                </Link>
+
+                                                <button
+                                                    onClick={() => {
+                                                        if (
+                                                            window.confirm(
+                                                                'Are you sure you want to delete this product? This action cannot be undone and the file will be permanently erased.',
+                                                            )
+                                                        ) {
+                                                            router.delete(
+                                                                `/products/${product.id}`,
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="block w-full rounded bg-red-50 px-4 py-2 text-center font-semibold text-red-600 transition duration-150 hover:bg-red-100"
+                                                >
+                                                    Delete Product
+                                                </button>
+                                            </div>
+                                        )}
                                 </div>
                             </div>
-
                         </div>
                     </div>
-
                 </div>
             </div>
         </AppLayout>

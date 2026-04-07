@@ -36,6 +36,10 @@ Route::post('/products/{product}/update', [ProductController::class, 'update'])
     ->middleware(['auth'])
     ->name('products.update');
 
+Route::delete('/products/{product}', [ProductController::class, 'destroy'])
+    ->middleware(['auth'])
+    ->name('products.destroy');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });

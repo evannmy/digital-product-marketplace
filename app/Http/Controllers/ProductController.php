@@ -129,4 +129,23 @@ class ProductController extends Controller
 
         return redirect()->route('products.show', $product->id);
     }
+
+    public function destroy(Request $request, Product $product)
+    {
+        // 1. Security Layer: Verify ownership
+        if ($request->user()->id !== $product->seller_id) {
+            abort(403, 'Unauthorized action. You cannot delete someone else\'s product.');
+        }
+
+        // 2. Physical Cleanup: Delete the digital file from the server
+        if ($product->file_path) {
+            Storage::delete($product->file_path);
+        }
+
+        // 3. Database Cleanup: Remove the record
+        $product->delete();
+
+        // 4. Redirect the user back to the marketplace
+        return redirect()->route('products.index');
+    }
 }
