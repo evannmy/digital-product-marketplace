@@ -148,4 +148,17 @@ class ProductController extends Controller
         // 4. Redirect the user back to the marketplace
         return redirect()->route('products.index');
     }
+
+    public function mine(Request $request)
+    {
+        // Fetch only products belonging to the logged-in user, newest first
+        $products = Product::with('category')
+            ->where('seller_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return Inertia::render('products/mine', [
+            'products' => $products
+        ]);
+    }
 }
