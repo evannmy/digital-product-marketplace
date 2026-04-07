@@ -90,4 +90,43 @@ class ProductController extends Controller
             str_replace(' ', '_', $product->title) . '_' . basename($product->file_path)
         );
     }
+
+    public function edit(Request $request, Product $product)
+    {
+        // Lapisan Keamanan: Jika ID pengguna saat ini bukan pemilik produk, tolak akses.
+        if ($request->user()->id !== $product->seller_id) {
+            abort(403, 'Unauthorized action. You do not own this product.');
+        }
+
+        $categories = Category::orderBy('name')->get();
+
+        return Inertia::render('products/edit', [
+            'product' => $product,
+            'categories' => $categories
+        ]);
+    }
+
+    public function update(Request $request, Product $product)
+    {
+        if ($request->user()->id !== $product->seller_id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'price' => 'required|numeric|min:0',
+            'description' => 'required|string',
+            'file' => 'nullable|file|max:51200',
+        ]);
+
+        if ($request->hasFile('file')) {
+            Storage::delete($product->file_path);
+            $validated['file_path'] = $request->file('file')->store('digital_products');
+        }
+
+        $product->update($validated);
+
+        return redirect()->route('products.show', $product->id);
+    }
 }

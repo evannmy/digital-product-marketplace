@@ -1,7 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import AppLayout from '../../layouts/app-layout';
 
 export default function Show({ product }: any) {
+    const { auth } = usePage().props as any;
+    
     return (
         <AppLayout>
             <Head title={product.title} />
@@ -53,6 +55,16 @@ export default function Show({ product }: any) {
                                       <button disabled className="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded cursor-not-allowed">
                                           Currently Unavailable
                                       </button>
+                                    )}
+                                    {auth.user && auth.user.id === product.seller_id && (
+                                      <div className="mt-4 pt-4 border-t border-gray-200">
+                                          <Link 
+                                              href={`/products/${product.id}/edit`}
+                                              className="block w-full text-center bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded hover:bg-gray-200 transition duration-150"
+                                          >
+                                              Edit Product
+                                          </Link>
+                                      </div>
                                     )}
                                 </div>
                             </div>

@@ -28,6 +28,14 @@ Route::get('/products/{product}/download', [ProductController::class, 'download'
     ->middleware(['auth'])
     ->name('products.download');
 
+Route::get('/products/{product}/edit', [ProductController::class, 'edit'])
+    ->middleware(['auth'])
+    ->name('products.edit');
+
+Route::post('/products/{product}/update', [ProductController::class, 'update'])
+    ->middleware(['auth'])
+    ->name('products.update');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
