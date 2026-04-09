@@ -32,6 +32,10 @@ Route::get('/products/{product}/download', [App\Http\Controllers\ProductControll
     ->middleware(['auth'])
     ->name('products.download');
 
+Route::get('/purchases', [App\Http\Controllers\TransactionController::class, 'purchases'])
+    ->middleware(['auth'])
+    ->name('purchases.index');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });

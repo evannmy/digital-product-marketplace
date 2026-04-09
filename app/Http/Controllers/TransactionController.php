@@ -35,4 +35,18 @@ class TransactionController extends Controller
 
         return back();
     }
+
+    public function purchases(Request $request)
+    {
+        // Fetch successful transactions for the logged-in buyer
+        $transactions = Transaction::with(['product.category', 'product.seller'])
+            ->where('buyer_id', $request->user()->id)
+            ->where('status', 'success')
+            ->latest()
+            ->get();
+
+        return inertia('purchases/index', [
+            'transactions' => $transactions
+        ]);
+    }
 }
