@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -66,25 +67,39 @@ class ProductController extends Controller
         return redirect()->route('products.index');
     }
 
-    public function show(Product $product): Response
+    public function show(Request $request, Product $product)
     {
-        // Eager load the relationships for this specific product
         $product->load(['seller', 'category']);
 
+        // Check if the current user has a successful transaction for this product
+        $hasPurchased = Transaction::where('buyer_id', $request->user()->id)
+            ->where('product_id', $product->id)
+            ->where('status', 'success')
+            ->exists();
+
         return Inertia::render('products/show', [
-            'product' => $product
+            'product' => $product,
+            'hasPurchased' => $hasPurchased
         ]);
     }
 
-    public function download(Product $product)
+    public function download(Request $request, Product $product)
     {
-        // 1. Security Check: Verify the file actually exists on the server's hard drive
+        $isOwner = $request->user()->id === $product->seller_id;
+        $hasPurchased = Transaction::where('buyer_id', $request->user()->id)
+            ->where('product_id', $product->id)
+            ->where('status', 'success')
+            ->exists();
+
+        // Security Layer: Deny access if they aren't the seller and haven't bought it
+        if (!$isOwner && !$hasPurchased) {
+            abort(403, 'Unauthorized. You must purchase this product to download it.');
+        }
+
         if (!Storage::exists($product->file_path)) {
             abort(404, 'Digital file not found on the server.');
         }
 
-        // 2. The Delivery: Force the browser to download the file instead of displaying it.
-        // We inject the product title into the downloaded filename for better UX.
         return Storage::download(
             $product->file_path,
             str_replace(' ', '_', $product->title) . '_' . basename($product->file_path)

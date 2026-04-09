@@ -24,6 +24,10 @@ Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->midd
 Route::post('/products/{product}/update', [ProductController::class, 'update'])->middleware(['auth'])->name('products.update');
 Route::delete('/products/{product}', [ProductController::class, 'destroy'])->middleware(['auth'])->name('products.destroy');
 
+Route::post('/products/{product}/checkout', [App\Http\Controllers\TransactionController::class, 'store'])
+    ->middleware(['auth'])
+    ->name('checkout');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });

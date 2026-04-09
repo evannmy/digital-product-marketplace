@@ -1,7 +1,7 @@
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import AppLayout from '../../layouts/app-layout';
 
-export default function Show({ product }: any) {
+export default function Show({ product, hasPurchased }: any) {
     const { auth } = usePage().props as any;
 
     return (
@@ -59,21 +59,38 @@ export default function Show({ product }: any) {
                                         </p>
                                     </div>
 
-                                    {product.is_active ? (
-                                        <a
-                                            href={`/products/${product.id}/download`}
-                                            className="block w-full rounded bg-blue-600 px-4 py-3 text-center font-semibold text-white transition duration-150 hover:bg-blue-700"
-                                        >
-                                            Download Product
-                                        </a>
-                                    ) : (
-                                        <button
-                                            disabled
-                                            className="w-full cursor-not-allowed rounded bg-gray-400 px-4 py-3 font-semibold text-white"
-                                        >
-                                            Currently Unavailable
-                                        </button>
-                                    )}
+                                    {/* Action Buttons Logic */}
+                                    <div className="mt-6">
+                                        {auth.user &&
+                                        auth.user.id === product.seller_id ? (
+                                            <div className="rounded border border-gray-200 bg-gray-100 px-4 py-3 text-center font-medium text-gray-600">
+                                                You own this product
+                                            </div>
+                                        ) : hasPurchased ? (
+                                            <a
+                                                href={`/products/${product.id}/download`}
+                                                className="block w-full rounded bg-green-600 px-4 py-3 text-center font-semibold text-white transition duration-150 hover:bg-green-700"
+                                            >
+                                                Download Your Product
+                                            </a>
+                                        ) : product.is_active ? (
+                                            <Link
+                                                href={`/products/${product.id}/checkout`}
+                                                method="post"
+                                                as="button"
+                                                className="w-full rounded bg-blue-600 px-4 py-3 font-semibold text-white transition duration-150 hover:bg-blue-700"
+                                            >
+                                                Purchase Now
+                                            </Link>
+                                        ) : (
+                                            <button
+                                                disabled
+                                                className="w-full cursor-not-allowed rounded bg-gray-400 px-4 py-3 font-semibold text-white"
+                                            >
+                                                Currently Unavailable
+                                            </button>
+                                        )}
+                                    </div>
 
                                     {/* Edit and Delete buttons only appear for the product owner */}
                                     {auth.user &&
