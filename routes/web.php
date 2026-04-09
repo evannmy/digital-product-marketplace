@@ -28,6 +28,10 @@ Route::post('/products/{product}/checkout', [App\Http\Controllers\TransactionCon
     ->middleware(['auth'])
     ->name('checkout');
 
+Route::get('/products/{product}/download', [App\Http\Controllers\ProductController::class, 'download'])
+    ->middleware(['auth'])
+    ->name('products.download');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
