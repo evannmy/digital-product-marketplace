@@ -18,6 +18,7 @@ class Product extends Model
         'price',
         'file_path',
         'is_active',
+        'image_path',
     ];
 
     // Force price to cast as a float in JSON responses (useful for React)

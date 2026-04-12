@@ -38,31 +38,37 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Strict Server-Side Validation
+        // 1. Update validation to include the image
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric|min:0',
             'description' => 'required|string',
-            'file' => 'required|file|max:51200', // Max file size: 50MB (51200 KB)
+            'file' => 'required|file|max:51200',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // Max 2MB Image
         ]);
 
-        // 2. Secure File Storage
-        // We store this in the 'private' local disk so unauthorized users cannot download it via a public URL.
+        // 2. Handle the Image Upload (Public Disk)
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('product_images', 'public');
+        }
+
+        // 3. Handle the Digital File (Private Disk - stays exactly the same)
         $filePath = $request->file('file')->store('digital_products');
 
-        // 3. Database Insertion
+        // 4. Update the database insertion
         Product::create([
-            'seller_id' => $request->user()->id, // Automatically assign the logged-in user as the seller
+            'seller_id' => $request->user()->id,
             'category_id' => $validated['category_id'],
             'title' => $validated['title'],
             'description' => $validated['description'],
             'price' => $validated['price'],
             'file_path' => $filePath,
-            'is_active' => true, // Make it immediately available on the marketplace
+            'image_path' => $imagePath, // Save the image location
+            'is_active' => true,
         ]);
 
-        // 4. Redirect mechanism
         // Send the user back to the marketplace grid to see their newly uploaded product
         return redirect()->route('products.index');
     }
@@ -123,25 +129,41 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        // 1. Security Layer: Verify ownership
         if ($request->user()->id !== $product->seller_id) {
             abort(403, 'Unauthorized action.');
         }
 
+        // 2. Validation (Now includes the image rules)
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric|min:0',
             'description' => 'required|string',
             'file' => 'nullable|file|max:51200',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', // Max 2MB
         ]);
 
+        // 3. Handle Digital File Replacement (Private Disk)
         if ($request->hasFile('file')) {
             Storage::delete($product->file_path);
             $validated['file_path'] = $request->file('file')->store('digital_products');
         }
 
+        // 4. Handle Cover Image Replacement (Public Disk)
+        if ($request->hasFile('image')) {
+            // If the product already had an image, delete it from the public folder first
+            if ($product->image_path) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+            // Store the new image
+            $validated['image_path'] = $request->file('image')->store('product_images', 'public');
+        }
+
+        // 5. Save updates to MySQL
         $product->update($validated);
 
+        // 6. Return the seller to their product page
         return redirect()->route('products.show', $product->id);
     }
 

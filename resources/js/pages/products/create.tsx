@@ -8,13 +8,14 @@ export default function Create({ categories }: any) {
         description: '',
         price: '',
         category_id: '',
-        file: null as any, // Placeholder for the actual digital file
+        file: null as any,
+        image: null as any,
     });
 
     const submit = (e: any) => {
         e.preventDefault();
         // Submits the data to the POST /products route
-        post('/products');
+        post('/seller/products');
     };
 
     return (
@@ -131,6 +132,29 @@ export default function Create({ categories }: any) {
                                     }
                                     required
                                 />
+                            </div>
+
+                            {/* Product Cover Image */}
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                    Cover Image (Optional)
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                                    onChange={(e) =>
+                                        setData(
+                                            'image',
+                                            e.target.files
+                                                ? e.target.files[0]
+                                                : null,
+                                        )
+                                    }
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Recommended size: 800x600px (JPG, PNG, WEBP)
+                                </p>
                             </div>
 
                             {/* Submit Button */}

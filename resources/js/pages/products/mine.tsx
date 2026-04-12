@@ -4,7 +4,7 @@ import AppLayout from '../../layouts/app-layout';
 export default function Mine({ products }: any) {
     const handleDelete = (id: number) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
-            router.delete(`/products/${id}`);
+            router.delete(`/seller/products/${id}`);
         }
     };
 
@@ -19,7 +19,7 @@ export default function Mine({ products }: any) {
                             My Inventory
                         </h2>
                         <Link
-                            href="/products/create"
+                            href="/seller/products/create"
                             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
                         >
                             + Upload New Product
@@ -75,7 +75,7 @@ export default function Mine({ products }: any) {
                                                         View
                                                     </Link>
                                                     <Link
-                                                        href={`/products/${product.id}/edit`}
+                                                        href={`/seller/products/${product.id}/edit`}
                                                         className="mr-4 text-indigo-600 hover:text-indigo-900"
                                                     >
                                                         Edit

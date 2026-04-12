@@ -27,6 +27,20 @@ export default function Index({ products }: any) {
                                     key={product.id}
                                     className="flex flex-col overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg"
                                 >
+                                    <div className="relative aspect-video w-full overflow-hidden bg-gray-100">
+                                        {product.image_path ? (
+                                            <img
+                                                src={`/storage/${product.image_path}`}
+                                                alt={product.title}
+                                                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                                <span>No Image</span>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="mb-1 text-sm font-semibold text-blue-600">
                                         {product.category.name}
                                     </div>

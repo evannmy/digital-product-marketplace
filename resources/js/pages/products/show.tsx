@@ -35,6 +35,15 @@ export default function Show({ product, hasPurchased }: any) {
                                         {product.description}
                                     </p>
                                 </div>
+                                {product.image_path && (
+                                    <div className="mb-8 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm">
+                                        <img
+                                            src={`/storage/${product.image_path}`}
+                                            alt={product.title}
+                                            className="h-auto max-h-[500px] w-full object-contain"
+                                        />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Right Column: Purchasing Block */}
