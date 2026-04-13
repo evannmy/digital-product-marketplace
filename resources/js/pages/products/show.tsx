@@ -54,11 +54,14 @@ export default function Show({ product, hasPurchased }: any) {
                                         {product.price.toLocaleString('id-ID')}
                                     </div>
                                     <div className="mb-6 text-sm text-gray-600">
-                                        <p>
+                                        <p className="mb-6 text-sm text-gray-500">
                                             Created by:{' '}
-                                            <span className="font-semibold text-gray-900">
+                                            <Link
+                                                href={`/creator/${product.seller.id}`}
+                                                className="font-semibold text-blue-600 hover:underline"
+                                            >
                                                 {product.seller.name}
-                                            </span>
+                                            </Link>
                                         </p>
                                         <p className="mt-1">
                                             Status:{' '}

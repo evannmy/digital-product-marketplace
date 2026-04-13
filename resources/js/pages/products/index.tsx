@@ -109,7 +109,13 @@ export default function Index({ products, categories, filters }: any) {
                                     </p>
                                     <div className="mt-auto flex items-center justify-between border-t pt-4">
                                         <span className="text-sm text-gray-500">
-                                            By {product.seller.name}
+                                            By:{' '}
+                                            <Link
+                                                href={`/creator/${product.seller.id}`}
+                                                className="font-semibold text-blue-600 hover:underline"
+                                            >
+                                                {product.seller.name}
+                                            </Link>
                                         </span>
                                         <span className="text-lg font-bold text-green-600">
                                             Rp{' '}

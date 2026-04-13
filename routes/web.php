@@ -4,10 +4,14 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\StoreController;
 
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('home');
+
+// Public Creator Storefront
+Route::get('/creator/{user}', [StoreController::class, 'show'])->name('creator.store');
 
 // 1. Storefront & Buyer Library
 Route::middleware(['auth'])->group(function () {
