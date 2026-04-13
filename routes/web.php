@@ -20,6 +20,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/products/{product}/checkout', [TransactionController::class, 'store'])->name('checkout');
     Route::get('/products/{product}/download', [ProductController::class, 'download'])->name('products.download');
     Route::get('/purchases', [TransactionController::class, 'purchases'])->name('purchases.index');
+    Route::post('/products/{product}/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
 
     // The Onboarding Action: Updates the role string
     Route::post('/onboarding/seller', function (Illuminate\Http\Request $request) {

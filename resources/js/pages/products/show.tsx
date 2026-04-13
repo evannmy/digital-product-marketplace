@@ -1,8 +1,18 @@
-import { Head, Link, usePage, router } from '@inertiajs/react';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
 import AppLayout from '../../layouts/app-layout';
 
 export default function Show({ product, hasPurchased }: any) {
     const { auth } = usePage().props as any;
+
+    const { data, setData, post, processing } = useForm({
+        rating: 5,
+        comment: '',
+    });
+
+    const submitReview = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(`/products/${product.id}/reviews`);
+    };
 
     return (
         <AppLayout>
@@ -30,11 +40,6 @@ export default function Show({ product, hasPurchased }: any) {
                                 <h1 className="mb-4 text-3xl font-bold text-gray-900">
                                     {product.title}
                                 </h1>
-                                <div className="prose mb-8 max-w-none text-gray-700">
-                                    <p className="whitespace-pre-wrap">
-                                        {product.description}
-                                    </p>
-                                </div>
                                 {product.image_path && (
                                     <div className="mb-8 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 shadow-sm">
                                         <img
@@ -44,6 +49,126 @@ export default function Show({ product, hasPurchased }: any) {
                                         />
                                     </div>
                                 )}
+                                <div className="prose mb-8 max-w-none text-gray-700">
+                                    <p className="whitespace-pre-wrap">
+                                        {product.description}
+                                    </p>
+                                </div>
+                                {/* --- REVIEWS SECTION --- */}
+                                <div className="mt-12 overflow-hidden border border-gray-100 bg-white p-8 shadow-sm sm:rounded-lg">
+                                    <h2 className="mb-6 text-2xl font-bold text-gray-900">
+                                        Customer Reviews
+                                    </h2>
+
+                                    {/* Review Submission Form (Only show if logged in) */}
+                                    {auth.user && (
+                                        <form
+                                            onSubmit={submitReview}
+                                            className="mb-10 rounded-lg border border-gray-200 bg-gray-50 p-6"
+                                        >
+                                            <h3 className="mb-4 font-semibold text-gray-900">
+                                                Write a Review
+                                            </h3>
+                                            <div className="mb-4">
+                                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                                    Rating (1-5)
+                                                </label>
+                                                <select
+                                                    value={data.rating}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'rating',
+                                                            parseInt(
+                                                                e.target.value,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                >
+                                                    {[5, 4, 3, 2, 1].map(
+                                                        (num) => (
+                                                            <option
+                                                                key={num}
+                                                                value={num}
+                                                            >
+                                                                {num} Stars
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            </div>
+                                            <div className="mb-4">
+                                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                                    Comment (Optional)
+                                                </label>
+                                                <textarea
+                                                    value={data.comment}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'comment',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    rows={3}
+                                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                    placeholder="What did you think of this product?"
+                                                />
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                disabled={processing}
+                                                className="rounded-md bg-gray-900 px-4 py-2 text-white transition hover:bg-gray-800 disabled:opacity-50"
+                                            >
+                                                Submit Review
+                                            </button>
+                                        </form>
+                                    )}
+
+                                    {/* Display Existing Reviews */}
+                                    <div className="space-y-6">
+                                        {product.reviews.length === 0 ? (
+                                            <p className="text-gray-500 italic">
+                                                No reviews yet. Be the first to
+                                                review!
+                                            </p>
+                                        ) : (
+                                            product.reviews.map(
+                                                (review: any) => (
+                                                    <div
+                                                        key={review.id}
+                                                        className="border-b border-gray-100 pb-6 last:border-0 last:pb-0"
+                                                    >
+                                                        <div className="mb-2 flex items-center gap-2">
+                                                            <div className="font-bold text-gray-900">
+                                                                {
+                                                                    review.user
+                                                                        .name
+                                                                }
+                                                            </div>
+                                                            <div className="text-yellow-400">
+                                                                {'★'.repeat(
+                                                                    review.rating,
+                                                                )}
+                                                                <span className="text-gray-300">
+                                                                    {'★'.repeat(
+                                                                        5 -
+                                                                            review.rating,
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {review.comment && (
+                                                            <p className="text-gray-600">
+                                                                {review.comment}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ),
+                                            )
+                                        )}
+                                    </div>
+                                </div>
+                                {/* --- END REVIEWS SECTION --- */}
                             </div>
 
                             {/* Right Column: Purchasing Block */}

@@ -92,7 +92,7 @@ class ProductController extends Controller
 
     public function show(Request $request, Product $product)
     {
-        $product->load(['seller', 'category']);
+        $product->load(['seller', 'category', 'reviews.user']);
 
         // Check if the current user has a successful transaction for this product
         $hasPurchased = Transaction::where('buyer_id', $request->user()->id)
