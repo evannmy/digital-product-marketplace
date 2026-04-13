@@ -14,7 +14,7 @@ Route::inertia('/', 'welcome', [
 Route::get('/creator/{user}', [StoreController::class, 'show'])->name('creator.store');
 
 // 1. Storefront & Buyer Library
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
     Route::post('/products/{product}/checkout', [TransactionController::class, 'store'])->name('checkout');
