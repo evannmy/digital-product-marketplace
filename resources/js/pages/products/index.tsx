@@ -1,7 +1,26 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '../../layouts/app-layout';
 
-export default function Index({ products }: any) {
+export default function Index({ products, categories, filters }: any) {
+    // 1. Initialize state with the URL parameters (if they exist)
+    const [search, setSearch] = useState(filters?.search || '');
+    const [categoryId, setCategoryId] = useState(filters?.category_id || '');
+
+    // 2. The function that triggers the server request
+    const handleFilter = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Send a GET request to /products with the search parameters
+        router.get(
+            '/products',
+            { search, category_id: categoryId },
+            {
+                preserveState: true,
+                replace: true, // Prevents filling up the browser back-button history
+            },
+        );
+    };
+
     return (
         <AppLayout>
             <Head title="Products" />
@@ -14,6 +33,44 @@ export default function Index({ products }: any) {
                             Digital Marketplace
                         </h2>
                     </div>
+
+                    {/* --- NEW SEARCH AND FILTER BAR --- */}
+                    <form
+                        onSubmit={handleFilter}
+                        className="mb-8 flex flex-col gap-4 rounded-lg border border-gray-100 bg-white p-4 shadow-sm sm:flex-row"
+                    >
+                        <div className="grow">
+                            <input
+                                type="text"
+                                placeholder="Search products by title or description..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div className="sm:w-64">
+                            <select
+                                value={categoryId}
+                                onChange={(e) => setCategoryId(e.target.value)}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            >
+                                <option value="">All Categories</option>
+                                {categories &&
+                                    categories.map((cat: any) => (
+                                        <option key={cat.id} value={cat.id}>
+                                            {cat.name}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                        <button
+                            type="submit"
+                            className="rounded-md bg-blue-600 px-6 py-2 font-medium text-white transition hover:bg-blue-700"
+                        >
+                            Filter
+                        </button>
+                    </form>
+                    {/* --- END SEARCH AND FILTER BAR --- */}
 
                     {/* Product Grid */}
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

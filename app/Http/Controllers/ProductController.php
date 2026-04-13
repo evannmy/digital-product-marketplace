@@ -12,17 +12,34 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request)
     {
-        // Fetch active products, eager load relationships, and order by newest
-        $products = Product::with(['seller', 'category'])
-            ->where('is_active', true)
-            ->latest()
-            ->get();
+        // 1. Start the query builder (only active products)
+        $query = \App\Models\Product::with(['seller', 'category'])->where('is_active', true);
 
-        // Send data directly to the React component
+        // 2. Apply Text Search
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', $searchTerm)
+                    ->orWhere('description', 'like', $searchTerm);
+            });
+        }
+
+        // 3. Apply Category Filter
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // 4. Execute the query
+        $products = $query->latest()->get();
+        $categories = \App\Models\Category::all();
+
         return Inertia::render('products/index', [
-            'products' => $products
+            'products' => $products,
+            'categories' => $categories,
+            // Pass the current search terms back to React so the input fields don't clear out
+            'filters' => $request->only(['search', 'category_id'])
         ]);
     }
 

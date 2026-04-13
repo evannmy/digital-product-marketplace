@@ -40,7 +40,7 @@ export default function Show({ product, hasPurchased }: any) {
                                         <img
                                             src={`/storage/${product.image_path}`}
                                             alt={product.title}
-                                            className="h-auto max-h-[500px] w-full object-contain"
+                                            className="h-auto max-h-125 w-full object-contain"
                                         />
                                     </div>
                                 )}
