@@ -205,14 +205,35 @@ class ProductController extends Controller
 
     public function mine(Request $request)
     {
-        // Fetch only products belonging to the logged-in user, newest first
-        $products = Product::with('category')
-            ->where('seller_id', $request->user()->id)
+        $userId = $request->user()->id;
+
+        // 1. Fetch the seller's inventory
+        $products = Product::where('seller_id', $userId)
+            ->with('category')
             ->latest()
             ->get();
 
+        // 2. Calculate Total Sales (Count of successful transactions for their products)
+        $totalSales = \App\Models\Transaction::whereHas('product', function ($query) use ($userId) {
+            $query->where('seller_id', $userId);
+        })
+            ->where('status', 'success')
+            ->count();
+
+        // 3. Calculate Total Revenue (Sum of successful transaction amounts)
+        $totalRevenue = \App\Models\Transaction::whereHas('product', function ($query) use ($userId) {
+            $query->where('seller_id', $userId);
+        })
+            ->where('status', 'success')
+            ->sum('amount');
+
+        // 4. Send everything to the React frontend
         return Inertia::render('products/mine', [
-            'products' => $products
+            'products' => $products,
+            'stats' => [
+                'totalSales' => $totalSales,
+                'totalRevenue' => $totalRevenue,
+            ]
         ]);
     }
 }
