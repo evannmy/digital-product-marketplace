@@ -6,7 +6,7 @@ import {
     Package,
     ShoppingBag,
 } from 'lucide-react';
-import AppLogo from '@/components/app-logo';
+// import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -65,7 +65,10 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
                             <Link href={dashboard()} prefetch>
-                                <AppLogo />
+                                {/* <AppLogo /> */}
+                                <div className="flex items-center gap-2 text-2xl font-bold tracking-tight text-blue-600">
+                                    Soko
+                                </div>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
