@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OtpVerificationMail;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -24,6 +26,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'role',
+        'otp_code',
+        'otp_expires_at',
     ];
 
     /**
@@ -55,5 +59,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function products()
     {
         return $this->hasMany(Product::class, 'seller_id');
+    }
+
+    public function sendEmailVerificationNotification()
+    {
+        // Intercept Laravel's default email and send our OTP design instead,
+        // using the code we generated during registration!
+        Mail::to($this->email)->send(new OtpVerificationMail($this->otp_code));
     }
 }

@@ -13,6 +13,17 @@ Route::inertia('/', 'welcome', [
 // Public Creator Storefront
 Route::get('/creator/{user}', [StoreController::class, 'show'])->name('creator.store');
 
+// OTP Verification Routes (Must be logged in, but NOT verified yet)
+Route::middleware(['auth'])->group(function () {
+    // This specific route name "verification.notice" is what Laravel's "verified" middleware looks for!
+    Route::get('/verify-otp', function () {
+        return inertia('auth/verify-otp');
+    })->name('verification.notice');
+
+    Route::post('/verify-otp', [\App\Http\Controllers\OtpController::class, 'verify'])->name('verification.verify_otp');
+    Route::post('/verify-otp/resend', [\App\Http\Controllers\OtpController::class, 'resend'])->name('verification.resend_otp');
+});
+
 // 1. Storefront & Buyer Library
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
