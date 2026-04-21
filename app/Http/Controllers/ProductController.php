@@ -14,8 +14,12 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Start the query builder (only active products)
-        $query = \App\Models\Product::with(['seller', 'category'])->where('is_active', true);
+        // 1. Start the query builder and add 'withAvg'
+        $query = \App\Models\Product::with(['seller', 'category'])
+            ->where('is_active', true)
+            // This line tells Laravel: "Look at the 'reviews' relationship, 
+            // average the 'rating' column, and remember it."
+            ->withAvg('reviews', 'rating');
 
         // 2. Apply Text Search
         if ($request->filled('search')) {
@@ -31,15 +35,32 @@ class ProductController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        // 4. Execute the query
-        $products = $query->latest()->get();
+        // 4. Apply Sorting
+        $sort = $request->input('sort', 'newest');
+
+        match ($sort) {
+            'price_asc'   => $query->orderBy('price', 'asc'),
+            'price_desc'  => $query->orderBy('price', 'desc'),
+
+            // Because of withAvg(), Laravel automatically created a temporary 
+            // virtual column named {relationship}_{column}_avg.
+            'rating_desc' => $query->orderBy('reviews_avg_rating', 'desc'),
+
+            default       => $query->latest(),
+        };
+
+        // 5. Execute the query
+        $products = $query->get();
         $categories = \App\Models\Category::all();
 
         return Inertia::render('products/index', [
             'products' => $products,
             'categories' => $categories,
-            // Pass the current search terms back to React so the input fields don't clear out
-            'filters' => $request->only(['search', 'category_id'])
+            'filters' => [
+                'search' => $request->search,
+                'category_id' => $request->category_id,
+                'sort' => $request->sort
+            ]
         ]);
     }
 

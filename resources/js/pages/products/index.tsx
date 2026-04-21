@@ -1,22 +1,27 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState } from 'react'; // Removed useEffect and useRef
 import AppLayout from '../../layouts/app-layout';
 
 export default function Index({ products, categories, filters }: any) {
-    // 1. Initialize state with the URL parameters (if they exist)
-    const [search, setSearch] = useState(filters?.search || '');
-    const [categoryId, setCategoryId] = useState(filters?.category_id || '');
+    // Safety check: guarantee filters is an object, not an array
+    const safeFilters = Array.isArray(filters) ? {} : filters || {};
 
-    // 2. The function that triggers the server request
+    // 1. Initialize State
+    const [search, setSearch] = useState(safeFilters.search || '');
+    const [categoryId, setCategoryId] = useState(safeFilters.category_id || '');
+    const [sort, setSort] = useState(safeFilters.sort || 'newest');
+
+    // 2. The manual submit function
     const handleFilter = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Send a GET request to /products with the search parameters
+        e.preventDefault(); // Stop the browser from doing a hard refresh
+
+        // Send a single GET request with all 3 parameters at once
         router.get(
             '/products',
-            { search, category_id: categoryId },
+            { search, category_id: categoryId, sort },
             {
                 preserveState: true,
-                replace: true, // Prevents filling up the browser back-button history
+                replace: true, // Prevents filling up the browser's back-button history
             },
         );
     };
@@ -34,7 +39,8 @@ export default function Index({ products, categories, filters }: any) {
                         </h2>
                     </div>
 
-                    {/* --- NEW SEARCH AND FILTER BAR --- */}
+                    {/* --- SEARCH AND FILTER FORM --- */}
+                    {/* Brought back the <form> wrapper and onSubmit */}
                     <form
                         onSubmit={handleFilter}
                         className="mb-8 flex flex-col gap-4 rounded-lg border border-gray-100 bg-white p-4 shadow-sm sm:flex-row"
@@ -48,7 +54,8 @@ export default function Index({ products, categories, filters }: any) {
                                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                             />
                         </div>
-                        <div className="sm:w-64">
+
+                        <div className="sm:w-48">
                             <select
                                 value={categoryId}
                                 onChange={(e) => setCategoryId(e.target.value)}
@@ -63,6 +70,28 @@ export default function Index({ products, categories, filters }: any) {
                                     ))}
                             </select>
                         </div>
+
+                        <div className="sm:w-48">
+                            <select
+                                value={sort}
+                                // Now this only updates React state, it doesn't trigger the server
+                                onChange={(e) => setSort(e.target.value)}
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            >
+                                <option value="newest">Newest Arrivals</option>
+                                <option value="price_asc">
+                                    Price: Low to High
+                                </option>
+                                <option value="price_desc">
+                                    Price: High to Low
+                                </option>
+                                <option value="rating_desc">
+                                    Highest Rated
+                                </option>
+                            </select>
+                        </div>
+
+                        {/* --- THE FILTER BUTTON IS BACK --- */}
                         <button
                             type="submit"
                             className="rounded-md bg-blue-600 px-6 py-2 font-medium text-white transition hover:bg-blue-700"
@@ -70,7 +99,7 @@ export default function Index({ products, categories, filters }: any) {
                             Filter
                         </button>
                     </form>
-                    {/* --- END SEARCH AND FILTER BAR --- */}
+                    {/* --- END SEARCH AND FILTER FORM --- */}
 
                     {/* Product Grid */}
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -82,14 +111,17 @@ export default function Index({ products, categories, filters }: any) {
                             >
                                 <div
                                     key={product.id}
-                                    className="flex flex-col overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg"
+                                    className="flex h-full flex-col overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg"
                                 >
-                                    <div className="relative aspect-video w-full overflow-hidden bg-gray-100">
+                                    <div
+                                        className="relative mb-4 w-full overflow-hidden rounded bg-gray-100"
+                                        style={{ aspectRatio: '16/9' }}
+                                    >
                                         {product.image_path ? (
                                             <img
                                                 src={`/storage/${product.image_path}`}
                                                 alt={product.title}
-                                                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                                className="absolute inset-0 h-full w-full object-cover transition duration-300 hover:scale-105"
                                             />
                                         ) : (
                                             <div className="flex h-full w-full items-center justify-center text-gray-400">
@@ -98,24 +130,45 @@ export default function Index({ products, categories, filters }: any) {
                                         )}
                                     </div>
 
-                                    <div className="mb-1 text-sm font-semibold text-blue-600">
-                                        {product.category.name}
+                                    <div className="mb-1 flex items-start justify-between">
+                                        <div className="text-sm font-semibold text-blue-600">
+                                            {product.category.name}
+                                        </div>
+
+                                        <div className="flex items-center gap-1">
+                                            {product.reviews_avg_rating ? (
+                                                <>
+                                                    <span className="text-sm text-yellow-400">
+                                                        ⭐
+                                                    </span>
+                                                    <span className="text-sm font-medium text-gray-700">
+                                                        {Number(
+                                                            product.reviews_avg_rating,
+                                                        ).toFixed(1)}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="text-xs text-gray-400 italic">
+                                                    No ratings
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
+
                                     <h3 className="mb-2 line-clamp-1 text-lg font-bold text-gray-900">
                                         {product.title}
                                     </h3>
+
                                     <p className="mb-4 line-clamp-2 grow text-sm text-gray-600">
                                         {product.description}
                                     </p>
+
                                     <div className="mt-auto flex items-center justify-between border-t pt-4">
                                         <span className="text-sm text-gray-500">
                                             By:{' '}
-                                            <Link
-                                                href={`/creator/${product.seller.id}`}
-                                                className="font-semibold text-blue-600 hover:underline"
-                                            >
+                                            <span className="font-semibold text-blue-600 hover:underline">
                                                 {product.seller.name}
-                                            </Link>
+                                            </span>
                                         </span>
                                         <span className="text-lg font-bold text-green-600">
                                             Rp{' '}
@@ -132,7 +185,7 @@ export default function Index({ products, categories, filters }: any) {
                     {/* Empty State */}
                     {products.length === 0 && (
                         <div className="rounded-lg bg-white py-12 text-center text-gray-500 shadow-sm">
-                            No digital products available at the moment.
+                            No digital products found matching your filters.
                         </div>
                     )}
                 </div>
