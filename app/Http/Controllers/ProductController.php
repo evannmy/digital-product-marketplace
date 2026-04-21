@@ -225,7 +225,7 @@ class ProductController extends Controller
             $query->where('seller_id', $userId);
         })
             ->where('status', 'success')
-            ->sum('amount');
+            ->sum('price');
 
         // 4. Send everything to the React frontend
         return Inertia::render('products/mine', [

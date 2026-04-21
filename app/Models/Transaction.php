@@ -13,7 +13,7 @@ class Transaction extends Model
     protected $fillable = [
         'buyer_id',
         'product_id',
-        'amount',
+        'price',
         'status',
     ];
 

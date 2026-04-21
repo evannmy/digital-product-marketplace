@@ -1,4 +1,5 @@
 import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
+import { ShoppingBag } from 'lucide-react';
 import AppLayout from '../../layouts/app-layout';
 
 export default function Show({ product, hasPurchased }: any) {
@@ -12,6 +13,18 @@ export default function Show({ product, hasPurchased }: any) {
     const submitReview = (e: React.FormEvent) => {
         e.preventDefault();
         post(`/products/${product.id}/reviews`);
+    };
+
+    const addToCart = () => {
+        router.post(
+            route('cart.store'),
+            {
+                product_id: product.id,
+            },
+            {
+                preserveScroll: true, // Don't jump to the top of the page
+            },
+        );
     };
 
     return (
@@ -197,7 +210,9 @@ export default function Show({ product, hasPurchased }: any) {
                                     </div>
 
                                     {/* Action Buttons Logic */}
-                                    <div className="mt-6">
+                                    <div className="mt-6 flex flex-col gap-3">
+                                        {' '}
+                                        {/* Added flex gap for spacing */}
                                         {auth.user &&
                                         auth.user.id === product.seller_id ? (
                                             <div className="rounded border border-gray-200 bg-gray-100 px-4 py-3 text-center font-medium text-gray-600">
@@ -211,14 +226,26 @@ export default function Show({ product, hasPurchased }: any) {
                                                 Download Your Product
                                             </a>
                                         ) : product.is_active ? (
-                                            <Link
-                                                href={`/products/${product.id}/checkout`}
-                                                method="post"
-                                                as="button"
-                                                className="w-full rounded bg-blue-600 px-4 py-3 font-semibold text-white transition duration-150 hover:bg-blue-700"
-                                            >
-                                                Purchase Now
-                                            </Link>
+                                            <>
+                                                {/* 3. The new Add to Cart Button */}
+                                                <button
+                                                    onClick={addToCart}
+                                                    className="flex w-full items-center justify-center gap-2 rounded border-2 border-blue-600 bg-white px-4 py-3 font-semibold text-blue-600 transition duration-150 hover:bg-blue-50"
+                                                >
+                                                    <ShoppingBag className="h-5 w-5" />
+                                                    Add to Cart
+                                                </button>
+
+                                                {/* Your existing direct checkout button */}
+                                                <Link
+                                                    href={`/products/${product.id}/checkout`}
+                                                    method="post"
+                                                    as="button"
+                                                    className="w-full rounded bg-blue-600 px-4 py-3 font-semibold text-white transition duration-150 hover:bg-blue-700"
+                                                >
+                                                    Buy It Now
+                                                </Link>
+                                            </>
                                         ) : (
                                             <button
                                                 disabled

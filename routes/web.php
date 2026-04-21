@@ -5,6 +5,7 @@ use Laravel\Fortify\Features;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\CartController;
 
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
@@ -28,10 +29,15 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
-    Route::post('/products/{product}/checkout', [TransactionController::class, 'store'])->name('checkout');
+    Route::post('/checkout', [TransactionController::class, 'checkout'])->name('checkout.process');
+    Route::post('/products/{product}/checkout', [TransactionController::class, 'directCheckout'])->name('checkout.direct');
     Route::get('/products/{product}/download', [ProductController::class, 'download'])->name('products.download');
     Route::get('/purchases', [TransactionController::class, 'purchases'])->name('purchases.index');
     Route::post('/products/{product}/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
+
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/store', [CartController::class, 'store'])->name('cart.store');
+    Route::delete('/cart/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
 
     // The Onboarding Action: Updates the role string
     Route::post('/onboarding/seller', function (Illuminate\Http\Request $request) {
