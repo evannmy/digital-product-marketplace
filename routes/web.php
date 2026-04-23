@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\PromotionController;
 
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
@@ -54,6 +55,13 @@ Route::middleware(['auth', 'is_seller'])->group(function () {
     Route::get('/seller/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::post('/seller/products/{product}/update', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/seller/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    // 1. View the Promotions Menu
+    Route::get('/seller/promotions', [PromotionController::class, 'index'])->name('promotions.index');
+    // 2. Apply a mass discount
+    Route::post('/seller/promotions/apply', [PromotionController::class, 'apply'])->name('promotions.apply');
+    // 3. Remove a mass discount early
+    Route::post('/seller/promotions/clear', [PromotionController::class, 'clear'])->name('promotions.clear');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

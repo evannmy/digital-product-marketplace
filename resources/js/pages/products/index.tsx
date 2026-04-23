@@ -163,19 +163,45 @@ export default function Index({ products, categories, filters }: any) {
                                         {product.description}
                                     </p>
 
-                                    <div className="mt-auto flex items-center justify-between border-t pt-4">
-                                        <span className="text-sm text-gray-500">
+                                    <div className="mt-auto flex items-end justify-between border-t pt-4">
+                                        <span className="mb-0.5 text-sm text-gray-500">
                                             By:{' '}
                                             <span className="font-semibold text-blue-600 hover:underline">
                                                 {product.seller.name}
                                             </span>
                                         </span>
-                                        <span className="text-lg font-bold text-green-600">
-                                            Rp{' '}
-                                            {product.price.toLocaleString(
-                                                'id-ID',
+
+                                        {/* --- NEW: Discount Pricing Logic --- */}
+                                        <div className="flex flex-col items-end">
+                                            {product.is_discount_active ? (
+                                                <>
+                                                    {/* Original Price (Crossed Out) */}
+                                                    <span className="text-xs text-gray-400 line-through">
+                                                        Rp{' '}
+                                                        {product.price.toLocaleString(
+                                                            'id-ID',
+                                                        )}
+                                                    </span>
+                                                    {/* New Discount Price */}
+                                                    <span className="text-lg font-bold text-red-600">
+                                                        Rp{' '}
+                                                        {Number(
+                                                            product.discount_price,
+                                                        ).toLocaleString(
+                                                            'id-ID',
+                                                        )}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                /* Standard Price */
+                                                <span className="text-lg font-bold text-green-600">
+                                                    Rp{' '}
+                                                    {product.price.toLocaleString(
+                                                        'id-ID',
+                                                    )}
+                                                </span>
                                             )}
-                                        </span>
+                                        </div>
                                     </div>
                                 </div>
                             </Link>

@@ -1,5 +1,12 @@
 import { Link, usePage, router } from '@inertiajs/react';
-import { LayoutGrid, Package, ShoppingBag, ShoppingCart } from 'lucide-react';
+// --- NEW: Added BadgePercent to your lucide-react imports ---
+import {
+    LayoutGrid,
+    Package,
+    ShoppingBag,
+    ShoppingCart,
+    BadgePercent,
+} from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -22,13 +29,20 @@ export function AppSidebar() {
         { title: 'My Cart', href: '/cart', icon: ShoppingCart },
     ];
 
-    // Check against the role string
+    // --- UPDATED: Pushing multiple items for sellers ---
     if (auth.user && auth.user.role === 'seller') {
-        navItems.push({
-            title: 'My Inventory',
-            href: '/seller/products/mine',
-            icon: Package,
-        });
+        navItems.push(
+            {
+                title: 'My Inventory',
+                href: '/seller/products/mine',
+                icon: Package,
+            },
+            {
+                title: 'Promotions',
+                href: '/seller/promotions',
+                icon: BadgePercent,
+            },
+        );
     }
 
     const upgradeToSeller = () => {

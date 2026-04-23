@@ -187,10 +187,39 @@ export default function Show({ product, hasPurchased }: any) {
                             {/* Right Column: Purchasing Block */}
                             <div className="mt-8 md:mt-0 md:w-1/3">
                                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
-                                    <div className="mb-4 text-3xl font-bold text-green-600">
-                                        Rp{' '}
-                                        {product.price.toLocaleString('id-ID')}
+                                    {/* --- NEW: Discount Pricing Logic --- */}
+                                    <div className="mb-4">
+                                        {product.is_discount_active ? (
+                                            <div>
+                                                <div className="mb-1 flex items-center gap-2">
+                                                    <span className="text-lg text-gray-400 line-through">
+                                                        Rp{' '}
+                                                        {product.price.toLocaleString(
+                                                            'id-ID',
+                                                        )}
+                                                    </span>
+                                                    <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                                                        SALE
+                                                    </span>
+                                                </div>
+                                                <div className="text-3xl font-bold text-red-600">
+                                                    Rp{' '}
+                                                    {Number(
+                                                        product.discount_price,
+                                                    ).toLocaleString('id-ID')}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-3xl font-bold text-green-600">
+                                                Rp{' '}
+                                                {product.price.toLocaleString(
+                                                    'id-ID',
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
+                                    {/* --- END Discount Pricing Logic --- */}
+
                                     <div className="mb-6 text-sm text-gray-600">
                                         <p className="mb-6 text-sm text-gray-500">
                                             Created by:{' '}
@@ -211,8 +240,6 @@ export default function Show({ product, hasPurchased }: any) {
 
                                     {/* Action Buttons Logic */}
                                     <div className="mt-6 flex flex-col gap-3">
-                                        {' '}
-                                        {/* Added flex gap for spacing */}
                                         {auth.user &&
                                         auth.user.id === product.seller_id ? (
                                             <div className="rounded border border-gray-200 bg-gray-100 px-4 py-3 text-center font-medium text-gray-600">
@@ -227,7 +254,7 @@ export default function Show({ product, hasPurchased }: any) {
                                             </a>
                                         ) : product.is_active ? (
                                             <>
-                                                {/* 3. The new Add to Cart Button */}
+                                                {/* Add to Cart Button */}
                                                 <button
                                                     onClick={addToCart}
                                                     className="flex w-full items-center justify-center gap-2 rounded border-2 border-blue-600 bg-white px-4 py-3 font-semibold text-blue-600 transition duration-150 hover:bg-blue-50"
@@ -236,7 +263,7 @@ export default function Show({ product, hasPurchased }: any) {
                                                     Add to Cart
                                                 </button>
 
-                                                {/* Your existing direct checkout button */}
+                                                {/* Direct checkout button */}
                                                 <Link
                                                     href={`/products/${product.id}/checkout`}
                                                     method="post"
