@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        $middleware->redirectUsersTo('/products');
+
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'is_seller' => \App\Http\Middleware\IsSeller::class,

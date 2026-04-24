@@ -7,10 +7,21 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\PromotionController;
+use App\Models\Product;
+use Inertia\Inertia;
 
-Route::inertia('/', 'welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::get('/', function () {
+    // Fetch 3 active products to feature on the homepage
+    $featuredProducts = Product::where('is_active', true)
+        ->latest()
+        ->take(3)
+        ->get();
+
+    return Inertia::render('welcome', [
+        // Pass the data to React!
+        'featuredProducts' => $featuredProducts,
+    ]);
+})->name('home');
 
 // Public Creator Storefront
 Route::get('/creator/{user}', [StoreController::class, 'show'])->name('creator.store');
