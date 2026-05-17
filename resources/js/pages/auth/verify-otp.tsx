@@ -30,12 +30,24 @@ export default function VerifyOtp() {
         }
     };
 
+    // --- UPDATED: Improved backspace and cursor handling ---
     const handleKeyDown = (
         index: number,
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
-        if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-            inputRefs.current[index - 1]?.focus();
+        if (e.key === 'Backspace') {
+            if (otpValues[index] !== '') {
+                // Force clear if there is a number
+                e.preventDefault();
+                const newOtp = [...otpValues];
+                newOtp[index] = '';
+                setOtpValues(newOtp);
+                setData('code', newOtp.join(''));
+            } else if (index > 0) {
+                // Move back if already empty
+                e.preventDefault();
+                inputRefs.current[index - 1]?.focus();
+            }
         }
     };
 
@@ -113,6 +125,10 @@ export default function VerifyOtp() {
                                 We've sent a 6-digit security code to your
                                 email. Enter it below to unlock the marketplace.
                             </p>
+                            <p className="mt-2 text-xs font-medium text-slate-400">
+                                Can't find it? Make sure to check your spam or
+                                junk folder.
+                            </p>
                         </div>
 
                         {/* Flash Messages */}
@@ -156,6 +172,8 @@ export default function VerifyOtp() {
                                                 handleKeyDown(index, e)
                                             }
                                             onPaste={handlePaste}
+                                            // --- ADDED: Auto-select text on focus ---
+                                            onFocus={(e) => e.target.select()}
                                             className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                         />
                                     ))}

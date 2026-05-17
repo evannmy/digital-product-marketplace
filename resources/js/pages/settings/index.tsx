@@ -8,7 +8,8 @@ import {
     Mail,
     CheckCircle2,
 } from 'lucide-react';
-import { useState, useRef } from 'react';
+// --- ADDED: useCallback to the imports ---
+import { useState, useRef, useEffect, useCallback } from 'react';
 import InputError from '@/components/input-error';
 import Navbar from '@/components/navbar';
 import PasswordInput from '@/components/password-input';
@@ -88,8 +89,17 @@ export default function Settings({ auth }: any) {
         index: number,
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
-        if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-            inputRefs.current[index - 1]?.focus();
+        if (e.key === 'Backspace') {
+            if (otpValues[index] !== '') {
+                e.preventDefault();
+                const newOtp = [...otpValues];
+                newOtp[index] = '';
+                setOtpValues(newOtp);
+                setOtpData('otp', newOtp.join(''));
+            } else if (index > 0) {
+                e.preventDefault();
+                inputRefs.current[index - 1]?.focus();
+            }
         }
     };
 
@@ -115,25 +125,31 @@ export default function Settings({ auth }: any) {
         }
     };
 
-    const submitOtp = (e: React.FormEvent) => {
-        e.preventDefault();
-        verifyOtp(route('settings.email.verify'), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setShowOtpModal(false);
-                resetOtp();
-                setOtpValues(['', '', '', '', '', '']);
-                toast('Email verified successfully!', 'success');
-            },
-        });
-    };
+    // --- FIXED: Wrapped in useCallback ---
+    const submitOtp = useCallback(
+        (e?: React.FormEvent | Event) => {
+            if (e) e.preventDefault();
 
-    const closeOtpModal = () => {
+            verifyOtp(route('settings.email.verify'), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowOtpModal(false);
+                    resetOtp();
+                    setOtpValues(['', '', '', '', '', '']);
+                    toast('Email verified successfully!', 'success');
+                },
+            });
+        },
+        [verifyOtp, resetOtp],
+    );
+
+    // --- FIXED: Wrapped in useCallback ---
+    const closeOtpModal = useCallback(() => {
         setShowOtpModal(false);
         resetOtp();
         setOtpValues(['', '', '', '', '', '']);
         setProfileData('email', user.email);
-    };
+    }, [resetOtp, setProfileData, user.email]);
 
     // ==========================================
     // --- PASSWORD UPDATE LOGIC ---
@@ -178,7 +194,7 @@ export default function Settings({ auth }: any) {
     };
 
     // ==========================================
-    // --- ACCOUNT DELETION LOGIC (OTP UPGRADE) ---
+    // --- ACCOUNT DELETION LOGIC ---
     // ==========================================
     const [showDeleteOtpModal, setShowDeleteOtpModal] = useState(false);
     const [deleteOtpValues, setDeleteOtpValues] = useState([
@@ -217,7 +233,6 @@ export default function Settings({ auth }: any) {
                     if (page.props.flash?.require_delete_otp) {
                         setShowDeleteOtpModal(true);
                     } else {
-                        // Fallback in case flash session mapping differs slightly
                         setShowDeleteOtpModal(true);
                     }
                 },
@@ -246,8 +261,17 @@ export default function Settings({ auth }: any) {
         index: number,
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
-        if (e.key === 'Backspace' && !deleteOtpValues[index] && index > 0) {
-            deleteInputRefs.current[index - 1]?.focus();
+        if (e.key === 'Backspace') {
+            if (deleteOtpValues[index] !== '') {
+                e.preventDefault();
+                const newOtp = [...deleteOtpValues];
+                newOtp[index] = '';
+                setDeleteOtpValues(newOtp);
+                setDeleteData('otp', newOtp.join(''));
+            } else if (index > 0) {
+                e.preventDefault();
+                deleteInputRefs.current[index - 1]?.focus();
+            }
         }
     };
 
@@ -273,25 +297,87 @@ export default function Settings({ auth }: any) {
         }
     };
 
-    const confirmAccountDeletion = (e: React.FormEvent) => {
-        e.preventDefault();
-        destroyUser(route('settings.destroy'), {
-            preserveScroll: true,
-            onError: () => {
-                setDeleteOtpValues(['', '', '', '', '', '']);
-                setDeleteData('otp', '');
-                deleteInputRefs.current[0]?.focus();
-                toast('Invalid or expired code.', 'error');
-            },
-        });
-    };
+    // --- FIXED: Wrapped in useCallback ---
+    const confirmAccountDeletion = useCallback(
+        (e?: React.FormEvent | Event) => {
+            if (e) e.preventDefault();
 
-    const closeDeleteModal = () => {
+            destroyUser(route('settings.destroy'), {
+                preserveScroll: true,
+                onError: () => {
+                    setDeleteOtpValues(['', '', '', '', '', '']);
+                    setDeleteData('otp', '');
+                    deleteInputRefs.current[0]?.focus();
+                    toast('Invalid or expired code.', 'error');
+                },
+            });
+        },
+        [destroyUser, setDeleteData],
+    );
+
+    // --- FIXED: Wrapped in useCallback ---
+    const closeDeleteModal = useCallback(() => {
         setShowDeleteOtpModal(false);
         resetDelete();
         clearDeleteErrors();
         setDeleteOtpValues(['', '', '', '', '', '']);
-    };
+    }, [resetDelete, clearDeleteErrors]);
+
+    // ==========================================
+    // --- MODAL SCROLL LOCK & KEYBOARD LOGIC ---
+    // ==========================================
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (showOtpModal) closeOtpModal();
+
+                if (showDeleteOtpModal) closeDeleteModal();
+            }
+
+            if (e.key === 'Enter') {
+                if (
+                    showOtpModal &&
+                    otpData.otp.length === 6 &&
+                    !otpProcessing
+                ) {
+                    e.preventDefault();
+                    submitOtp();
+                } else if (
+                    showDeleteOtpModal &&
+                    deleteData.otp.length === 6 &&
+                    !deleteProcessing
+                ) {
+                    e.preventDefault();
+                    confirmAccountDeletion();
+                }
+            }
+        };
+
+        if (showOtpModal || showDeleteOtpModal) {
+            document.body.style.overflow = 'hidden';
+            window.addEventListener('keydown', handleGlobalKeyDown);
+        } else {
+            document.body.style.overflow = 'unset';
+            window.removeEventListener('keydown', handleGlobalKeyDown);
+        }
+
+        return () => {
+            document.body.style.overflow = 'unset';
+            window.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, [
+        showOtpModal,
+        showDeleteOtpModal,
+        otpData.otp,
+        deleteData.otp,
+        otpProcessing,
+        deleteProcessing,
+        // --- ADDED: The required functions to the array ---
+        closeOtpModal,
+        submitOtp,
+        closeDeleteModal,
+        confirmAccountDeletion,
+    ]);
 
     // ==========================================
     // --- RENDER ---
@@ -394,7 +480,6 @@ export default function Settings({ auth }: any) {
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
                                     Current Password
                                 </label>
-                                {/* --- FIX: Wrap everything in a max-w-md container --- */}
                                 <div className="w-full max-w-md">
                                     <PasswordInput
                                         value={pwdData.current_password}
@@ -548,6 +633,10 @@ export default function Settings({ auth }: any) {
                                     {profileData.email}
                                 </span>
                             </p>
+                            <p className="mt-2 text-xs font-medium text-slate-400">
+                                Can't find it? Make sure to check your spam or
+                                junk folder.
+                            </p>
                         </div>
 
                         <form onSubmit={submitOtp}>
@@ -574,6 +663,7 @@ export default function Settings({ auth }: any) {
                                                 handleOtpKeyDown(index, e)
                                             }
                                             onPaste={handleOtpPaste}
+                                            onFocus={(e) => e.target.select()}
                                             className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                             autoFocus={index === 0}
                                         />
@@ -645,6 +735,10 @@ export default function Settings({ auth }: any) {
                                     {user.email}
                                 </span>
                             </p>
+                            <p className="mt-2 text-xs font-medium text-slate-400">
+                                Can't find it? Make sure to check your spam or
+                                junk folder.
+                            </p>
                         </div>
 
                         <form onSubmit={confirmAccountDeletion}>
@@ -672,6 +766,7 @@ export default function Settings({ auth }: any) {
                                                 handleDeleteOtpKeyDown(index, e)
                                             }
                                             onPaste={handleDeleteOtpPaste}
+                                            onFocus={(e) => e.target.select()}
                                             className="h-14 w-12 rounded-xl border border-rose-200 bg-rose-50/50 text-center text-2xl font-bold text-rose-900 caret-transparent shadow-sm transition-all focus:border-rose-500 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                             autoFocus={index === 0}
                                         />
