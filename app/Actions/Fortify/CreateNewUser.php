@@ -21,13 +21,17 @@ class CreateNewUser implements CreatesNewUsers
     public function create(array $input): User
     {
         Validator::make($input, [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:50'],
+            'username' => ['required', 'string', 'max:30', 'unique:users', 'regex:/^[a-zA-Z0-9_]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => $this->passwordRules(),
+        ], [
+            'username.regex' => 'The username may only contain letters, numbers, and underscores.'
         ])->validate();
 
         return User::create([
             'name' => $input['name'],
+            'username' => strtolower($input['username']),
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
 

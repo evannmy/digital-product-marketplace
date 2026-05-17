@@ -28,6 +28,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'otp_code',
         'otp_expires_at',
+        'username',
+        'bio',
+        'website',
+        'instagram',
+        'github',
+        'avatar_path',
+        'cover_photo_path',
+        'is_active',
     ];
 
     /**
@@ -66,5 +74,11 @@ class User extends Authenticatable implements MustVerifyEmail
         // Intercept Laravel's default email and send our OTP design instead,
         // using the code we generated during registration!
         Mail::to($this->email)->send(new OtpVerificationMail($this->otp_code));
+    }
+
+    public function receivedReviews()
+    {
+        // This tells Laravel: "Find all reviews connected to products where this user is the seller_id"
+        return $this->hasManyThrough(Review::class, Product::class, 'seller_id');
     }
 }

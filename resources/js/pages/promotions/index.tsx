@@ -1,36 +1,62 @@
 import { Head, useForm, router } from '@inertiajs/react';
+import {
+    Percent,
+    Clock,
+    Calendar,
+    Zap,
+    XCircle,
+    CheckSquare,
+    Square,
+    AlertCircle,
+    Search,
+    Filter,
+    ChevronDown,
+    EyeOff,
+} from 'lucide-react';
 import { useState } from 'react';
-import AppLayout from '@/layouts/app-layout';
+import BackToTop from '@/components/back-to-top';
+import ConfirmModal from '@/components/confirm-modal';
+import Navbar from '@/components/navbar';
+import { toast } from '@/components/toaster';
 
 export default function PromotionsIndex({ products }: any) {
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Setup the form data
-    const { data, setData, post, processing, errors, reset } = useForm({
-        product_ids: [] as number[],
-        discount_percentage: '',
-        starts_at: '',
-        ends_at: '',
-        timezone: userTimeZone,
-    });
+    const { data, setData, post, processing, errors, reset, clearErrors } =
+        useForm({
+            product_ids: [] as number[],
+            discount_percentage: '',
+            starts_at: '',
+            ends_at: '',
+            timezone: userTimeZone,
+        });
 
-    // 1. Temporary state for the custom duration inputs
     const [customHours, setCustomHours] = useState<number | ''>('');
     const [customMinutes, setCustomMinutes] = useState<number | ''>('');
 
-    // 2. The Math Logic
+    // --- UX State ---
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStatus, setFilterStatus] = useState<
+        'all' | 'active' | 'inactive'
+    >('all');
+    const [showCustomDates, setShowCustomDates] = useState(false);
+    const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+
+    // --- LOGIC: Duration Calculator ---
     const applyCustomDuration = () => {
-        // If the seller hasn't picked a start time yet, assume they mean "Right Now"
-        const baseTime = data.starts_at ? new Date(data.starts_at) : new Date();
+        let baseTime = data.starts_at ? new Date(data.starts_at) : new Date();
+        const now = new Date();
+
+        if (baseTime < now) {
+            baseTime = now;
+        }
 
         const h = Number(customHours) || 0;
         const m = Number(customMinutes) || 0;
 
-        // Calculate the exact milliseconds to add
         const durationInMs = h * 60 * 60 * 1000 + m * 60 * 1000;
         const endTime = new Date(baseTime.getTime() + durationInMs);
 
-        // Helper to format dates for the HTML <input>
         const formatForInput = (dateObj: Date) => {
             return new Date(
                 dateObj.getTime() - dateObj.getTimezoneOffset() * 60000,
@@ -39,19 +65,39 @@ export default function PromotionsIndex({ products }: any) {
                 .slice(0, 16);
         };
 
-        // Update the main Inertia form data!
         setData({
             ...data,
-            starts_at: data.starts_at || formatForInput(baseTime),
+            starts_at: formatForInput(baseTime),
             ends_at: formatForInput(endTime),
         });
 
-        // Optional: Clear the mini-inputs after applying
+        clearErrors('starts_at', 'ends_at');
         setCustomHours('');
         setCustomMinutes('');
+        toast('Duration calculated and applied!', 'success');
     };
 
-    // Handle Checkbox clicks
+    // --- LOGIC: Real-time Search & Status Filtering ---
+    const filteredProducts = products.filter((product: any) => {
+        const matchesSearch = product.title
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+        const matchesStatus =
+            filterStatus === 'all'
+                ? true
+                : filterStatus === 'active'
+                  ? product.is_discount_active
+                  : !product.is_discount_active;
+
+        return matchesSearch && matchesStatus;
+    });
+
+    const filteredIds = filteredProducts.map((p: any) => p.id);
+    const isAllFilteredSelected =
+        filteredIds.length > 0 &&
+        filteredIds.every((id: number) => data.product_ids.includes(id));
+
+    // --- LOGIC: Selection ---
     const toggleProduct = (id: number) => {
         const selected = data.product_ids;
 
@@ -65,347 +111,683 @@ export default function PromotionsIndex({ products }: any) {
         }
     };
 
+    const toggleAll = () => {
+        if (isAllFilteredSelected) {
+            setData(
+                'product_ids',
+                data.product_ids.filter((id) => !filteredIds.includes(id)),
+            );
+        } else {
+            const newSelection = new Set([...data.product_ids, ...filteredIds]);
+            setData('product_ids', Array.from(newSelection));
+        }
+    };
+
+    // --- LOGIC: Submission ---
     const submitPromotion = (e: React.FormEvent) => {
         e.preventDefault();
+
         post(route('promotions.apply'), {
-            onSuccess: () =>
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
                 reset(
                     'discount_percentage',
                     'starts_at',
                     'ends_at',
                     'product_ids',
-                ),
+                );
+                setShowCustomDates(false);
+                toast('Flash sale successfully applied!', 'success');
+            },
+            onError: (err) => {
+                console.error('Backend Validation Failed:', err);
+                toast('Failed to apply. Check the form for errors.', 'error');
+            },
         });
     };
 
-    const clearPromotion = () => {
-        if (
-            window.confirm(
-                'Are you sure you want to remove the discount from these products?',
-            )
-        ) {
-            router.post(
-                route('promotions.clear'),
-                {
-                    product_ids: data.product_ids,
+    const confirmClearPromotion = () => {
+        const idsToClear = selectedProductsWithPromos.map((p: any) => p.id);
+
+        router.post(
+            route('promotions.clear'),
+            { product_ids: idsToClear },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    setIsClearModalOpen(false);
+                    reset('product_ids');
+                    toast(
+                        `Discounts cleared from ${idsToClear.length} product(s).`,
+                        'delete',
+                    );
                 },
-                {
-                    onSuccess: () => reset('product_ids'),
+                onError: (err) => {
+                    console.error('Backend Validation Failed:', err);
+                    toast('Failed to clear discounts.', 'error');
                 },
-            );
-        }
+            },
+        );
     };
 
-    // --- UPDATED: Live Preview Math ---
+    // --- LIVE PREVIEW MATH ---
     const discountValue = Number(data.discount_percentage) || 0;
-
-    // Grab every single product that is currently checked
     const selectedProducts = products.filter((p: any) =>
         data.product_ids.includes(p.id),
     );
+    const selectedProductsWithPromos = selectedProducts.filter(
+        (p: any) => p.is_discount_active,
+    );
+
+    // Format display dates for the summary view
+    const formatDisplayDate = (dateString: string) => {
+        if (!dateString) return 'Not set';
+
+        return new Date(dateString).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+    };
 
     return (
-        <AppLayout>
-            <Head title="Manage Promotions" />
+        <div className="relative min-h-screen bg-[#FAFAFC] pb-24 font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900 sm:pb-0">
+            <Head title="Manage Promotions - Soko" />
 
-            <div className="mx-auto max-w-7xl py-12 sm:px-6 lg:px-8">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                        Campaign & Promotions
-                    </h2>
-                    <p className="text-gray-600">
-                        Select products below to apply a mass discount campaign.
-                    </p>
-                </div>
+            <Navbar />
 
-                <div className="flex flex-col gap-8 md:flex-row">
-                    {/* LEFT SIDE: The Campaign Form */}
-                    <div className="md:w-1/3">
-                        <form
-                            onSubmit={submitPromotion}
-                            className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm"
-                        >
-                            <h3 className="mb-4 text-lg font-bold">
-                                Create Flash Sale
-                            </h3>
+            {/* UPDATED: Separated vertical padding on main, width on inner div */}
+            <main className="relative z-10 pt-32 pb-24">
+                <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    {/* Header */}
+                    <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+                        <div>
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                                Promotions
+                            </h1>
+                            <p className="mt-2 text-lg text-slate-500">
+                                Create flash sales and manage bulk discounts for
+                                your products.
+                            </p>
+                        </div>
+                    </div>
 
-                            <div className="mb-4">
-                                <label className="mb-1 block text-sm font-medium">
-                                    Discount Percentage (%)
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="99"
-                                    value={data.discount_percentage}
-                                    onChange={(e) =>
-                                        setData(
-                                            'discount_percentage',
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="w-full rounded-md border-gray-300"
-                                    placeholder="e.g. 20"
-                                />
-                                {errors.discount_percentage && (
-                                    <span className="text-xs text-red-500">
-                                        {errors.discount_percentage}
-                                    </span>
-                                )}
+                    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+                        {/* ========================================================= */}
+                        {/* LEFT SIDE: The Campaign Form                              */}
+                        {/* ========================================================= */}
+                        <div className="flex w-full shrink-0 flex-col overflow-hidden rounded-3xl border border-slate-200/60 bg-white/90 shadow-xl ring-1 shadow-purple-900/5 backdrop-blur-xl lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:w-105">
+                            <form
+                                onSubmit={submitPromotion}
+                                className="flex min-h-0 w-full flex-1 flex-col"
+                            >
+                                {/* Form Header */}
+                                <div className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-6 py-5 backdrop-blur-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                                            <Zap
+                                                size={20}
+                                                className="fill-current"
+                                            />
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900">
+                                            Create Flash Sale
+                                        </h3>
+                                    </div>
+                                </div>
 
-                                {/* --- UPGRADED: Bulk Live Calculation Preview --- */}
-                                {discountValue > 0 &&
-                                    discountValue < 100 &&
-                                    selectedProducts.length > 0 && (
-                                        <div className="mt-3 flex flex-col overflow-hidden rounded-md border border-blue-200 bg-blue-50">
-                                            <div className="border-b border-blue-200 bg-blue-100 px-3 py-2 text-sm font-bold text-blue-900">
-                                                Price Preview (
-                                                {selectedProducts.length} items)
+                                {/* Scrollable Form Content */}
+                                <div className="flex-1 space-y-6 overflow-y-auto p-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                    {/* 1. Discount Input */}
+                                    <div>
+                                        <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
+                                            <Percent
+                                                size={16}
+                                                className="text-slate-400"
+                                            />
+                                            Discount Percentage
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="99"
+                                                value={data.discount_percentage}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'discount_percentage',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className={`w-full rounded-xl border bg-white/50 px-4 py-3 pr-10 text-sm shadow-sm transition-colors focus:bg-white focus:ring-1 focus:outline-none ${errors.discount_percentage ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-500'} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                                                placeholder="e.g. 20"
+                                            />
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+                                                <span className="font-bold text-slate-400">
+                                                    %
+                                                </span>
                                             </div>
+                                        </div>
+                                        {errors.discount_percentage && (
+                                            <p className="mt-1 flex items-center gap-1 text-xs text-rose-500">
+                                                <AlertCircle size={12} />{' '}
+                                                {errors.discount_percentage}
+                                            </p>
+                                        )}
 
-                                            {/* Adding max-h-48 and overflow-y-auto makes it scrollable! */}
-                                            <div className="max-h-48 overflow-y-auto p-3">
-                                                <ul className="space-y-3">
-                                                    {selectedProducts.map(
-                                                        (product: any) => (
-                                                            <li
-                                                                key={product.id}
-                                                                className="flex items-center justify-between border-b border-blue-100 pb-2 last:border-0 last:pb-0"
-                                                            >
-                                                                <span className="truncate pr-4 text-sm font-medium text-blue-800">
+                                        {/* Live Math Preview */}
+                                        {discountValue > 0 &&
+                                            discountValue < 100 &&
+                                            selectedProducts.length > 0 && (
+                                                <div className="mt-4 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/50">
+                                                    <div className="bg-emerald-100/50 px-4 py-2.5 text-xs font-bold tracking-wider text-emerald-800 uppercase">
+                                                        Price Preview (
+                                                        {
+                                                            selectedProducts.length
+                                                        }{' '}
+                                                        items)
+                                                    </div>
+                                                    <div className="max-h-48 overflow-y-auto p-4">
+                                                        <ul className="space-y-3">
+                                                            {selectedProducts.map(
+                                                                (
+                                                                    product: any,
+                                                                ) => (
+                                                                    <li
+                                                                        key={
+                                                                            product.id
+                                                                        }
+                                                                        className="flex items-center justify-between border-b border-emerald-100 pb-2 last:border-0 last:pb-0"
+                                                                    >
+                                                                        <span className="truncate pr-4 text-sm font-semibold text-emerald-900">
+                                                                            {
+                                                                                product.title
+                                                                            }
+                                                                        </span>
+                                                                        <div className="flex shrink-0 flex-col items-end">
+                                                                            <span className="text-[10px] font-bold text-slate-400 line-through">
+                                                                                Rp{' '}
+                                                                                {Number(
+                                                                                    product.price,
+                                                                                ).toLocaleString(
+                                                                                    'id-ID',
+                                                                                )}
+                                                                            </span>
+                                                                            <span className="text-sm font-black text-emerald-600">
+                                                                                Rp{' '}
+                                                                                {Math.round(
+                                                                                    product.price *
+                                                                                        (1 -
+                                                                                            discountValue /
+                                                                                                100),
+                                                                                ).toLocaleString(
+                                                                                    'id-ID',
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
+                                                                    </li>
+                                                                ),
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            )}
+                                    </div>
+
+                                    {/* 2. Schedule Section */}
+                                    <div>
+                                        <div className="mb-3 flex items-center justify-between">
+                                            <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                <Clock
+                                                    size={16}
+                                                    className="text-slate-400"
+                                                />
+                                                Schedule
+                                            </label>
+                                            <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
+                                                {userTimeZone}
+                                            </span>
+                                        </div>
+
+                                        {/* Primary Duration Calculator */}
+                                        <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                            <label className="mb-2 block text-xs font-bold text-slate-500">
+                                                Fast Duration Calculator
+                                            </label>
+                                            <div className="flex items-end gap-2">
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={customHours}
+                                                        onChange={(e) =>
+                                                            setCustomHours(
+                                                                e.target
+                                                                    .value ===
+                                                                    ''
+                                                                    ? ''
+                                                                    : Number(
+                                                                          e
+                                                                              .target
+                                                                              .value,
+                                                                      ),
+                                                            )
+                                                        }
+                                                        className="block w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors [-moz-appearance:textfield] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                        placeholder="Hours"
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="59"
+                                                        value={customMinutes}
+                                                        onChange={(e) =>
+                                                            setCustomMinutes(
+                                                                e.target
+                                                                    .value ===
+                                                                    ''
+                                                                    ? ''
+                                                                    : Number(
+                                                                          e
+                                                                              .target
+                                                                              .value,
+                                                                      ),
+                                                            )
+                                                        }
+                                                        className="block w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors [-moz-appearance:textfield] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                        placeholder="Minutes"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        applyCustomDuration
+                                                    }
+                                                    disabled={
+                                                        !customHours &&
+                                                        !customMinutes
+                                                    }
+                                                    className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-700 hover:shadow-md disabled:opacity-30"
+                                                >
+                                                    Add
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Active Schedule Summary */}
+                                        {(data.starts_at || data.ends_at) && (
+                                            <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
+                                                <div className="mb-1 flex justify-between text-xs">
+                                                    <span className="font-semibold text-purple-900">
+                                                        Starts:
+                                                    </span>
+                                                    <span className="text-purple-700">
+                                                        {formatDisplayDate(
+                                                            data.starts_at,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="font-semibold text-purple-900">
+                                                        Ends:
+                                                    </span>
+                                                    <span className="text-purple-700">
+                                                        {formatDisplayDate(
+                                                            data.ends_at,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Progressive Disclosure: Custom Dates Toggle */}
+                                        {!showCustomDates ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setShowCustomDates(true)
+                                                }
+                                                className="w-full py-2 text-center text-xs font-bold text-slate-400 transition-colors hover:text-purple-600"
+                                            >
+                                                Set exact calendar dates instead
+                                            </button>
+                                        ) : (
+                                            <div className="flex animate-in flex-col gap-4 duration-200 fade-in slide-in-from-top-2">
+                                                <div className="border-t border-slate-100 pt-4">
+                                                    <label className="mb-1.5 block text-xs font-bold text-slate-500">
+                                                        Starts At
+                                                    </label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={
+                                                                data.starts_at
+                                                            }
+                                                            onChange={(e) =>
+                                                                setData(
+                                                                    'starts_at',
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:m-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-10 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                                        />
+                                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                                            <Calendar
+                                                                size={18}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    {errors.starts_at && (
+                                                        <p className="mt-1 text-[10px] text-rose-500">
+                                                            {errors.starts_at}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <label className="mb-1.5 block text-xs font-bold text-slate-500">
+                                                        Ends At
+                                                    </label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={data.ends_at}
+                                                            onChange={(e) =>
+                                                                setData(
+                                                                    'ends_at',
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:m-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-10 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                                        />
+                                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                                            <Calendar
+                                                                size={18}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    {errors.ends_at && (
+                                                        <p className="mt-1 text-[10px] text-rose-500">
+                                                            {errors.ends_at}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setShowCustomDates(
+                                                            false,
+                                                        )
+                                                    }
+                                                    className="mt-2 text-xs font-bold text-slate-400 transition-colors hover:text-slate-600"
+                                                >
+                                                    Hide exact dates
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* --- LAUNCH BUTTON --- */}
+                                <div className="z-10 shrink-0 border-t border-slate-100 bg-white/90 p-4 backdrop-blur-md sm:p-5 sm:px-6">
+                                    <button
+                                        type="submit"
+                                        disabled={
+                                            processing ||
+                                            data.product_ids.length === 0
+                                        }
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-700 hover:shadow-lg hover:shadow-purple-500/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                                    >
+                                        Launch on {data.product_ids.length}{' '}
+                                        Item(s)
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* ========================================================= */}
+                        {/* RIGHT SIDE: Product List & Bulk Management                */}
+                        {/* ========================================================= */}
+                        <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl ring-1 shadow-slate-900/5 ring-white lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)]">
+                            {/* Header, Search, Filter, and Bulk Clear Action */}
+                            <div className="flex shrink-0 flex-col gap-4 border-b border-slate-100 bg-slate-50 px-6 py-5 sm:px-8 sm:py-6">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-black text-slate-900">
+                                        Select Products
+                                    </h2>
+                                    <button
+                                        type="button"
+                                        onClick={toggleAll}
+                                        className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
+                                    >
+                                        {isAllFilteredSelected
+                                            ? 'Deselect Visible'
+                                            : 'Select Visible'}
+                                    </button>
+                                </div>
+
+                                {/* Search and Filters */}
+                                <div className="flex flex-col gap-3 sm:flex-row">
+                                    <div className="relative flex-1">
+                                        <Search
+                                            size={18}
+                                            className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Search products by title..."
+                                            value={searchQuery}
+                                            onChange={(e) =>
+                                                setSearchQuery(e.target.value)
+                                            }
+                                            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-sm font-medium text-slate-700 transition-all outline-none placeholder:text-slate-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                        />
+                                    </div>
+
+                                    <div className="relative shrink-0 sm:w-44">
+                                        <Filter
+                                            size={16}
+                                            className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+                                        />
+                                        <select
+                                            value={filterStatus}
+                                            onChange={(e) =>
+                                                setFilterStatus(
+                                                    e.target.value as any,
+                                                )
+                                            }
+                                            className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pr-8 pl-9 text-sm font-medium text-slate-700 transition-all outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                        >
+                                            <option value="all">
+                                                All Products
+                                            </option>
+                                            <option value="active">
+                                                Active Promo
+                                            </option>
+                                            <option value="inactive">
+                                                No Promo
+                                            </option>
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+
+                                    {selectedProductsWithPromos.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setIsClearModalOpen(true)
+                                            }
+                                            className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-100"
+                                        >
+                                            <XCircle size={16} />
+                                            Clear Active (
+                                            {selectedProductsWithPromos.length})
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Scrollable Product Grid */}
+                            <div className="flex-1 overflow-y-auto p-6">
+                                {filteredProducts.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50 ring-8 ring-slate-50/50">
+                                            <Search className="h-8 w-8 text-slate-300" />
+                                        </div>
+                                        <h3 className="text-sm font-bold text-slate-900">
+                                            No matching products
+                                        </h3>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            Try adjusting your search or
+                                            filters.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                        {filteredProducts.map(
+                                            (product: any) => {
+                                                const isSelected =
+                                                    data.product_ids.includes(
+                                                        product.id,
+                                                    );
+
+                                                return (
+                                                    <div
+                                                        key={`product-${product.id}`}
+                                                        onClick={() =>
+                                                            toggleProduct(
+                                                                product.id,
+                                                            )
+                                                        }
+                                                        className={`group relative flex cursor-pointer flex-col justify-between gap-4 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 ${
+                                                            isSelected
+                                                                ? 'bg-purple-50/50 shadow-md ring-2 shadow-purple-500/10 ring-purple-500'
+                                                                : 'bg-white shadow-sm ring-1 ring-slate-200 hover:shadow-lg hover:shadow-purple-500/10 hover:ring-purple-300'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex flex-col pr-8">
+                                                                <span className="line-clamp-2 leading-tight font-bold text-slate-900">
                                                                     {
                                                                         product.title
                                                                     }
                                                                 </span>
-                                                                <div className="flex shrink-0 flex-col items-end">
-                                                                    <span className="text-xs text-gray-500 line-through">
+
+                                                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                                    <span className="text-sm font-semibold text-slate-500">
                                                                         Rp{' '}
-                                                                        {product.price.toLocaleString(
-                                                                            'id-ID',
-                                                                        )}
-                                                                    </span>
-                                                                    <span className="text-sm font-bold text-green-600">
-                                                                        Rp{' '}
-                                                                        {(
-                                                                            product.price *
-                                                                            (1 -
-                                                                                discountValue /
-                                                                                    100)
+                                                                        {Number(
+                                                                            product.price,
                                                                         ).toLocaleString(
                                                                             'id-ID',
                                                                         )}
                                                                     </span>
+
+                                                                    {/* Suspended by Admin Indicator */}
+                                                                    {product.is_locked && (
+                                                                        <span className="inline-flex items-center gap-1 rounded-md bg-rose-100 px-2 py-0.5 text-[11px] font-bold tracking-wider text-rose-800 uppercase ring-1 ring-rose-300 ring-inset">
+                                                                            <AlertCircle
+                                                                                size={
+                                                                                    12
+                                                                                }
+                                                                                className="shrink-0"
+                                                                            />{' '}
+                                                                            Suspended
+                                                                        </span>
+                                                                    )}
+
+                                                                    {/* Hidden by Seller Indicator */}
+                                                                    {!product.is_active &&
+                                                                        !product.is_locked && (
+                                                                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold tracking-wider text-amber-900 uppercase ring-1 ring-amber-300 ring-inset">
+                                                                                <EyeOff
+                                                                                    size={
+                                                                                        12
+                                                                                    }
+                                                                                    className="shrink-0"
+                                                                                />{' '}
+                                                                                Hidden
+                                                                            </span>
+                                                                        )}
                                                                 </div>
-                                                            </li>
-                                                        ),
-                                                    )}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    )}
-                                {/* --- END Bulk Live Calculation Preview --- */}
-                            </div>
+                                                            </div>
 
-                            {/* --- UPGRADED: Custom Duration Calculator --- */}
-                            <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-4">
-                                <label className="mb-2 block text-sm font-medium text-gray-700">
-                                    Calculate Exact Duration
-                                </label>
-                                <div className="flex items-end gap-2">
-                                    <div className="w-1/3">
-                                        <label className="mb-1 block text-xs text-gray-500">
-                                            Hours
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={customHours}
-                                            onChange={(e) =>
-                                                setCustomHours(
-                                                    e.target.value === ''
-                                                        ? ''
-                                                        : Number(
-                                                              e.target.value,
-                                                          ),
-                                                )
-                                            }
-                                            className="w-full rounded-md border-gray-300 py-1.5 text-sm"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="w-1/3">
-                                        <label className="mb-1 block text-xs text-gray-500">
-                                            Minutes
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="59"
-                                            value={customMinutes}
-                                            onChange={(e) =>
-                                                setCustomMinutes(
-                                                    e.target.value === ''
-                                                        ? ''
-                                                        : Number(
-                                                              e.target.value,
-                                                          ),
-                                                )
-                                            }
-                                            className="w-full rounded-md border-gray-300 py-1.5 text-sm"
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="w-1/3">
-                                        <button
-                                            type="button"
-                                            onClick={applyCustomDuration}
-                                            disabled={
-                                                !customHours && !customMinutes
-                                            }
-                                            className="w-full rounded-md bg-gray-800 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 disabled:bg-gray-300"
-                                        >
-                                            Set End Time
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                                                            <div className="absolute top-5 right-5">
+                                                                {isSelected ? (
+                                                                    <CheckSquare
+                                                                        size={
+                                                                            22
+                                                                        }
+                                                                        className="text-purple-600"
+                                                                    />
+                                                                ) : (
+                                                                    <Square
+                                                                        size={
+                                                                            22
+                                                                        }
+                                                                        className="text-slate-300 transition-colors group-hover:text-purple-400"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        </div>
 
-                            <div className="mb-4">
-                                <label className="mb-1 block text-sm font-medium">
-                                    Starts At
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    value={data.starts_at}
-                                    onChange={(e) =>
-                                        setData('starts_at', e.target.value)
-                                    }
-                                    className="w-full rounded-md border-gray-300"
-                                />
-                                {errors.starts_at && (
-                                    <span className="text-xs text-red-500">
-                                        {errors.starts_at}
-                                    </span>
+                                                        <div className="mt-2 border-t border-slate-100 pt-4">
+                                                            {product.is_discount_active ? (
+                                                                <div className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600 ring-1 ring-rose-100">
+                                                                    <Zap
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                        className="fill-current"
+                                                                    />
+                                                                    Active: Rp{' '}
+                                                                    {Math.round(
+                                                                        Number(
+                                                                            product.discount_price,
+                                                                        ),
+                                                                    ).toLocaleString(
+                                                                        'id-ID',
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-xs font-medium text-slate-400">
+                                                                    No active
+                                                                    promo
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            },
+                                        )}
+                                    </div>
                                 )}
                             </div>
-
-                            <div className="mb-6">
-                                <label className="mb-1 block text-sm font-medium">
-                                    Ends At
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    value={data.ends_at}
-                                    onChange={(e) =>
-                                        setData('ends_at', e.target.value)
-                                    }
-                                    className="w-full rounded-md border-gray-300"
-                                />
-                                {errors.ends_at && (
-                                    <span className="text-xs text-red-500">
-                                        {errors.ends_at}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* --- UPDATED: Action Buttons Container --- */}
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={
-                                        processing ||
-                                        data.product_ids.length === 0
-                                    }
-                                    className="w-full rounded-md bg-blue-600 py-2.5 font-bold text-white transition hover:bg-blue-700 disabled:bg-blue-300"
-                                >
-                                    Apply to {data.product_ids.length} Products
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={clearPromotion}
-                                    disabled={data.product_ids.length === 0}
-                                    className="w-full rounded-md border border-red-200 bg-white py-2.5 font-bold text-red-600 transition hover:bg-red-50 disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400"
-                                >
-                                    Clear Discount
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {/* RIGHT SIDE: The Product List with Checkboxes */}
-                    <div className="md:w-2/3">
-                        <div className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
-                            <table className="w-full text-left text-sm text-gray-500">
-                                <thead className="bg-gray-50 text-gray-700 uppercase">
-                                    <tr>
-                                        <th className="px-6 py-3">Select</th>
-                                        <th className="px-6 py-3">
-                                            Product Name
-                                        </th>
-                                        <th className="px-6 py-3">
-                                            Original Price
-                                        </th>
-                                        <th className="px-6 py-3">
-                                            Active Promo?
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {products.map((product: any) => (
-                                        <tr
-                                            key={product.id}
-                                            className="border-b"
-                                        >
-                                            <td className="px-6 py-4">
-                                                <input
-                                                    type="checkbox"
-                                                    className="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    checked={data.product_ids.includes(
-                                                        product.id,
-                                                    )}
-                                                    onChange={() =>
-                                                        toggleProduct(
-                                                            product.id,
-                                                        )
-                                                    }
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4 font-medium text-gray-900">
-                                                {product.title}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                Rp{' '}
-                                                {product.price.toLocaleString(
-                                                    'id-ID',
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {/* Reusing the magic attribute we made earlier! */}
-                                                {product.is_discount_active ? (
-                                                    <span className="font-bold text-red-600">
-                                                        Yes (Rp{' '}
-                                                        {Number(
-                                                            product.discount_price,
-                                                        ).toLocaleString(
-                                                            'id-ID',
-                                                        )}
-                                                        )
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-400">
-                                                        None
-                                                    </span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
-            </div>
-        </AppLayout>
+            </main>
+
+            {/* Modals & Toasts */}
+            <ConfirmModal
+                isOpen={isClearModalOpen}
+                onClose={() => setIsClearModalOpen(false)}
+                onConfirm={confirmClearPromotion}
+                title="Clear Promotions"
+                message={`Are you sure you want to completely remove the active discounts from the ${selectedProductsWithPromos.length} valid selected product(s)?`}
+                confirmText="Yes, clear discounts"
+                variant="danger"
+            />
+
+            <BackToTop />
+        </div>
     );
 }

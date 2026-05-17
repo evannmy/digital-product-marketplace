@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Review;
-use App\Models\Transaction;
+use App\Models\OrderItem; // <-- ADDED: Correct model for your system
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
@@ -20,9 +20,12 @@ class ReviewController extends Controller
         $userId = $request->user()->id;
 
         // 2. Security Check: Did they actually buy this?
-        $hasPurchased = Transaction::where('buyer_id', $userId)
-            ->where('product_id', $product->id)
-            ->where('status', 'success')
+        // THE FIX: Check the OrderItem table and ensure the parent Order was a success
+        $hasPurchased = OrderItem::where('product_id', $product->id)
+            ->whereHas('order', function ($query) use ($userId) {
+                $query->where('buyer_id', $userId)
+                    ->where('status', 'success');
+            })
             ->exists();
 
         if (!$hasPurchased) {
@@ -35,6 +38,7 @@ class ReviewController extends Controller
             ['rating' => $validated['rating'], 'comment' => $validated['comment']]
         );
 
-        return back(); // Refresh the page to show the new review
+        // THE FIX: Added the flash message so your React Toaster catches it!
+        return back()->with('success', 'Review submitted successfully!');
     }
 }

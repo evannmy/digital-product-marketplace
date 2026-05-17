@@ -3,26 +3,37 @@
 namespace Database\Factories;
 
 use App\Models\Product;
+use App\Models\User;
+use App\Models\Category;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
-/**
- * @extends Factory<Product>
- */
 class ProductFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
+        $title = fake()->sentence(4);
+        $title = rtrim($title, '.');
+
         return [
-            'title' => fake()->sentence(4),
+            'seller_id' => User::factory(),
+            'category_id' => Category::inRandomOrder()->value('id') ?? 1,
+
+            'title' => $title,
+            'slug' => Str::slug($title),
             'description' => fake()->paragraphs(3, true),
-            'price' => fake()->randomFloat(2, 5, 200), // Random price between 5.00 and 200.00
-            'file_path' => 'dummy/secure/product-file.zip', // A fake secure path for testing
+
+            'file_path' => 'dummy/secure/product-file.zip',
+
+            // --- UPDATED: Clean, non-decimal pricing (e.g., 50000, 120000, 450000) ---
+            'price' => fake()->numberBetween(5, 50) * 10000,
+
+            'discount_price' => null,
+            'discount_starts_at' => null,
+            'discount_ends_at' => null,
+
             'is_active' => true,
+            'is_locked' => false,
         ];
     }
 }

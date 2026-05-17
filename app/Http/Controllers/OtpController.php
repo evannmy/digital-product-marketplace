@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OtpVerificationMail;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 
 class OtpController extends Controller
 {
@@ -14,44 +17,87 @@ class OtpController extends Controller
             'code' => 'required|numeric|digits:6',
         ]);
 
-        $user = $request->user();
+        $email = $request->session()->get('pending_otp_email');
 
-        // 1. Security Check: Has the time expired?
+        if (!$email) {
+            return redirect()->route('login')->with('error', 'Session expired. Please log in again.');
+        }
+
+        // 1. RATE LIMITING: Create a unique "key" for this email's attempts
+        $throttleKey = 'verify-otp:' . $email;
+
+        // If they have failed 5 times, block them completely
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return back()->with('error', "Too many attempts. Please try again in {$seconds} seconds.");
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'User not found.');
+        }
+
+        // 2. Security Check: Has the time expired?
         if (now()->isAfter($user->otp_expires_at)) {
             return back()->with('error', 'Your verification code has expired. Please request a new one.');
         }
 
-        // 2. Logic Check: Does the code match?
-        if ($user->otp_code === $request->code) {
+        // 3. Logic Check: Does the code match? (Cast both to string to prevent strict-type bugs)
+        if ((string) $user->otp_code === (string) $request->code) {
+
+            // Success! Mark as verified
             $user->markEmailAsVerified();
 
-            // Success! Clear the OTP data to keep the database clean
             $user->update([
                 'otp_code' => null,
                 'otp_expires_at' => null,
+                'otp_verified_at' => now(),
             ]);
 
-            return redirect()->route('dashboard')->with('success', 'Email verified successfully!');
+            Auth::login($user);
+
+            // Clean up the session AND the rate limiter history
+            $request->session()->forget('pending_otp_email');
+            RateLimiter::clear($throttleKey);
+
+            return redirect()->route('home')->with('success', 'Email verified successfully! Welcome to Soko.');
         }
+
+        // 4. RATE LIMITING: Record a failed attempt!
+        // This locks them out for 5 minutes (300 seconds) if they hit 5 fails.
+        RateLimiter::hit($throttleKey, 300);
 
         return back()->with('error', 'Invalid verification code. Please try again.');
     }
 
     public function resend(Request $request)
     {
-        $user = $request->user();
+        // 1. Get the email from our temporary session ticket instead of Auth
+        $email = $request->session()->get('pending_otp_email');
 
-        // Generate a fresh code
+        if (!$email) {
+            return redirect()->route('login')->with('error', 'Session expired. Please log in again.');
+        }
+
+        // 2. Find the user in the database
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'User not found.');
+        }
+
+        // 3. Generate a fresh code
         $newCode = random_int(100000, 999999);
 
-        // Update the database and reset the 10-minute clock
+        // 4. Update the database and reset the 10-minute clock
         $user->update([
             'otp_code' => $newCode,
             'otp_expires_at' => now()->addMinutes(10),
         ]);
 
-        // Send the new email
-        Mail::to($user->email)->send(new OtpVerificationMail($newCode));
+        // 5. Send the new email (Make sure your Mail facade and Mailable are imported at the top!)
+        \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\OtpVerificationMail($newCode));
 
         return back()->with('success', 'A new 6-digit code has been sent to your email.');
     }

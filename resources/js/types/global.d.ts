@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { AxiosInstance } from 'axios';
-import type { Config as ZiggyConfig, RouteParamsWithQueryOverload } from 'ziggy-js';
+// --- ADDED 'Router' to the import below ---
+import type { Config as ZiggyConfig, RouteParamsWithQueryOverload, Router } from 'ziggy-js';
 import type { Auth } from '@/types/auth';
 
 // 1. Inertia Props
@@ -20,11 +20,16 @@ declare global {
         axios: AxiosInstance;
     }
 
-    var route: (
+    // --- UPDATED: Function Overloads for Ziggy ---
+    // 1. When called empty, it returns the Ziggy Router (which has .current())
+    function route(): Router;
+    
+    // 2. When called with a name, it returns a string URL
+    function route(
         name: string,
         params?: RouteParamsWithQueryOverload,
         absolute?: boolean
-    ) => string;
+    ): string;
     
     var Ziggy: ZiggyConfig;
 }

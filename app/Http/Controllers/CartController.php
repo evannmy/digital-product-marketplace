@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Product;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,17 +17,28 @@ class CartController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Fetch user's cart, eagerly loading the items AND the product details
-        $cart = Cart::with(['items.product.seller'])
-            ->where('user_id', $request->user()->id)
+        $user = $request->user();
+
+        $cart = Cart::with(['items.product.seller', 'items.product.media'])
+            ->where('user_id', $user->id)
             ->first();
 
-        // 2. Pass cart data to Inertia for the React view
+        // --- NEW: Map over items and append the pending check ---
+        if ($cart) {
+            $cart->items->transform(function ($item) use ($user) {
+                $item->has_pending_order = \App\Models\OrderItem::where('product_id', $item->product_id)
+                    ->whereHas('order', function ($query) use ($user) {
+                        $query->where('buyer_id', $user->id)->where('status', 'pending');
+                    })->exists();
+
+                return $item;
+            });
+        }
+
         return Inertia::render('cart/index', [
             'cart' => $cart
         ]);
     }
-
     /**
      * Add an item to the user's cart.
      */
@@ -35,28 +48,50 @@ class CartController extends Controller
             'product_id' => 'required|exists:products,id',
         ]);
 
-        // 1. Get or create the cart
-        $cart = Cart::firstOrCreate(['user_id' => $request->user()->id]);
+        $userId = $request->user()->id;
+        $productId = $request->product_id;
 
-        // 2. EXPLICIT LOGIC: Check if the product already exists in THIS cart
-        $alreadyInCart = CartItem::where('cart_id', $cart->id)
-            ->where('product_id', $request->product_id)
-            ->exists();
+        // --- PREVENTIVE UX CHECKS ---
 
-        // 3. If it is already there, stop execution and return the Info message
-        if ($alreadyInCart) {
-            return back()->with('info', 'This digital product is already in your cart.');
-            dd($alreadyInCart);
+        $product = Product::findOrFail($productId);
+
+        // 1. Prevent buying their own product
+        if ($product->seller_id === $userId) {
+            return back()->with('error', 'You cannot add your own product to the cart.');
         }
 
-        // 4. If it is NOT there, create it explicitly
+        // 2. Prevent adding if already owned or currently pending checkout
+        $hasOrdered = OrderItem::whereHas('order', function ($query) use ($userId) {
+            $query->where('buyer_id', $userId)->whereIn('status', ['success', 'pending']);
+        })->where('product_id', $productId)->exists();
+
+        if ($hasOrdered) {
+            return back()->with('error', 'You already have a pending order for this product. Please complete or cancel it first.');
+        }
+
+        // --- STANDARD CART LOGIC ---
+
+        // 3. Get or create the cart
+        $cart = Cart::firstOrCreate(['user_id' => $userId]);
+
+        // 4. EXPLICIT LOGIC: Check if the product already exists in THIS cart
+        $alreadyInCart = CartItem::where('cart_id', $cart->id)
+            ->where('product_id', $productId)
+            ->exists();
+
+        // 5. If it is already there, stop execution and return the Info message
+        if ($alreadyInCart) {
+            return back()->with('info', 'This digital product is already in your cart.');
+        }
+
+        // 6. If it is NOT there, create it explicitly
         CartItem::create([
             'cart_id' => $cart->id,
-            'product_id' => $request->product_id
+            'product_id' => $productId
         ]);
 
-        // 5. Return the Success message
-        return back()->with('success', 'Digital product added to cart.');
+        // 7. Return the Success message
+        return back()->with('success', 'Product added to cart!');
     }
 
     /**
@@ -71,6 +106,6 @@ class CartController extends Controller
 
         $cartItem->delete();
 
-        return redirect()->back()->with('success', 'Item removed from cart.');
+        return redirect()->back()->with('success', 'Product removed from cart.');
     }
 }

@@ -1,159 +1,666 @@
-import { Head, Link } from '@inertiajs/react';
-import AppLayout from '../../layouts/app-layout';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import {
+    Plus,
+    PackageOpen,
+    Edit,
+    ExternalLink,
+    EyeOff,
+    Eye,
+    Trash2,
+    Search,
+    Download,
+    AlertCircle,
+    Filter,
+    ChevronDown,
+} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import BackToTop from '@/components/back-to-top';
+import ConfirmModal from '@/components/confirm-modal';
+import Navbar from '@/components/navbar';
+import { toast } from '@/components/toaster';
 
-export default function Mine({ products, stats }: any) {
+export default function Mine({ products }: any) {
+    const productList = products?.data || products || [];
+
+    const { flash } = usePage().props as any;
+
+    // --- SEARCH & FILTER STATE ---
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'hidden', 'locked'
+
+    // --- NEW: Manual Processing State ---
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // --- Listen for Flash Messages and trigger Toast ---
+    useEffect(() => {
+        if (flash?.success) toast(flash.success, 'success');
+
+        if (flash?.error) toast(flash.error, 'error');
+
+        if (flash?.success || flash?.error) {
+            const currentState = window.history.state;
+
+            if (currentState?.page?.props?.flash) {
+                const newState = JSON.parse(JSON.stringify(currentState));
+                newState.page.props.flash.success = null;
+                newState.page.props.flash.error = null;
+                window.history.replaceState(newState, '', window.location.href);
+            }
+        }
+    }, [flash]);
+
+    // --- REAL-TIME FILTERING ---
+    const filteredProducts = productList.filter((product: any) => {
+        const matchesSearch = product.title
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+
+        let matchesStatus = true;
+
+        if (statusFilter === 'active') {
+            matchesStatus = product.is_active && !product.is_locked;
+        } else if (statusFilter === 'hidden') {
+            matchesStatus = !product.is_active && !product.is_locked;
+        } else if (statusFilter === 'locked') {
+            matchesStatus = product.is_locked === true;
+        }
+
+        return matchesSearch && matchesStatus;
+    });
+
+    // --- MODAL STATE MANAGEMENT ---
+    const [modalConfig, setModalConfig] = useState<{
+        isOpen: boolean;
+        action: 'delete' | 'toggle' | null;
+        product: any | null;
+    }>({
+        isOpen: false,
+        action: null,
+        product: null,
+    });
+
+    const promptDelete = (product: any) => {
+        setModalConfig({ isOpen: true, action: 'delete', product });
+    };
+
+    const promptToggle = (product: any) => {
+        setModalConfig({ isOpen: true, action: 'toggle', product });
+    };
+
+    const executeAction = () => {
+        const { action, product } = modalConfig;
+
+        if (!product) return;
+
+        // Start the loading spinner
+        setIsProcessing(true);
+
+        if (action === 'delete') {
+            router.delete(`/seller/products/${product.id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setModalConfig({
+                        isOpen: false,
+                        action: null,
+                        product: null,
+                    });
+                },
+                onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+            });
+        } else if (action === 'toggle') {
+            router.patch(
+                `/seller/products/${product.id}/toggle`,
+                {},
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setModalConfig({
+                            isOpen: false,
+                            action: null,
+                            product: null,
+                        });
+                    },
+                    onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+                },
+            );
+        }
+    };
+
+    const getModalText = () => {
+        if (modalConfig.action === 'delete') {
+            return {
+                title: 'Delete Product',
+                message: `Are you sure you want to permanently delete "${modalConfig.product?.title}"? This action cannot be undone and the file will be removed from the server.`,
+                confirmText: 'Yes, delete it',
+                variant: 'danger' as const,
+            };
+        }
+
+        if (modalConfig.action === 'toggle') {
+            const isHiding = modalConfig.product?.is_active;
+
+            return {
+                title: isHiding ? 'Hide Product' : 'Publish Product',
+                message: isHiding
+                    ? `Are you sure you want to hide "${modalConfig.product?.title}"? It will no longer be visible to buyers.`
+                    : `Are you sure you want to publish "${modalConfig.product?.title}"? It will instantly become visible on your store.`,
+                confirmText: isHiding ? 'Yes, hide it' : 'Yes, publish it',
+                variant: isHiding ? ('neutral' as const) : ('primary' as const),
+            };
+        }
+
+        return {
+            title: '',
+            message: '',
+            confirmText: '',
+            variant: 'danger' as const,
+        };
+    };
+
+    const {
+        title: modalTitle,
+        message: modalMessage,
+        confirmText: modalConfirmText,
+        variant: modalVariant,
+    } = getModalText();
+
     return (
-        <AppLayout>
-            <Head title="My Inventory" />
+        <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
+            <Head title="Seller Dashboard - Soko" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <div className="mb-8 flex items-center justify-between">
+            <Navbar />
+
+            <main className="relative z-10 flex-1 pt-32 pb-24">
+                <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-900">
-                                Seller Dashboard
-                            </h2>
-                            <p className="mt-2 text-gray-600">
-                                Manage your digital products and track your
-                                earnings.
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                                Creator Hub
+                            </h1>
+                            <p className="mt-2 text-lg text-slate-500">
+                                Manage your digital products and inventory.
                             </p>
                         </div>
+
                         <Link
-                            href="/seller/products/create"
-                            className="rounded-md bg-blue-600 px-6 py-2 font-semibold text-white transition hover:bg-blue-700"
+                            href={route('products.create')}
+                            className="flex shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/25"
                         >
-                            + New Product
+                            <Plus size={18} />
+                            New Product
                         </Link>
                     </div>
 
-                    {/* --- NEW ANALYTICS SECTION --- */}
-                    <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <div className="flex items-center gap-4 rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="rounded-full bg-green-100 p-4 text-green-600">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-8 w-8"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium tracking-wider text-gray-500 uppercase">
-                                    Total Revenue
-                                </p>
-                                <h3 className="text-3xl font-bold text-gray-900">
-                                    Rp{' '}
-                                    {stats.totalRevenue.toLocaleString('id-ID')}
-                                </h3>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="rounded-full bg-blue-100 p-4 text-blue-600">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-8 w-8"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                                    />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium tracking-wider text-gray-500 uppercase">
-                                    Total Sales
-                                </p>
-                                <h3 className="text-3xl font-bold text-gray-900">
-                                    {stats.totalSales} Items
-                                </h3>
-                            </div>
-                        </div>
-                    </div>
-                    {/* --- END ANALYTICS SECTION --- */}
-
-                    {/* --- INVENTORY LIST --- */}
-                    <div className="overflow-hidden border border-gray-100 bg-white shadow-sm sm:rounded-lg">
-                        <div className="border-b border-gray-100 p-6">
-                            <h3 className="text-lg font-bold text-gray-900">
+                    {/* --- INVENTORY SECTION --- */}
+                    <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl ring-1 shadow-slate-900/5 ring-white">
+                        {/* --- Search & Filter Header --- */}
+                        <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-5 sm:px-8 sm:py-6 lg:flex-row lg:items-center lg:justify-between">
+                            <h2 className="text-xl font-black text-slate-900">
                                 My Products
-                            </h3>
+                            </h2>
+                            {productList.length > 0 && (
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                    {/* Status Filter */}
+                                    <div className="flex w-full items-center gap-2 sm:w-auto">
+                                        <Filter
+                                            size={18}
+                                            className="shrink-0 text-slate-400"
+                                        />
+                                        <div className="relative w-full sm:w-44">
+                                            <select
+                                                value={statusFilter}
+                                                onChange={(e) =>
+                                                    setStatusFilter(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-2 pr-10 pl-4 text-sm font-medium text-slate-700 shadow-sm transition-all outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                            >
+                                                <option value="all">
+                                                    All Statuses
+                                                </option>
+                                                <option value="active">
+                                                    Active
+                                                </option>
+                                                <option value="hidden">
+                                                    Hidden
+                                                </option>
+                                                <option value="locked">
+                                                    Locked by Admin
+                                                </option>
+                                            </select>
+                                            {/* --- CUSTOM CHEVRON --- */}
+                                            <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                        </div>
+                                    </div>
+
+                                    {/* Search Input */}
+                                    <div className="relative w-full sm:w-64">
+                                        <Search
+                                            size={18}
+                                            className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Search products..."
+                                            value={searchQuery}
+                                            onChange={(e) =>
+                                                setSearchQuery(e.target.value)
+                                            }
+                                            className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-4 pl-10 text-sm font-medium text-slate-700 transition-all outline-none placeholder:text-slate-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        {products.length === 0 ? (
-                            <div className="p-8 text-center text-gray-500">
-                                You haven't uploaded any products yet.
+
+                        {productList.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center sm:py-24">
+                                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 ring-8 ring-slate-50/50">
+                                    <PackageOpen className="h-10 w-10 text-slate-300" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900">
+                                    No products yet
+                                </h3>
+                                <p className="mt-1 max-w-sm px-4 text-slate-500">
+                                    You haven&apos;t added any digital products
+                                    to your store. Click the &quot;New
+                                    Product&quot; button to get started.
+                                </p>
+                            </div>
+                        ) : filteredProducts.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center sm:py-24">
+                                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 ring-8 ring-slate-50/50">
+                                    <Search className="h-10 w-10 text-slate-300" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900">
+                                    No matching products
+                                </h3>
+                                <p className="mt-1 max-w-sm px-4 text-slate-500">
+                                    We couldn&apos;t find anything matching your
+                                    search or filter.
+                                </p>
                             </div>
                         ) : (
-                            <table className="w-full border-collapse text-left">
-                                <thead>
-                                    <tr className="border-b border-gray-100 bg-gray-50 text-sm font-semibold text-gray-600">
-                                        <th className="p-4">Product</th>
-                                        <th className="p-4">Price</th>
-                                        <th className="p-4">Status</th>
-                                        <th className="p-4 text-right">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {products.map((product: any) => (
-                                        <tr
-                                            key={product.id}
-                                            className="border-b border-gray-100 hover:bg-gray-50"
+                            <div className="w-full">
+                                {/* === MOBILE CARD VIEW === */}
+                                <div className="grid grid-cols-1 gap-4 p-4 md:hidden">
+                                    {filteredProducts.map((product: any) => (
+                                        <div
+                                            key={`mobile-${product.id}`}
+                                            className={`flex flex-col gap-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 ${product.is_locked ? 'opacity-75' : ''}`}
                                         >
-                                            <td className="p-4 font-medium text-gray-900">
-                                                {product.title}
-                                            </td>
-                                            <td className="p-4 text-gray-600">
-                                                Rp{' '}
-                                                {product.price.toLocaleString(
-                                                    'id-ID',
-                                                )}
-                                            </td>
-                                            <td className="p-4">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-slate-900">
+                                                        {product.title}
+                                                    </span>
+                                                    <span className="text-xs text-slate-400">
+                                                        {product.category
+                                                            ?.name ||
+                                                            'Digital Asset'}
+                                                    </span>
+                                                </div>
                                                 <span
-                                                    className={`rounded-full px-2 py-1 text-xs font-semibold ${product.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                                                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ring-1 ring-inset ${
+                                                        product.is_locked
+                                                            ? 'bg-rose-50 text-rose-700 ring-rose-500/20'
+                                                            : product.is_active
+                                                              ? 'bg-emerald-50 text-emerald-700 ring-emerald-500/20'
+                                                              : 'bg-slate-100 text-slate-600 ring-slate-500/20'
+                                                    }`}
                                                 >
-                                                    {product.is_active
-                                                        ? 'Active'
-                                                        : 'Hidden'}
+                                                    {product.is_locked
+                                                        ? 'Suspended by Admin'
+                                                        : product.is_active
+                                                          ? 'Active'
+                                                          : 'Hidden'}
                                                 </span>
-                                            </td>
-                                            <td className="space-x-3 p-4 text-right">
+                                            </div>
+
+                                            <div>
+                                                {product.is_discount_active ? (
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-lg font-black text-rose-600">
+                                                                Rp{' '}
+                                                                {Math.round(
+                                                                    Number(
+                                                                        product.discount_price,
+                                                                    ),
+                                                                ).toLocaleString(
+                                                                    'id-ID',
+                                                                )}
+                                                            </span>
+                                                            <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black tracking-wider text-rose-600 uppercase">
+                                                                SALE
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-xs font-medium text-slate-400 line-through">
+                                                            Rp{' '}
+                                                            {Number(
+                                                                product.price,
+                                                            ).toLocaleString(
+                                                                'id-ID',
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-lg font-black text-slate-700">
+                                                        Rp{' '}
+                                                        {Number(
+                                                            product.price,
+                                                        ).toLocaleString(
+                                                            'id-ID',
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-5 gap-2 border-t border-slate-200/60 pt-4">
+                                                <button
+                                                    onClick={() => {
+                                                        if (!product.is_locked)
+                                                            promptToggle(
+                                                                product,
+                                                            );
+                                                    }}
+                                                    disabled={product.is_locked}
+                                                    className={`flex items-center justify-center rounded-xl py-3 transition-colors ${
+                                                        product.is_locked
+                                                            ? 'cursor-not-allowed bg-slate-100 text-slate-300'
+                                                            : product.is_active
+                                                              ? 'bg-amber-50 text-amber-600'
+                                                              : 'bg-emerald-50 text-emerald-600'
+                                                    }`}
+                                                >
+                                                    {product.is_active ? (
+                                                        <EyeOff size={18} />
+                                                    ) : (
+                                                        <Eye size={18} />
+                                                    )}
+                                                </button>
                                                 <Link
                                                     href={`/seller/products/${product.id}/edit`}
-                                                    className="font-medium text-blue-600 hover:text-blue-800"
+                                                    className="flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors hover:bg-indigo-100"
                                                 >
-                                                    Edit
+                                                    <Edit size={18} />
                                                 </Link>
+                                                <a
+                                                    href={`/products/${product.id}/download`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition-colors hover:bg-sky-100"
+                                                    title="Download Product File"
+                                                >
+                                                    <Download size={18} />
+                                                </a>
                                                 <Link
-                                                    href={`/products/${product.id}`}
-                                                    className="font-medium text-gray-600 hover:text-gray-800"
+                                                    href={`/products/${product.slug}`}
+                                                    className="flex items-center justify-center rounded-xl bg-slate-200/50 text-slate-700 transition-colors hover:bg-slate-200"
                                                 >
-                                                    View
+                                                    <ExternalLink size={18} />
                                                 </Link>
-                                            </td>
-                                        </tr>
+                                                <button
+                                                    onClick={() =>
+                                                        promptDelete(product)
+                                                    }
+                                                    className="flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition-colors hover:bg-rose-100"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     ))}
-                                </tbody>
-                            </table>
+                                </div>
+
+                                {/* === DESKTOP TABLE VIEW === */}
+                                <div className="hidden overflow-x-auto md:block">
+                                    <table className="w-full text-left text-sm whitespace-nowrap">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 bg-white text-slate-500">
+                                                <th className="px-8 py-5 font-bold tracking-wider uppercase">
+                                                    Product Detail
+                                                </th>
+                                                <th className="px-8 py-5 font-bold tracking-wider uppercase">
+                                                    Price
+                                                </th>
+                                                <th className="px-8 py-5 font-bold tracking-wider uppercase">
+                                                    Status
+                                                </th>
+                                                <th className="px-8 py-5 text-right font-bold tracking-wider uppercase">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {filteredProducts.map(
+                                                (product: any) => (
+                                                    <tr
+                                                        key={`desktop-${product.id}`}
+                                                        className={`group transition-colors hover:bg-slate-50/50 ${product.is_locked ? 'bg-rose-50/30' : ''}`}
+                                                    >
+                                                        <td className="px-8 py-5">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-slate-900 transition-colors group-hover:text-emerald-600">
+                                                                    {
+                                                                        product.title
+                                                                    }
+                                                                </span>
+                                                                <span className="text-xs text-slate-400">
+                                                                    {product
+                                                                        .category
+                                                                        ?.name ||
+                                                                        'Digital Asset'}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="px-8 py-5">
+                                                            {product.is_discount_active ? (
+                                                                <div className="flex flex-col justify-center">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-bold text-rose-600">
+                                                                            Rp{' '}
+                                                                            {Math.round(
+                                                                                Number(
+                                                                                    product.discount_price,
+                                                                                ),
+                                                                            ).toLocaleString(
+                                                                                'id-ID',
+                                                                            )}
+                                                                        </span>
+                                                                        <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black text-rose-600">
+                                                                            SALE
+                                                                        </span>
+                                                                    </div>
+                                                                    <span className="mt-0.5 text-xs font-medium text-slate-400 line-through">
+                                                                        Rp{' '}
+                                                                        {Number(
+                                                                            product.price,
+                                                                        ).toLocaleString(
+                                                                            'id-ID',
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="font-bold text-slate-600">
+                                                                    Rp{' '}
+                                                                    {Number(
+                                                                        product.price,
+                                                                    ).toLocaleString(
+                                                                        'id-ID',
+                                                                    )}
+                                                                </span>
+                                                            )}
+                                                        </td>
+
+                                                        <td className="px-8 py-5">
+                                                            <span
+                                                                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset ${
+                                                                    product.is_locked
+                                                                        ? 'bg-rose-50 text-rose-700 ring-rose-500/20'
+                                                                        : product.is_active
+                                                                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-500/20'
+                                                                          : 'bg-slate-100 text-slate-600 ring-slate-500/20'
+                                                                }`}
+                                                            >
+                                                                {product.is_locked ? (
+                                                                    <>
+                                                                        <AlertCircle
+                                                                            size={
+                                                                                12
+                                                                            }
+                                                                        />
+                                                                        Suspended
+                                                                        by Admin
+                                                                    </>
+                                                                ) : product.is_active ? (
+                                                                    <>
+                                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                                                        Active
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <EyeOff
+                                                                            size={
+                                                                                12
+                                                                            }
+                                                                        />
+                                                                        Hidden
+                                                                    </>
+                                                                )}
+                                                            </span>
+                                                        </td>
+
+                                                        <td className="px-8 py-5 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (
+                                                                            !product.is_locked
+                                                                        )
+                                                                            promptToggle(
+                                                                                product,
+                                                                            );
+                                                                    }}
+                                                                    disabled={
+                                                                        product.is_locked
+                                                                    }
+                                                                    className={`flex items-center justify-center rounded-lg p-2 transition-colors ${
+                                                                        product.is_locked
+                                                                            ? 'cursor-not-allowed bg-slate-100 text-slate-300'
+                                                                            : product.is_active
+                                                                              ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600'
+                                                                              : 'bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
+                                                                    }`}
+                                                                    title={
+                                                                        product.is_locked
+                                                                            ? 'Suspended by Administrator'
+                                                                            : product.is_active
+                                                                              ? 'Hide Product'
+                                                                              : 'Publish Product'
+                                                                    }
+                                                                >
+                                                                    {product.is_active ? (
+                                                                        <EyeOff
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                        />
+                                                                    ) : (
+                                                                        <Eye
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                        />
+                                                                    )}
+                                                                </button>
+
+                                                                <Link
+                                                                    href={`/seller/products/${product.id}/edit`}
+                                                                    className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+                                                                    title="Edit Product"
+                                                                >
+                                                                    <Edit
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                </Link>
+
+                                                                <a
+                                                                    href={`/products/${product.id}/download`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-600"
+                                                                    title="Download File"
+                                                                >
+                                                                    <Download
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                </a>
+
+                                                                <Link
+                                                                    href={`/products/${product.slug}`}
+                                                                    className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                                                                    title="View on Store"
+                                                                >
+                                                                    <ExternalLink
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                </Link>
+
+                                                                <button
+                                                                    onClick={() =>
+                                                                        promptDelete(
+                                                                            product,
+                                                                        )
+                                                                    }
+                                                                    className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                                                    title="Delete Product"
+                                                                >
+                                                                    <Trash2
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
-            </div>
-        </AppLayout>
+            </main>
+
+            <ConfirmModal
+                isOpen={modalConfig.isOpen}
+                onClose={() =>
+                    setModalConfig({
+                        isOpen: false,
+                        action: null,
+                        product: null,
+                    })
+                }
+                onConfirm={executeAction}
+                title={modalTitle}
+                message={modalMessage}
+                confirmText={modalConfirmText}
+                variant={modalVariant}
+                isProcessing={isProcessing} // <-- PASSED DOWN TO THE MODAL!
+            />
+            <BackToTop />
+        </div>
     );
 }

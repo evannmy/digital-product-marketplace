@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Support\Facades\Auth;
+use App\Models\CartItem;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -39,18 +41,34 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'email' => $request->user()->email,
-                    'role' => $request->user()->role, // Expose the role column
-                ] : null,
+                // --- UPDATED: Use the only() method to safely share ALL necessary columns ---
+                'user' => $request->user() ? $request->user()->only(
+                    'id',
+                    'name',
+                    'email',
+                    'role',
+                    'username',
+                    'bio',
+                    'website',
+                    'instagram',
+                    'github',
+                    'avatar_path',
+                    'cover_photo_path'
+                ) : null,
             ],
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
                 'error' => fn() => $request->session()->get('error'),
                 'info' => fn() => $request->session()->get('info'),
             ],
+            'cartCount' => function () use ($request) {
+                if ($request->user()) {
+                    return \App\Models\CartItem::whereHas('cart', function ($query) use ($request) {
+                        $query->where('user_id', $request->user()->id);
+                    })->count();
+                }
+                return 0;
+            },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

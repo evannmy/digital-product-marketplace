@@ -1,6 +1,7 @@
-import { Head, useForm, router, usePage, Link } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
-import { Spinner } from '@/components/ui/spinner'; // Assuming you have this from previous files
+import SimpleNavbar from '@/components/simple-navbar';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function VerifyOtp() {
     const { flash } = usePage().props as any;
@@ -11,44 +12,33 @@ export default function VerifyOtp() {
         code: '',
     });
 
-    // 1. Create an array to hold the 6 digits locally
     const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
-
-    // 2. Create an array of references to control the DOM focus
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    // 3. Handle typing
     const handleChange = (index: number, value: string) => {
         if (!/^[0-9]*$/.test(value)) {
             return;
-        } // Only allow numbers
+        }
 
         const newOtp = [...otpValues];
-        // Take the last character in case they type fast
         newOtp[index] = value.substring(value.length - 1);
         setOtpValues(newOtp);
-
-        // Sync with Inertia's data state
         setData('code', newOtp.join(''));
 
-        // Auto-advance to the next input
         if (value && index < 5 && inputRefs.current[index + 1]) {
             inputRefs.current[index + 1]?.focus();
         }
     };
 
-    // 4. Handle Backspace
     const handleKeyDown = (
         index: number,
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
         if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-            // If box is empty and they hit backspace, jump to previous box
             inputRefs.current[index - 1]?.focus();
         }
     };
 
-    // 5. Handle Copy-Paste
     const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
         e.preventDefault();
         const pastedData = e.clipboardData
@@ -66,7 +56,6 @@ export default function VerifyOtp() {
             setOtpValues(newOtp);
             setData('code', newOtp.join(''));
 
-            // Focus the next empty box, or the final box
             const focusIndex = Math.min(pastedData.length, 5);
             inputRefs.current[focusIndex]?.focus();
         }
@@ -103,33 +92,20 @@ export default function VerifyOtp() {
 
     return (
         <>
-            <Head title="Verify Email - Soko Marketplace" />
+            <Head title="Verify Email - Soko" />
 
             {/* Global Background matching the Auth Flow */}
-            <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900 selection:bg-indigo-200 selection:text-indigo-900">
-                {/* Fixed Top Navigation */}
-                <nav className="fixed top-0 z-50 flex w-full items-center justify-between border-b border-slate-100 bg-white/70 px-8 py-6 backdrop-blur-md">
-                    <div className="text-2xl font-black tracking-tighter">
-                        Soko<span className="text-indigo-400">.</span>
-                    </div>
-                    <div className="flex items-center space-x-6 text-sm font-medium">
-                        <Link
-                            href="/"
-                            className="text-slate-600 transition-colors hover:text-indigo-500"
-                        >
-                            Home
-                        </Link>
-                    </div>
-                </nav>
+            <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
+                {/* --- HEADER --- */}
+                <SimpleNavbar />
 
-                {/* Main OTP Form Container */}
-                <main className="flex flex-1 items-center justify-center px-4 pt-28 pb-12 sm:px-6">
-                    <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-8 shadow-sm sm:p-10">
-                        {/* Header Section with Gradient Typography */}
+                {/* --- MAIN OTP FORM CONTAINER --- */}
+                <main className="relative z-10 flex flex-1 items-center justify-center px-4 pt-32 pb-12 sm:px-6 lg:px-8">
+                    <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-8 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                         <div className="mb-8 text-center">
-                            <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
+                            <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900">
                                 Verify{' '}
-                                <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                                <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                                     Account
                                 </span>
                             </h1>
@@ -141,24 +117,25 @@ export default function VerifyOtp() {
 
                         {/* Flash Messages */}
                         {flash?.success && (
-                            <div className="mb-6 rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-center text-sm font-medium text-emerald-700">
+                            <div className="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-center text-sm font-semibold text-emerald-700">
                                 {flash.success}
                             </div>
                         )}
 
                         {flash?.error && (
-                            <div className="mb-6 rounded-lg border border-red-100 bg-red-50 p-4 text-center text-sm font-medium text-red-600">
+                            <div className="mb-6 rounded-xl border border-rose-100 bg-rose-50 p-4 text-center text-sm font-semibold text-rose-600">
                                 {flash.error}
                             </div>
                         )}
 
                         <form onSubmit={submit} className="flex flex-col gap-6">
                             <div>
-                                <label className="mb-4 block text-center text-sm font-semibold text-slate-700">
+                                <label className="mb-4 block text-center text-sm font-bold text-slate-700">
                                     Security Code
                                 </label>
 
-                                <div className="flex justify-center gap-2 sm:gap-4">
+                                {/* Upgraded OTP Inputs */}
+                                <div className="flex justify-center gap-2 sm:gap-3">
                                     {otpValues.map((digit, index) => (
                                         <input
                                             key={index}
@@ -179,29 +156,30 @@ export default function VerifyOtp() {
                                                 handleKeyDown(index, e)
                                             }
                                             onPaste={handlePaste}
-                                            // Notice: We USE caret-transparent here!
-                                            className="h-14 w-12 rounded-xl border-transparent bg-slate-50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all focus:border-2 focus:border-[#94B4D8] focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
+                                            className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                         />
                                     ))}
                                 </div>
 
                                 {errors.code && (
-                                    <p className="mt-4 text-center text-sm font-medium text-red-500">
+                                    <p className="mt-4 text-center text-sm font-medium text-rose-500">
                                         {errors.code}
                                     </p>
                                 )}
                             </div>
 
-                            <div className="mt-2 flex flex-col gap-4">
+                            <div className="mt-2 flex flex-col gap-5">
                                 {/* Primary Action Button */}
                                 <button
                                     type="submit"
                                     disabled={
                                         processing || data.code.length !== 6
                                     }
-                                    className="flex w-full items-center justify-center rounded-xl bg-slate-900 py-4 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                                    className="flex h-12 w-full items-center justify-center rounded-xl bg-slate-900 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                                 >
-                                    {processing && <Spinner className="mr-2" />}
+                                    {processing ? (
+                                        <Spinner className="mr-2 h-5 w-5" />
+                                    ) : null}
                                     Verify Account
                                 </button>
 
@@ -213,7 +191,7 @@ export default function VerifyOtp() {
                                     className={`text-center text-sm font-medium transition-colors ${
                                         countdown > 0
                                             ? 'cursor-not-allowed text-slate-400'
-                                            : 'text-indigo-600 underline decoration-indigo-200 underline-offset-4 hover:text-indigo-700 hover:decoration-indigo-600'
+                                            : 'text-purple-600 underline decoration-purple-200 underline-offset-4 hover:text-purple-700 hover:decoration-purple-600'
                                     }`}
                                 >
                                     {countdown > 0

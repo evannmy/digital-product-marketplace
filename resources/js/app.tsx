@@ -5,10 +5,14 @@ import { createRoot } from 'react-dom/client';
 import '../css/app.css';
 import { initializeTheme } from '@/hooks/use-appearance';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+// --- ADDED: Import the Toaster ---
+import Toaster from '@/components/toaster';
+
+// const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    // title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title) => title,
     resolve: (name) =>
         resolvePageComponent(
             `./pages/${name}.tsx`,
@@ -20,11 +24,13 @@ createInertiaApp({
         root.render(
             <StrictMode>
                 <App {...props} />
+                {/* --- ADDED: Placed at the absolute root --- */}
+                <Toaster />
             </StrictMode>,
         );
     },
     progress: {
-        color: '#4B5563',
+        color: '#9333ea', // Soko Purple!
     },
 });
 

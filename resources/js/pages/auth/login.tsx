@@ -1,6 +1,7 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import SimpleNavbar from '@/components/simple-navbar';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,51 +25,29 @@ export default function Login({
 }: Props) {
     return (
         <>
-            <Head title="Log in - Soko Marketplace" />
+            <Head title="Log in - Soko" />
 
-            {/* Global Background matching the Welcome Page */}
-            <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900 selection:bg-indigo-200 selection:text-indigo-900">
-                {/* Fixed Top Navigation */}
-                <nav className="fixed top-0 z-50 flex w-full items-center justify-between border-b border-slate-100 bg-white/70 px-8 py-6 backdrop-blur-md">
-                    <div className="text-2xl font-black tracking-tighter">
-                        Soko<span className="text-indigo-400">.</span>
-                    </div>
-                    <div className="space-x-6 text-sm font-medium">
-                        <Link
-                            href="/"
-                            className="text-slate-600 transition-colors hover:text-indigo-500"
-                        >
-                            Home
-                        </Link>
-                        {canRegister && (
-                            <Link
-                                href={register()}
-                                className="inline-block rounded-lg bg-slate-900 px-5 py-2.5 text-white shadow-sm transition-all hover:bg-slate-800"
-                            >
-                                Start Selling
-                            </Link>
-                        )}
-                    </div>
-                </nav>
+            <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
+                {/* --- HEADER --- */}
+                <SimpleNavbar />
 
-                {/* Main Login Form Container */}
-                <main className="flex flex-1 items-center justify-center px-4 pt-24 pb-12 sm:px-6">
-                    <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-8 shadow-sm sm:p-10">
-                        {/* Header Section with Gradient Typography */}
+                {/* --- MAIN LOGIN FORM CONTAINER --- */}
+                <main className="relative z-10 flex flex-1 items-center justify-center px-4 pt-32 pb-12 sm:px-6 lg:px-8">
+                    <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-8 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                         <div className="mb-8 text-center">
-                            <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-slate-900">
+                            <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900">
                                 Log in to your{' '}
-                                <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                                <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                                     Account
                                 </span>
                             </h1>
                             <p className="text-sm text-slate-500">
-                                Enter your email and password below to log in
+                                Enter your email or username below to log in
                             </p>
                         </div>
 
                         {status && (
-                            <div className="mb-6 rounded-lg border border-indigo-100 bg-indigo-50 py-3 text-center text-sm font-medium text-indigo-700">
+                            <div className="mb-6 rounded-xl border border-purple-100 bg-purple-50 py-3 text-center text-sm font-semibold text-purple-700">
                                 {status}
                             </div>
                         )}
@@ -84,20 +63,20 @@ export default function Login({
                                         <div className="grid gap-2">
                                             <Label
                                                 htmlFor="email"
-                                                className="font-semibold text-slate-700"
+                                                className="font-bold text-slate-700"
                                             >
-                                                Email address
+                                                Email or Username
                                             </Label>
                                             <Input
                                                 id="email"
-                                                type="email"
-                                                name="email"
+                                                type="text" // <-- Changed from "email" to "text"
+                                                name="email" // <-- Kept as "email" so it doesn't break backend validation rules
                                                 required
                                                 autoFocus
                                                 tabIndex={1}
-                                                autoComplete="email"
-                                                placeholder="email@example.com"
-                                                className="border-slate-200 bg-slate-50 shadow-sm transition-all focus-visible:border-indigo-400 focus-visible:ring-indigo-400/30"
+                                                autoComplete="username"
+                                                placeholder="email@example.com or yourbrand"
+                                                className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                             />
                                             <InputError
                                                 message={errors.email}
@@ -105,17 +84,17 @@ export default function Login({
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <div className="flex items-center">
+                                            <div className="flex items-center justify-between">
                                                 <Label
                                                     htmlFor="password"
-                                                    className="font-semibold text-slate-700"
+                                                    className="font-bold text-slate-700"
                                                 >
                                                     Password
                                                 </Label>
                                                 {canResetPassword && (
                                                     <TextLink
                                                         href={request()}
-                                                        className="ml-auto text-sm font-medium text-indigo-500 hover:text-indigo-600"
+                                                        className="text-sm font-semibold text-purple-600 transition-colors hover:text-purple-700"
                                                         tabIndex={5}
                                                     >
                                                         Forgot password?
@@ -128,8 +107,8 @@ export default function Login({
                                                 required
                                                 tabIndex={2}
                                                 autoComplete="current-password"
-                                                placeholder="Password"
-                                                className="border-slate-200 bg-slate-50 shadow-sm transition-all focus-visible:border-indigo-400 focus-visible:ring-indigo-400/30"
+                                                placeholder="••••••••"
+                                                className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                             />
                                             <InputError
                                                 message={errors.password}
@@ -141,11 +120,11 @@ export default function Login({
                                                 id="remember"
                                                 name="remember"
                                                 tabIndex={3}
-                                                className="border-slate-300 text-indigo-600 data-[state=checked]:border-indigo-600 data-[state=checked]:bg-indigo-600"
+                                                className="h-5 w-5 rounded-md border-slate-300 text-purple-600 shadow-sm transition-all focus:ring-0 focus:outline-none focus-visible:ring-0 data-[state=checked]:border-purple-600 data-[state=checked]:bg-purple-600"
                                             />
                                             <Label
                                                 htmlFor="remember"
-                                                className="cursor-pointer font-normal text-slate-600"
+                                                className="cursor-pointer text-sm font-medium text-slate-600"
                                             >
                                                 Remember me
                                             </Label>
@@ -153,25 +132,25 @@ export default function Login({
 
                                         <Button
                                             type="submit"
-                                            className="mt-2 w-full rounded-xl bg-slate-900 py-6 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md"
+                                            className="mt-2 flex h-12 w-full items-center justify-center rounded-xl bg-slate-900 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 focus:outline-none"
                                             tabIndex={4}
                                             disabled={processing}
                                             data-test="login-button"
                                         >
-                                            {processing && (
-                                                <Spinner className="mr-2" />
-                                            )}
+                                            {processing ? (
+                                                <Spinner className="mr-2 h-5 w-5" />
+                                            ) : null}
                                             Log in
                                         </Button>
                                     </div>
 
                                     {canRegister && (
-                                        <div className="mt-2 border-t border-slate-100 pt-6 text-center text-sm text-slate-500">
+                                        <div className="mt-2 border-t border-slate-100 pt-6 text-center text-sm font-medium text-slate-500">
                                             Don't have an account?{' '}
                                             <TextLink
                                                 href={register()}
                                                 tabIndex={5}
-                                                className="font-bold text-indigo-600 hover:text-indigo-700"
+                                                className="font-bold text-purple-600 transition-colors hover:text-purple-700"
                                             >
                                                 Sign up
                                             </TextLink>

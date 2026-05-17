@@ -6,6 +6,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,15 +22,45 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\ShredOtpTicket::class,
         ]);
 
-        $middleware->redirectUsersTo('/products');
+        $middleware->trustProxies(at: '*');
+
+        $middleware->validateCsrfTokens(except: [
+            'midtrans/callback',
+            '/midtrans/callback',
+        ]);
+
+        $middleware->redirectUsersTo(function () {
+            if (Auth::check() && Auth::user()->role === 'admin') {
+                return '/admin';
+            }
+
+            return '/'; // Normal users get bounced here
+        });
 
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'is_seller' => \App\Http\Middleware\IsSeller::class,
+            'admin' => \App\Http\Middleware\EnsureIsAdmin::class,
+            'not_admin' => \App\Http\Middleware\EnsureNotAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->respond(function (Response $response, \Throwable $exception, Request $request) {
+            $status = $response->getStatusCode();
+            $allowedStatuses = [403, 404, 500, 503];
+
+            // If the error is 404, 403, etc., render our Inertia Error Page
+            if (in_array($status, $allowedStatuses)) {
+                return \Inertia\Inertia::render('error', [
+                    'status' => $status
+                ])
+                    ->toResponse($request)
+                    ->setStatusCode($status);
+            }
+
+            return $response;
+        });
     })->create();

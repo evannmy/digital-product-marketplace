@@ -1,0 +1,17 @@
+{
+  "entry": [
+    "resources/js/app.tsx",
+    "resources/js/ssr.tsx",
+    "resources/js/pages/**/*.{js,jsx,ts,tsx}",
+    "vite.config.js",
+    "tailwind.config.js",
+    "postcss.config.js"
+  ],
+  "project": [
+    "resources/js/**/*.{ts,tsx,js,jsx}"
+  ],
+  "ignore": [
+    "vendor/**",
+    "public/**"
+  ]
+}
