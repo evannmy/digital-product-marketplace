@@ -90,16 +90,27 @@ export default function Settings({ auth }: any) {
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
         if (e.key === 'Backspace') {
+            e.preventDefault();
+            const newOtp = [...otpValues];
+
             if (otpValues[index] !== '') {
-                e.preventDefault();
-                const newOtp = [...otpValues];
+                // 1. Jika ADA isinya: Hapus angkanya...
                 newOtp[index] = '';
                 setOtpValues(newOtp);
                 setOtpData('otp', newOtp.join(''));
+
+                // ...DAN langsung pindah ke kotak sebelumnya
+                if (index > 0) {
+                    inputRefs.current[index - 1]?.focus();
+                }
             } else if (index > 0) {
-                e.preventDefault();
+                // 2. Jika KOSONG: Hanya pindah mundur (tidak menghapus)
                 inputRefs.current[index - 1]?.focus();
             }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            inputRefs.current[index + 1]?.focus();
         }
     };
 
@@ -262,16 +273,27 @@ export default function Settings({ auth }: any) {
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
         if (e.key === 'Backspace') {
+            e.preventDefault();
+            const newOtp = [...deleteOtpValues];
+
             if (deleteOtpValues[index] !== '') {
-                e.preventDefault();
-                const newOtp = [...deleteOtpValues];
+                // 1. Jika ADA isinya: Hapus angkanya...
                 newOtp[index] = '';
                 setDeleteOtpValues(newOtp);
                 setDeleteData('otp', newOtp.join(''));
+
+                // ...DAN langsung pindah ke kotak sebelumnya
+                if (index > 0) {
+                    deleteInputRefs.current[index - 1]?.focus();
+                }
             } else if (index > 0) {
-                e.preventDefault();
+                // 2. Jika KOSONG: Hanya pindah mundur (tidak menghapus)
                 deleteInputRefs.current[index - 1]?.focus();
             }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            deleteInputRefs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            deleteInputRefs.current[index + 1]?.focus();
         }
     };
 
@@ -443,7 +465,7 @@ export default function Settings({ auth }: any) {
                                     disabled={
                                         profileProcessing || isEmailUnchanged
                                     }
-                                    className="flex h-12 items-center justify-center rounded-xl bg-slate-900 px-8 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0"
+                                    className="flex h-12 cursor-pointer items-center justify-center rounded-xl bg-slate-900 px-8 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0"
                                 >
                                     {profileProcessing ? (
                                         <Spinner className="mr-2 h-5 w-5" />
@@ -505,7 +527,7 @@ export default function Settings({ auth }: any) {
                                         <button
                                             type="button"
                                             onClick={sendResetEmail}
-                                            className="text-xs font-bold text-purple-600 transition-colors hover:text-purple-700 hover:underline"
+                                            className="cursor-pointer text-xs font-bold text-purple-600 transition-colors hover:text-purple-700 hover:underline"
                                         >
                                             Forgot current password?
                                         </button>
@@ -560,7 +582,7 @@ export default function Settings({ auth }: any) {
                             <div className="pt-4">
                                 <button
                                     disabled={pwdProcessing}
-                                    className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50 disabled:hover:translate-y-0"
+                                    className="flex cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50 disabled:hover:translate-y-0"
                                 >
                                     <Lock size={16} /> Update Password
                                 </button>
@@ -596,7 +618,7 @@ export default function Settings({ auth }: any) {
                                     type="button"
                                     onClick={requestDeletionOtp}
                                     disabled={isRequestingDeletion}
-                                    className="flex h-12 items-center justify-center rounded-xl border-2 border-rose-100 bg-white px-6 text-sm font-bold text-rose-600 transition-all hover:border-rose-200 hover:bg-rose-50 disabled:opacity-50"
+                                    className="flex h-12 cursor-pointer items-center justify-center rounded-xl border-2 border-rose-100 bg-white px-6 text-sm font-bold text-rose-600 transition-all hover:border-rose-200 hover:bg-rose-50 disabled:opacity-50"
                                 >
                                     {isRequestingDeletion ? (
                                         <Spinner className="mr-2 h-4 w-4" />
@@ -663,8 +685,10 @@ export default function Settings({ auth }: any) {
                                                 handleOtpKeyDown(index, e)
                                             }
                                             onPaste={handleOtpPaste}
+                                            // KEMBALIKAN KE SELECT
                                             onFocus={(e) => e.target.select()}
-                                            className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
+                                            // KEMBALIKAN KE CARET-TRANSPARENT
+                                            className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all selection:bg-purple-200 selection:text-purple-900 focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                             autoFocus={index === 0}
                                         />
                                     ))}
@@ -682,7 +706,7 @@ export default function Settings({ auth }: any) {
                                 disabled={
                                     otpProcessing || otpData.otp.length !== 6
                                 }
-                                className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-slate-900 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0"
+                                className="cursor-pointeritems-center mt-6 flex h-14 w-full justify-center rounded-xl bg-slate-900 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0"
                             >
                                 {otpProcessing ? (
                                     <Spinner className="mr-2 h-5 w-5" />
@@ -694,7 +718,7 @@ export default function Settings({ auth }: any) {
                                 <button
                                     type="button"
                                     onClick={closeOtpModal}
-                                    className="text-xs font-bold text-slate-400 transition-colors hover:text-slate-600 hover:underline"
+                                    className="cursor-pointer text-xs font-bold text-slate-400 transition-colors hover:text-slate-600 hover:underline"
                                 >
                                     I'll verify later
                                 </button>
@@ -766,8 +790,10 @@ export default function Settings({ auth }: any) {
                                                 handleDeleteOtpKeyDown(index, e)
                                             }
                                             onPaste={handleDeleteOtpPaste}
+                                            // KEMBALIKAN KE SELECT
                                             onFocus={(e) => e.target.select()}
-                                            className="h-14 w-12 rounded-xl border border-rose-200 bg-rose-50/50 text-center text-2xl font-bold text-rose-900 caret-transparent shadow-sm transition-all focus:border-rose-500 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
+                                            // KEMBALIKAN KE CARET-TRANSPARENT
+                                            className="h-14 w-12 rounded-xl border border-rose-200 bg-rose-50/50 text-center text-2xl font-bold text-rose-900 caret-transparent shadow-sm transition-all selection:bg-rose-200 selection:text-rose-900 focus:border-rose-500 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                             autoFocus={index === 0}
                                         />
                                     ))}
@@ -786,7 +812,7 @@ export default function Settings({ auth }: any) {
                                     deleteProcessing ||
                                     deleteData.otp.length !== 6
                                 }
-                                className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-rose-600 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-500/25 focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0"
+                                className="mt-6 flex h-14 w-full cursor-pointer items-center justify-center rounded-xl bg-rose-600 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-500/25 focus:outline-none disabled:opacity-50 disabled:hover:translate-y-0"
                             >
                                 {deleteProcessing ? (
                                     <Spinner className="mr-2 h-5 w-5" />
@@ -798,7 +824,7 @@ export default function Settings({ auth }: any) {
                                 <button
                                     type="button"
                                     onClick={closeDeleteModal}
-                                    className="text-xs font-bold text-slate-400 transition-colors hover:text-slate-600 hover:underline"
+                                    className="cursor-pointer text-xs font-bold text-slate-400 transition-colors hover:text-slate-600 hover:underline"
                                 >
                                     Cancel
                                 </button>

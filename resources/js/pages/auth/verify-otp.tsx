@@ -48,16 +48,26 @@ export default function VerifyOtp() {
         e: React.KeyboardEvent<HTMLInputElement>,
     ) => {
         if (e.key === 'Backspace') {
+            e.preventDefault();
+            const newOtp = [...otpValues];
+
             if (otpValues[index] !== '') {
-                e.preventDefault();
-                const newOtp = [...otpValues];
+                // Jika ADA isinya: Hapus isi kotak ini, lalu mundur ke kotak sebelumnya
                 newOtp[index] = '';
                 setOtpValues(newOtp);
                 setData('code', newOtp.join(''));
+
+                if (index > 0) {
+                    inputRefs.current[index - 1]?.focus();
+                }
             } else if (index > 0) {
-                e.preventDefault();
+                // Jika KOSONG: HANYA pindah ke kotak sebelumnya tanpa menghapus
                 inputRefs.current[index - 1]?.focus();
             }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            inputRefs.current[index + 1]?.focus();
         }
     };
 
@@ -137,7 +147,6 @@ export default function VerifyOtp() {
                                 </span>
                             </h1>
 
-                            {/* --- BAGIAN YANG DIPERBARUI --- */}
                             <p className="text-sm leading-relaxed text-slate-500">
                                 We've sent a 6-digit security code to:
                             </p>
@@ -154,7 +163,6 @@ export default function VerifyOtp() {
                                 Can't find the email? Make sure to check your
                                 spam or junk folder.
                             </p>
-                            {/* ------------------------------- */}
                         </div>
 
                         {flash?.success && (
@@ -197,7 +205,7 @@ export default function VerifyOtp() {
                                             }
                                             onPaste={handlePaste}
                                             onFocus={(e) => e.target.select()}
-                                            className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
+                                            className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all selection:bg-purple-200 selection:text-purple-900 focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                             disabled={isEditingEmail}
                                         />
                                     ))}
