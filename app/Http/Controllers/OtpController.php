@@ -101,4 +101,44 @@ class OtpController extends Controller
 
         return back()->with('success', 'A new 6-digit code has been sent to your email.');
     }
+
+    public function updateEmail(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+        ]);
+
+        // 1. Cari siapa pengguna yang sedang mencoba mengubah email
+        $oldEmail = session('pending_otp_email');
+        $user = \App\Models\User::where('email', $oldEmail)->first();
+
+        if (!$user) {
+            return back()->with('error', 'Session expired. Please register again.');
+        }
+
+        // 2. Update email dan generate OTP baru
+        $user->email = $request->email;
+        $user->otp_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        $user->otp_expires_at = now()->addMinutes(10);
+        $user->save();
+
+        // 3. Update juga session ticket dengan email yang baru!
+        $request->session()->put('pending_otp_email', $user->email);
+
+        // 4. Kirim ulang email
+        $user->sendEmailVerificationNotification();
+
+        return back()->with('success', 'Email has been updated and a new OTP sent.');
+    }
+
+    public function show()
+    {
+        // Ambil email dari session ticket yang dibuat oleh FortifyServiceProvider
+        $email = session('pending_otp_email');
+
+        // Kirim email tersebut ke React
+        return inertia('auth/verify-otp', [
+            'pendingEmail' => $email
+        ]);
+    }
 }

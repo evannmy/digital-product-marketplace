@@ -40,9 +40,10 @@ Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name
 // 2. TWO-FACTOR AUTHENTICATION (OTP)
 // ==========================================
 Route::middleware([EnsurePendingOtpSession::class])->group(function () {
-    Route::inertia('/verify-otp', 'auth/verify-otp')->name('verification.notice');
+    Route::get('/verify-otp', [OtpController::class, 'show'])->name('verification.notice');
     Route::post('/verify-otp', [OtpController::class, 'verify'])->name('verification.verify_otp');
     Route::post('/verify-otp/resend', [OtpController::class, 'resend'])->name('verification.resend_otp');
+    Route::post('/verify-otp/update-email', [OtpController::class, 'updateEmail'])->name('verification.update_email');
 });
 
 // ==========================================
