@@ -117,7 +117,20 @@ export default function VerifyOtp() {
             '/verify-otp/resend',
             {},
             {
-                onSuccess: () => setCountdown(60),
+                preserveState: true, // Wajib ada agar countdown 60 detiknya jalan
+                preserveScroll: true,
+                onSuccess: () => {
+                    setCountdown(60);
+
+                    // 1. Kosongkan semua kotak
+                    setOtpValues(['', '', '', '', '', '']);
+
+                    // 2. Kosongkan data form yang akan di-submit
+                    setData('code', '');
+
+                    // 3. Kembalikan fokus kursor ke kotak pertama
+                    inputRefs.current[0]?.focus();
+                },
             },
         );
     };
