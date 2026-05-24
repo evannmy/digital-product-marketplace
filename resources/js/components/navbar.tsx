@@ -632,6 +632,18 @@ export default function Navbar() {
                                             <span className="h-2 w-2 rounded-full bg-purple-500"></span>
                                         )}
                                     </Link>
+                                    <div className="mt-3 mb-2 px-2">
+                                        <Link
+                                            href={route('creator.onboarding')}
+                                            className="flex w-full items-center justify-center rounded-xl border border-purple-100 bg-purple-50 px-3 py-3.5 text-base font-bold text-purple-700 transition-colors hover:bg-purple-100"
+                                        >
+                                            <Sparkles
+                                                size={18}
+                                                className="mr-2 text-purple-500"
+                                            />{' '}
+                                            Start Selling
+                                        </Link>
+                                    </div>
                                 </>
                             )}
 
@@ -798,23 +810,6 @@ export default function Navbar() {
                                                 </Link>
                                             </div>
                                         )}
-
-                                    {!isAdmin && auth.user.role === 'buyer' && (
-                                        <div className="mt-3 mb-2 px-2">
-                                            <Link
-                                                href={route(
-                                                    'creator.onboarding',
-                                                )}
-                                                className="flex w-full items-center justify-center rounded-xl border border-purple-100 bg-purple-50 px-3 py-3.5 text-base font-bold text-purple-700 transition-colors hover:bg-purple-100"
-                                            >
-                                                <Sparkles
-                                                    size={18}
-                                                    className="mr-2 text-purple-500"
-                                                />{' '}
-                                                Start Selling
-                                            </Link>
-                                        </div>
-                                    )}
 
                                     <hr className="my-3 border-slate-100" />
                                     <Link
