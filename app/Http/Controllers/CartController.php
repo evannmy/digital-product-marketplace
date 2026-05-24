@@ -23,12 +23,19 @@ class CartController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        // --- NEW: Map over items and append the pending check ---
+        // --- NEW: Map over items and append BOTH pending and purchased checks ---
         if ($cart) {
             $cart->items->transform(function ($item) use ($user) {
+                // 1. Cek apakah ada order yang masih menggantung (Pending)
                 $item->has_pending_order = \App\Models\OrderItem::where('product_id', $item->product_id)
                     ->whereHas('order', function ($query) use ($user) {
                         $query->where('buyer_id', $user->id)->where('status', 'pending');
+                    })->exists();
+
+                // 2. Cek apakah produk ini sudah pernah berhasil dibeli (Success)
+                $item->has_purchased_order = \App\Models\OrderItem::where('product_id', $item->product_id)
+                    ->whereHas('order', function ($query) use ($user) {
+                        $query->where('buyer_id', $user->id)->where('status', 'success');
                     })->exists();
 
                 return $item;
@@ -39,6 +46,7 @@ class CartController extends Controller
             'cart' => $cart
         ]);
     }
+
     /**
      * Add an item to the user's cart.
      */

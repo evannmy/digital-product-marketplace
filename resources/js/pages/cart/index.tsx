@@ -38,6 +38,7 @@ interface CartItem {
     cart_id: number;
     product_id: number;
     has_pending_order?: boolean; // <-- ADDED: To track pending status per item
+    has_purchased_order?: boolean;
     product: Product;
 }
 
@@ -155,6 +156,9 @@ export default function CartPage({ cart }: CartPageProps) {
 
     // --- NEW: Check if any item in the cart is blocking checkout ---
     const hasPendingItems = items.some((item) => item.has_pending_order);
+    const hasPurchasedItems = items.some((item) => item.has_purchased_order);
+
+    const isCheckoutBlocked = hasPendingItems || hasPurchasedItems;
 
     const getFinalPrice = (product: Product) => {
         return product.is_discount_active &&
@@ -337,21 +341,35 @@ export default function CartPage({ cart }: CartPageProps) {
                                                     </div>
 
                                                     <div className="mt-auto flex flex-1 items-end justify-between pt-4 text-sm">
-                                                        {/* --- UPDATED: Replaced Digital Download with dynamic alert --- */}
-                                                        <div className="flex items-center">
-                                                            {item.has_pending_order && (
-                                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-500/20 ring-inset">
-                                                                    <AlertTriangle
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            {item.has_purchased_order && (
+                                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-500/20 ring-inset">
+                                                                    <Package
                                                                         size={
                                                                             14
                                                                         }
                                                                     />
-                                                                    Pending
-                                                                    Order
+                                                                    Already
+                                                                    Owned
                                                                     (Please
                                                                     Remove)
                                                                 </span>
                                                             )}
+
+                                                            {item.has_pending_order &&
+                                                                !item.has_purchased_order && (
+                                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-500/20 ring-inset">
+                                                                        <AlertTriangle
+                                                                            size={
+                                                                                14
+                                                                            }
+                                                                        />
+                                                                        Pending
+                                                                        Order
+                                                                        (Please
+                                                                        Remove)
+                                                                    </span>
+                                                                )}
                                                         </div>
                                                         <button
                                                             type="button"
@@ -410,11 +428,11 @@ export default function CartPage({ cart }: CartPageProps) {
                                     <button
                                         onClick={handleCheckout}
                                         disabled={
-                                            isCheckingOut || hasPendingItems
+                                            isCheckingOut || isCheckoutBlocked
                                         }
                                         className={`mt-8 flex w-full items-center justify-center rounded-xl px-6 py-4 text-sm font-bold text-white transition-all disabled:cursor-not-allowed ${
-                                            hasPendingItems
-                                                ? 'bg-amber-500 text-white hover:bg-amber-500' // Make it amber to highlight the issue
+                                            isCheckoutBlocked
+                                                ? 'bg-amber-500 text-white hover:bg-amber-500'
                                                 : 'bg-slate-900 hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50 disabled:hover:translate-y-0'
                                         }`}
                                     >
@@ -423,9 +441,11 @@ export default function CartPage({ cart }: CartPageProps) {
                                         ) : null}
                                         {isCheckingOut
                                             ? 'Processing...'
-                                            : hasPendingItems
-                                              ? 'Remove Pending Items to Continue'
-                                              : 'Proceed to Payment'}
+                                            : hasPurchasedItems
+                                              ? 'Remove Owned Items to Continue'
+                                              : hasPendingItems
+                                                ? 'Remove Pending Items to Continue'
+                                                : 'Proceed to Payment'}
                                     </button>
 
                                     <div className="mt-6 text-center text-sm font-semibold text-slate-500">
