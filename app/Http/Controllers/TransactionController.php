@@ -23,6 +23,19 @@ class TransactionController extends Controller
     {
         $user = $request->user();
 
+        // =====================================================================
+        // --- NEW: SELF-HEALING EXPIRATION CHECK ---
+        // Automatically cancel any pending orders older than 24 hours
+        // before we query the data to send to the frontend.
+        // =====================================================================
+        \App\Models\Order::where('buyer_id', $user->id)
+            ->where('status', 'pending')
+            ->where('created_at', '<', now()->subHours(24))
+            ->update([
+                'status' => 'cancelled',
+                'snap_token' => null // Optional: clear the token since it's expired
+            ]);
+
         // --- PENDING ORDERS ---
         $pendingOrders = \App\Models\Order::with([
             'items.product' => function ($query) {
@@ -279,7 +292,21 @@ class TransactionController extends Controller
         }
 
         if ($order->status === 'cancelled') {
-            return redirect()->route('purchases.index')->with('error', 'This order has been cancelled by an Admin. Please start a new checkout.');
+            return redirect()->route('purchases.index')->with('error', 'This order has been cancelled. Please start a new checkout.');
+        }
+
+        // =====================================================================
+        // --- NEW: DIRECT ACCESS TIME GUARD ---
+        // Jika status masih pending tapi sudah lewat 24 jam, langsung batalkan!
+        // =====================================================================
+        if ($order->status === 'pending' && $order->created_at < now()->subHours(24)) {
+            $order->update([
+                'status' => 'cancelled',
+                'snap_token' => null
+            ]);
+
+            return redirect()->route('purchases.index')
+                ->with('error', 'Payment time limit (24 hours) has expired. The order has been cancelled.');
         }
 
         Config::$serverKey = env('MIDTRANS_SERVER_KEY');
