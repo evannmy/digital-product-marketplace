@@ -22,14 +22,22 @@ import { toast } from '@/components/toaster';
 export default function PromotionsIndex({ products }: any) {
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    const { data, setData, post, processing, errors, reset, clearErrors } =
-        useForm({
-            product_ids: [] as number[],
-            discount_percentage: '',
-            starts_at: '',
-            ends_at: '',
-            timezone: userTimeZone,
-        });
+    const {
+        data,
+        setData,
+        post,
+        processing,
+        errors,
+        reset,
+        clearErrors,
+        transform,
+    } = useForm({
+        product_ids: [] as number[],
+        discount_percentage: '',
+        starts_at: '',
+        ends_at: '',
+        timezone: userTimeZone,
+    });
 
     const [customHours, setCustomHours] = useState<number | ''>('');
     const [customMinutes, setCustomMinutes] = useState<number | ''>('');
@@ -124,8 +132,37 @@ export default function PromotionsIndex({ products }: any) {
     };
 
     // --- LOGIC: Submission ---
+    // --- LOGIC: Submission ---
     const submitPromotion = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // SMART UX INTERCEPTION: Kalkulasi otomatis jika pengguna lupa klik "Add"
+        transform((currentData) => {
+            if (customHours !== '' || customMinutes !== '') {
+                const now = new Date();
+                const h = Number(customHours) || 0;
+                const m = Number(customMinutes) || 0;
+
+                const durationInMs = h * 60 * 60 * 1000 + m * 60 * 1000;
+                const endTime = new Date(now.getTime() + durationInMs);
+
+                const formatForInput = (dateObj: Date) => {
+                    return new Date(
+                        dateObj.getTime() - dateObj.getTimezoneOffset() * 60000,
+                    )
+                        .toISOString()
+                        .slice(0, 16);
+                };
+
+                return {
+                    ...currentData,
+                    starts_at: formatForInput(now),
+                    ends_at: formatForInput(endTime),
+                };
+            }
+
+            return currentData; // Kembalikan data asli jika tidak ada input custom time
+        });
 
         post(route('promotions.apply'), {
             preserveScroll: true,
@@ -138,6 +175,8 @@ export default function PromotionsIndex({ products }: any) {
                     'product_ids',
                 );
                 setShowCustomDates(false);
+                setCustomHours(''); // <-- Pastikan input dibersihkan setelah sukses
+                setCustomMinutes(''); // <-- Pastikan input dibersihkan setelah sukses
                 toast('Flash sale successfully applied!', 'success');
             },
             onError: (err) => {
@@ -567,8 +606,8 @@ export default function PromotionsIndex({ products }: any) {
                                         className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
                                     >
                                         {isAllFilteredSelected
-                                            ? 'Deselect Visible'
-                                            : 'Select Visible'}
+                                            ? 'Deselect All'
+                                            : 'Select All'}
                                     </button>
                                 </div>
 
@@ -628,7 +667,7 @@ export default function PromotionsIndex({ products }: any) {
                                             className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-100"
                                         >
                                             <XCircle size={16} />
-                                            Clear Active (
+                                            Remove Discounts (
                                             {selectedProductsWithPromos.length})
                                         </button>
                                     )}
@@ -748,7 +787,8 @@ export default function PromotionsIndex({ products }: any) {
                                                                         }
                                                                         className="fill-current"
                                                                     />
-                                                                    Active: Rp{' '}
+                                                                    Promo Price:
+                                                                    Rp{' '}
                                                                     {Math.round(
                                                                         Number(
                                                                             product.discount_price,
@@ -781,7 +821,7 @@ export default function PromotionsIndex({ products }: any) {
                 isOpen={isClearModalOpen}
                 onClose={() => setIsClearModalOpen(false)}
                 onConfirm={confirmClearPromotion}
-                title="Clear Promotions"
+                title="Remove Discounts"
                 message={`Are you sure you want to completely remove the active discounts from the ${selectedProductsWithPromos.length} valid selected product(s)?`}
                 confirmText="Yes, clear discounts"
                 variant="danger"
