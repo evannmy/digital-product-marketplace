@@ -227,6 +227,21 @@ export default function Navbar() {
                     </div>
 
                     <div className="hidden items-center gap-5 md:flex">
+                        {auth?.user &&
+                            !isAdmin &&
+                            auth.user.role === 'buyer' && (
+                                <Link
+                                    href={route('creator.onboarding')}
+                                    className="hidden items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50/50 px-4 py-1.5 text-sm font-bold text-purple-700 transition-all hover:bg-purple-100 hover:shadow-sm min-[900px]:flex"
+                                >
+                                    <Sparkles
+                                        size={14}
+                                        className="text-purple-500"
+                                    />
+                                    Start Selling
+                                </Link>
+                            )}
+
                         {auth?.user && !isAdmin && (
                             <Link
                                 href="/cart"
@@ -344,6 +359,30 @@ export default function Navbar() {
                                             </Link>
 
                                             {!isAdmin &&
+                                                auth.user.role === 'buyer' && (
+                                                    <>
+                                                        <div className="my-1 border-t border-slate-50 min-[900px]:hidden"></div>
+                                                        <Link
+                                                            href={route(
+                                                                'creator.onboarding',
+                                                            )}
+                                                            onClick={() =>
+                                                                setIsProfileOpen(
+                                                                    false,
+                                                                )
+                                                            }
+                                                            className="flex w-full items-center px-4 py-2 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-50 hover:text-purple-700 min-[900px]:hidden"
+                                                        >
+                                                            <Sparkles
+                                                                size={16}
+                                                                className="mr-3 text-purple-400"
+                                                            />
+                                                            Start Selling
+                                                        </Link>
+                                                    </>
+                                                )}
+
+                                            {!isAdmin &&
                                                 auth.user.role === 'seller' && (
                                                     <>
                                                         <div className="my-1 border-t border-slate-50"></div>
@@ -416,30 +455,6 @@ export default function Navbar() {
                                                                 className={`mr-3 ${url.startsWith('/seller/earnings') ? 'text-emerald-500' : 'text-slate-400'}`}
                                                             />
                                                             My Earnings
-                                                        </Link>
-                                                    </>
-                                                )}
-
-                                            {!isAdmin &&
-                                                auth.user.role === 'buyer' && (
-                                                    <>
-                                                        <div className="my-1 border-t border-slate-50"></div>
-                                                        <Link
-                                                            href={route(
-                                                                'creator.onboarding',
-                                                            )}
-                                                            onClick={() =>
-                                                                setIsProfileOpen(
-                                                                    false,
-                                                                )
-                                                            }
-                                                            className="flex w-full items-center px-4 py-2 text-sm font-bold text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                                                        >
-                                                            <Sparkles
-                                                                size={16}
-                                                                className="mr-3 text-purple-400"
-                                                            />{' '}
-                                                            Become a Creator
                                                         </Link>
                                                     </>
                                                 )}
@@ -796,7 +811,7 @@ export default function Navbar() {
                                                     size={18}
                                                     className="mr-2 text-purple-500"
                                                 />{' '}
-                                                Become a Creator
+                                                Start Selling
                                             </Link>
                                         </div>
                                     )}
