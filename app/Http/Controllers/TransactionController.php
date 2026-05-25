@@ -24,17 +24,34 @@ class TransactionController extends Controller
         $user = $request->user();
 
         // =====================================================================
-        // --- NEW: SELF-HEALING EXPIRATION CHECK ---
-        // Automatically cancel any pending orders older than 24 hours
-        // before we query the data to send to the frontend.
+        // --- NEW: RIGOROUS SELF-HEALING EXPIRATION CHECK ---
         // =====================================================================
-        \App\Models\Order::where('buyer_id', $user->id)
+        $expiredOrders = \App\Models\Order::where('buyer_id', $user->id)
             ->where('status', 'pending')
             ->where('created_at', '<', now()->subHours(24))
-            ->update([
-                'status' => 'cancelled',
-                'snap_token' => null // Optional: clear the token since it's expired
-            ]);
+            ->get();
+
+        if ($expiredOrders->isNotEmpty()) {
+            Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+
+            foreach ($expiredOrders as $expiredOrder) {
+                // Beritahu Midtrans untuk membatalkan token yang mungkin masih aktif
+                if ($expiredOrder->midtrans_order_id) {
+                    try {
+                        \Midtrans\Transaction::cancel($expiredOrder->midtrans_order_id);
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::warning("Midtrans auto-cancel failed for {$expiredOrder->midtrans_order_id}: " . $e->getMessage());
+                    }
+                }
+
+                // Perbarui database lokal
+                $expiredOrder->update([
+                    'status' => 'cancelled',
+                    'snap_token' => null
+                ]);
+            }
+        }
 
         // --- PENDING ORDERS ---
         $pendingOrders = \App\Models\Order::with([
@@ -296,10 +313,22 @@ class TransactionController extends Controller
         }
 
         // =====================================================================
-        // --- NEW: DIRECT ACCESS TIME GUARD ---
-        // Jika status masih pending tapi sudah lewat 24 jam, langsung batalkan!
+        // --- RIGOROUS DIRECT ACCESS TIME GUARD ---
         // =====================================================================
         if ($order->status === 'pending' && $order->created_at < now()->subHours(24)) {
+
+            // Batalkan di Midtrans terlebih dahulu
+            if ($order->midtrans_order_id) {
+                Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+                Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+                try {
+                    \Midtrans\Transaction::cancel($order->midtrans_order_id);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("Midtrans time guard cancel failed: " . $e->getMessage());
+                }
+            }
+
+            // Lalu batalkan di lokal
             $order->update([
                 'status' => 'cancelled',
                 'snap_token' => null
@@ -318,7 +347,6 @@ class TransactionController extends Controller
 
             $itemDetails = [];
             foreach ($order->items as $item) {
-                // We use optional chaining and a fallback in case the product was deleted
                 $itemDetails[] = [
                     'id'       => $item->product_id,
                     'price'    => (int) $item->price,
@@ -327,7 +355,8 @@ class TransactionController extends Controller
                 ];
             }
 
-            $midtransOrderId = 'SOKO-' . time() . '-' . $order->id;
+            // --- FIX 1: Generate ID yang bisa dilacak & simpan ke database ---
+            $midtransOrderId = 'SOKO-' . $order->id . '-' . bin2hex(random_bytes(4));
 
             $params = [
                 'transaction_details' => [
@@ -343,14 +372,17 @@ class TransactionController extends Controller
 
             try {
                 $snapToken = \Midtrans\Snap::getSnapToken($params);
-                $order->update(['snap_token' => $snapToken]);
+                // SIMPAN midtrans_order_id ke database lokal!
+                $order->update([
+                    'snap_token' => $snapToken,
+                    'midtrans_order_id' => $midtransOrderId
+                ]);
             } catch (\Exception $e) {
                 return back()->with('error', 'Failed to generate payment token: ' . $e->getMessage());
             }
         }
 
         return Inertia::render('purchases/pay', [
-            // --- THE FIX: We added 'items.product.media' to the load array! ---
             'order' => $order->load(['items.product.seller', 'items.product.media']),
             'clientKey' => env('MIDTRANS_CLIENT_KEY')
         ]);
@@ -362,15 +394,19 @@ class TransactionController extends Controller
     public function callback(Request $request)
     {
         $serverKey = env('MIDTRANS_SERVER_KEY');
-
         $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
 
         if ($hashed == $request->signature_key) {
 
-            $parts = explode('-', $request->order_id);
-            $realOrderId = end($parts);
+            // --- FIX 2: Cari order berdasarkan midtrans_order_id yang baru ---
+            $order = Order::where('midtrans_order_id', $request->order_id)->first();
 
-            $order = Order::find($realOrderId);
+            // Fallback (jika ada transaksi lama yang menggunakan format time() yang lama)
+            if (!$order) {
+                $parts = explode('-', $request->order_id);
+                $realOrderId = end($parts);
+                $order = Order::find($realOrderId);
+            }
 
             if ($order) {
                 $updateData = [
@@ -408,6 +444,20 @@ class TransactionController extends Controller
 
         if ($order->status === 'cancelled') {
             return redirect()->route('purchases.index')->with('error', 'This order has been cancelled. Please create a new checkout from your cart.');
+        }
+
+        // --- FIX 3: Tembak API Midtrans untuk membatalkan transaksi di Dashboard mereka ---
+        if ($order->midtrans_order_id) {
+            Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+
+            try {
+                \Midtrans\Transaction::cancel($order->midtrans_order_id);
+            } catch (\Exception $e) {
+                // Abaikan error jika transaksi di Midtrans sudah expire/tidak bisa dicancel lagi, 
+                // kita tetap lanjutkan membatalkan di database lokal.
+                \Illuminate\Support\Facades\Log::warning("Midtrans cancel failed for {$order->midtrans_order_id}: " . $e->getMessage());
+            }
         }
 
         $order->update([
