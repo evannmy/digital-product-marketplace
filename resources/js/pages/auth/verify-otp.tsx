@@ -1,4 +1,5 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
+import { AlertCircle, Edit2 } from 'lucide-react'; // <-- ADDED: Ikon untuk UX yang lebih baik
 import { useState, useEffect, useRef } from 'react';
 import SimpleNavbar from '@/components/simple-navbar';
 import { Spinner } from '@/components/ui/spinner';
@@ -9,7 +10,6 @@ export default function VerifyOtp() {
     const displayEmail = pendingEmail || 'your email';
 
     const [countdown, setCountdown] = useState(0);
-    // Tambahkan state untuk mengatur mode edit email
     const [isEditingEmail, setIsEditingEmail] = useState(false);
 
     // Form untuk OTP
@@ -52,7 +52,6 @@ export default function VerifyOtp() {
             const newOtp = [...otpValues];
 
             if (otpValues[index] !== '') {
-                // Jika ADA isinya: Hapus isi kotak ini, lalu mundur ke kotak sebelumnya
                 newOtp[index] = '';
                 setOtpValues(newOtp);
                 setData('code', newOtp.join(''));
@@ -61,7 +60,6 @@ export default function VerifyOtp() {
                     inputRefs.current[index - 1]?.focus();
                 }
             } else if (index > 0) {
-                // Jika KOSONG: HANYA pindah ke kotak sebelumnya tanpa menghapus
                 inputRefs.current[index - 1]?.focus();
             }
         } else if (e.key === 'ArrowLeft' && index > 0) {
@@ -97,14 +95,13 @@ export default function VerifyOtp() {
         post('/verify-otp');
     };
 
-    // Handler untuk form update email
     const submitUpdateEmail = (e: React.FormEvent) => {
         e.preventDefault();
         postEmail('/verify-otp/update-email', {
             onSuccess: () => {
                 setIsEditingEmail(false);
-                setCountdown(60); // Mulai ulang timer karena OTP baru dikirim
-                setOtpValues(['', '', '', '', '', '']); // Kosongkan kolom OTP
+                setCountdown(60);
+                setOtpValues(['', '', '', '', '', '']);
                 setData('code', '');
             },
         });
@@ -117,18 +114,12 @@ export default function VerifyOtp() {
             '/verify-otp/resend',
             {},
             {
-                preserveState: true, // Wajib ada agar countdown 60 detiknya jalan
+                preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
                     setCountdown(60);
-
-                    // 1. Kosongkan semua kotak
                     setOtpValues(['', '', '', '', '', '']);
-
-                    // 2. Kosongkan data form yang akan di-submit
                     setData('code', '');
-
-                    // 3. Kembalikan fokus kursor ke kotak pertama
                     inputRefs.current[0]?.focus();
                 },
             },
@@ -152,7 +143,7 @@ export default function VerifyOtp() {
 
                 <main className="relative z-10 flex flex-1 items-center justify-center px-4 pt-32 pb-12 sm:px-6 lg:px-8">
                     <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-8 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
-                        <div className="mb-8 text-center">
+                        <div className="mb-6 text-center">
                             <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900">
                                 Verify{' '}
                                 <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
@@ -164,18 +155,91 @@ export default function VerifyOtp() {
                                 We've sent a 6-digit security code to:
                             </p>
 
-                            <div className="mx-auto my-3 inline-block rounded-lg border border-slate-100 bg-slate-50 px-4 py-2 text-base font-bold break-all text-slate-800 shadow-sm">
-                                {displayEmail}
+                            {/* --- UX FIX: Posisi Edit Email dipindah ke atas, tepat di bawah teks --- */}
+                            <div className="my-4">
+                                {!isEditingEmail ? (
+                                    <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 py-2 pr-2 pl-4 shadow-sm">
+                                        <span className="text-base font-bold break-all text-slate-800">
+                                            {displayEmail}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setIsEditingEmail(true)
+                                            }
+                                            className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-slate-50 hover:text-purple-600"
+                                        >
+                                            <Edit2 size={14} />
+                                            Change
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <form
+                                        onSubmit={submitUpdateEmail}
+                                        className="mx-auto flex w-full max-w-sm flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
+                                    >
+                                        <label className="text-left text-sm font-bold text-slate-700">
+                                            Update your email address
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="email"
+                                                value={emailData.email}
+                                                onChange={(e) =>
+                                                    setEmailData(
+                                                        'email',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Enter correct email"
+                                                required
+                                                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={processingEmail}
+                                                className="cursor-pointer rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold whitespace-nowrap text-white transition-colors hover:bg-purple-600 disabled:opacity-50"
+                                            >
+                                                {processingEmail
+                                                    ? 'Saving...'
+                                                    : 'Save'}
+                                            </button>
+                                        </div>
+                                        {emailErrors.email && (
+                                            <p className="text-left text-xs font-medium text-rose-500">
+                                                {emailErrors.email}
+                                            </p>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setIsEditingEmail(false)
+                                            }
+                                            className="cursor-pointer text-left text-xs font-medium text-slate-500 hover:text-slate-900"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </form>
+                                )}
                             </div>
 
-                            <p className="text-sm leading-relaxed text-slate-500">
-                                Enter it below to unlock the marketplace.
-                            </p>
-
-                            <p className="mt-3 text-xs font-medium text-slate-400">
-                                Can't find the email? Make sure to check your
-                                spam or junk folder.
-                            </p>
+                            {/* --- UX FIX: Banner Peringatan Spam --- */}
+                            <div className="mx-auto mt-2 max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
+                                <div className="flex items-start gap-3 text-left">
+                                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                                    <p className="text-xs leading-relaxed font-medium text-amber-800">
+                                        <strong className="font-bold text-amber-900">
+                                            Can't find the email?
+                                        </strong>
+                                        <br />
+                                        Make sure to check your{' '}
+                                        <span className="font-bold underline decoration-amber-300 underline-offset-2">
+                                            Spam or Junk
+                                        </span>{' '}
+                                        folder.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         {flash?.success && (
@@ -193,7 +257,7 @@ export default function VerifyOtp() {
                         <form onSubmit={submit} className="flex flex-col gap-6">
                             <div>
                                 <label className="mb-4 block text-center text-sm font-bold text-slate-700">
-                                    Security Code
+                                    Enter 6-Digit Code
                                 </label>
 
                                 <div className="flex justify-center gap-2 sm:gap-3">
@@ -267,67 +331,6 @@ export default function VerifyOtp() {
                                 </button>
                             </div>
                         </form>
-
-                        {/* --- BAGIAN BARU: Fitur Edit Email --- */}
-                        <div className="mt-8 border-t border-slate-100 pt-6">
-                            {!isEditingEmail ? (
-                                <p className="text-center text-sm text-slate-500">
-                                    Entered the wrong email?{' '}
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditingEmail(true)}
-                                        className="cursor-pointer font-medium text-slate-900 underline decoration-slate-300 underline-offset-4 hover:text-purple-600"
-                                    >
-                                        Change email
-                                    </button>
-                                </p>
-                            ) : (
-                                <form
-                                    onSubmit={submitUpdateEmail}
-                                    className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4"
-                                >
-                                    <label className="text-sm font-semibold text-slate-700">
-                                        Update your email address
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="email"
-                                            value={emailData.email}
-                                            onChange={(e) =>
-                                                setEmailData(
-                                                    'email',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Enter correct email"
-                                            required
-                                            className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-purple-400 focus:ring-0 focus:outline-none"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={processingEmail}
-                                            className="cursor-pointer rounded-lg bg-purple-600 px-4 py-2 text-sm font-bold text-white hover:bg-purple-700 disabled:opacity-50"
-                                        >
-                                            {processingEmail
-                                                ? 'Saving...'
-                                                : 'Save'}
-                                        </button>
-                                    </div>
-                                    {emailErrors.email && (
-                                        <p className="text-xs font-medium text-rose-500">
-                                            {emailErrors.email}
-                                        </p>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditingEmail(false)}
-                                        className="cursor-pointer text-left text-xs font-medium text-slate-500 hover:text-slate-900"
-                                    >
-                                        Cancel
-                                    </button>
-                                </form>
-                            )}
-                        </div>
                     </div>
                 </main>
             </div>
