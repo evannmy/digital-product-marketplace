@@ -232,7 +232,7 @@ export default function Navbar() {
                             auth.user.role === 'buyer' && (
                                 <Link
                                     href={route('creator.onboarding')}
-                                    className="hidden items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50/50 px-4 py-1.5 text-sm font-bold text-purple-700 transition-all hover:bg-purple-100 hover:shadow-sm min-[900px]:flex"
+                                    className="hidden items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50/50 px-4 py-1.5 text-sm font-bold text-purple-700 transition-all hover:bg-purple-100 hover:shadow-sm min-[1000px]:flex"
                                 >
                                     <Sparkles
                                         size={14}
@@ -371,7 +371,7 @@ export default function Navbar() {
                                                                     false,
                                                                 )
                                                             }
-                                                            className="flex w-full items-center px-4 py-2 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-50 hover:text-purple-700 min-[900px]:hidden"
+                                                            className="flex w-full items-center px-4 py-2 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-50 hover:text-purple-700 min-[1000px]:hidden"
                                                         >
                                                             <Sparkles
                                                                 size={16}
@@ -478,6 +478,21 @@ export default function Navbar() {
                             </div>
                         ) : (
                             <>
+                                <Link
+                                    href={route('creator.onboarding')}
+                                    className="flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50/50 px-4 py-1.5 text-sm font-bold text-purple-700 transition-all hover:bg-purple-100 hover:shadow-sm"
+                                >
+                                    <Sparkles
+                                        size={14}
+                                        className="text-purple-500"
+                                    />
+                                    Start Selling
+                                </Link>
+
+                                {/* Garis vertikal pembatas agar UI rapi */}
+                                <div className="block h-5 w-px bg-slate-200"></div>
+                                {/* ---------------------------------------------------------------- */}
+
                                 <Link
                                     href={route('login')}
                                     className="text-sm font-bold text-slate-600 hover:text-purple-600"

@@ -369,8 +369,13 @@ export default function Index({ products, categories, filters }: any) {
 
                     {auth?.user?.role !== 'seller' &&
                         auth?.user?.role !== 'admin' && (
-                            // UBAH: md:hidden menjadi min-[900px]:hidden
-                            <div className="mx-auto mt-6 mb-8 flex justify-center min-[900px]:hidden">
+                            <div
+                                className={`mx-auto mt-6 mb-8 flex justify-center ${
+                                    auth?.user
+                                        ? 'min-[1000px]:hidden'
+                                        : 'md:hidden'
+                                }`}
+                            >
                                 <Link
                                     href={route('creator.onboarding')}
                                     className="group flex items-center rounded-full border border-purple-200 bg-purple-50/90 px-4 py-1.5 text-sm font-medium text-purple-800 transition-all hover:border-purple-300 hover:bg-purple-100 hover:shadow-sm sm:px-5 sm:py-2"
