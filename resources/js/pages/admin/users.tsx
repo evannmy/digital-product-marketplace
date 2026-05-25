@@ -7,6 +7,7 @@ import {
     UserCheck,
     Filter,
     Activity,
+    MailCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
@@ -18,7 +19,6 @@ export default function Users({ users }: any) {
     const [roleFilter, setRoleFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
 
-    // --- NEW: Manual Processing State ---
     const [isProcessing, setIsProcessing] = useState(false);
 
     const userList = users?.data || users || [];
@@ -47,7 +47,7 @@ export default function Users({ users }: any) {
     // --- MODAL STATE MANAGEMENT ---
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
-        action: 'delete' | 'toggle' | null;
+        action: 'delete' | 'toggle' | 'verify' | null;
         user: any | null;
     }>({
         isOpen: false,
@@ -63,27 +63,26 @@ export default function Users({ users }: any) {
         setModalConfig({ isOpen: true, action: 'toggle', user });
     };
 
+    const promptVerify = (user: any) => {
+        setModalConfig({ isOpen: true, action: 'verify', user });
+    };
+
     const executeAction = () => {
         const { action, user } = modalConfig;
 
         if (!user) return;
 
-        // Start the loading spinner
         setIsProcessing(true);
 
         if (action === 'delete') {
             router.delete(`/admin/users/${user.id}`, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    setModalConfig({
-                        isOpen: false,
-                        action: null,
-                        user: null,
-                    });
+                    setModalConfig({ isOpen: false, action: null, user: null });
                     toast(`"${user.name}" permanently deleted.`, 'delete');
                 },
                 onError: () => toast('Failed to delete user.', 'error'),
-                onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+                onFinish: () => setIsProcessing(false),
             });
         } else if (action === 'toggle') {
             router.patch(
@@ -100,9 +99,7 @@ export default function Users({ users }: any) {
                         const statusText = user.is_active
                             ? 'suspended'
                             : 'reactivated';
-
                         const toastType = user.is_active ? 'info' : 'success';
-
                         toast(
                             `"${user.name}" is now ${statusText}.`,
                             toastType,
@@ -110,7 +107,28 @@ export default function Users({ users }: any) {
                     },
                     onError: () =>
                         toast('Failed to update user status.', 'error'),
-                    onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+                    onFinish: () => setIsProcessing(false),
+                },
+            );
+        } else if (action === 'verify') {
+            router.patch(
+                `/admin/users/${user.id}/verify`,
+                {},
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setModalConfig({
+                            isOpen: false,
+                            action: null,
+                            user: null,
+                        });
+                        toast(
+                            `"${user.name}" has been manually verified.`,
+                            'success',
+                        );
+                    },
+                    onError: () => toast('Failed to verify user.', 'error'),
+                    onFinish: () => setIsProcessing(false),
                 },
             );
         }
@@ -137,10 +155,18 @@ export default function Users({ users }: any) {
                 confirmText: isSuspending
                     ? 'Yes, suspend it'
                     : 'Yes, reactivate it',
-
                 variant: isSuspending
                     ? ('suspend' as const)
                     : ('reactivate' as const),
+            };
+        }
+
+        if (modalConfig.action === 'verify') {
+            return {
+                title: 'Manually Verify User',
+                message: `Are you sure you want to manually verify "${modalConfig.user?.name}"? This will bypass the OTP email requirement and grant them immediate access to the platform.`,
+                confirmText: 'Yes, verify user',
+                variant: 'reactivate' as const,
             };
         }
 
@@ -291,7 +317,7 @@ export default function Users({ users }: any) {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex flex-wrap items-center gap-2">
                                                     <span
                                                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${user.role === 'admin' ? 'bg-rose-50 text-rose-700 ring-rose-500/20' : user.role === 'seller' ? 'bg-emerald-50 text-emerald-700 ring-emerald-500/20' : 'bg-purple-50 text-purple-700 ring-purple-500/20'}`}
                                                     >
@@ -304,51 +330,83 @@ export default function Users({ users }: any) {
                                                         )}
                                                         {user.role.toUpperCase()}
                                                     </span>
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
-                                                    >
-                                                        {user.is_active
-                                                            ? 'Active'
-                                                            : 'Suspended'}
-                                                    </span>
+
+                                                    {/* --- LOGIKA BARU UNTUK BADGE (MOBILE) --- */}
+                                                    {user.email_verified_at ? (
+                                                        <span
+                                                            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
+                                                        >
+                                                            {user.is_active
+                                                                ? 'Active'
+                                                                : 'Suspended'}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">
+                                                            Unverified
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {user.role !== 'admin' && (
-                                                    <div className="grid grid-cols-2 gap-2 border-t border-slate-200/60 pt-4">
-                                                        <button
-                                                            onClick={() =>
-                                                                promptToggle(
-                                                                    user,
-                                                                )
-                                                            }
-                                                            className={`flex items-center justify-center rounded-lg p-2 transition-all ${
-                                                                user.is_active
-                                                                    ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600'
-                                                                    : 'bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
-                                                            }`}
-                                                            title={
-                                                                user.is_active
-                                                                    ? 'Suspend User'
-                                                                    : 'Reactivate User'
-                                                            }
-                                                        >
-                                                            {user.is_active ? (
-                                                                <UserX
+                                                    <div className="flex justify-end gap-2 border-t border-slate-200/60 pt-4">
+                                                        {/* --- LOGIKA BARU UNTUK TOMBOL (MOBILE) --- */}
+                                                        {!user.email_verified_at ? (
+                                                            // Jika Belum Terverifikasi, Tampilkan Tombol Verify Saja
+                                                            <button
+                                                                onClick={() =>
+                                                                    promptVerify(
+                                                                        user,
+                                                                    )
+                                                                }
+                                                                title="Manually Verify User"
+                                                                className="flex flex-1 items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-all hover:bg-blue-50 hover:text-blue-600"
+                                                            >
+                                                                <MailCheck
                                                                     size={16}
                                                                 />
-                                                            ) : (
-                                                                <UserCheck
-                                                                    size={16}
-                                                                />
-                                                            )}
-                                                        </button>
+                                                            </button>
+                                                        ) : (
+                                                            // Jika Sudah Terverifikasi, Tampilkan Tombol Suspend
+                                                            <button
+                                                                onClick={() =>
+                                                                    promptToggle(
+                                                                        user,
+                                                                    )
+                                                                }
+                                                                className={`flex flex-1 items-center justify-center rounded-lg p-2 transition-all ${
+                                                                    user.is_active
+                                                                        ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600'
+                                                                        : 'bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'
+                                                                }`}
+                                                                title={
+                                                                    user.is_active
+                                                                        ? 'Suspend User'
+                                                                        : 'Reactivate User'
+                                                                }
+                                                            >
+                                                                {user.is_active ? (
+                                                                    <UserX
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <UserCheck
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            </button>
+                                                        )}
+
                                                         <button
                                                             onClick={() =>
                                                                 promptDelete(
                                                                     user,
                                                                 )
                                                             }
-                                                            className="rounded-lg bg-slate-100 p-2 text-slate-500 transition-all hover:bg-rose-50 hover:text-rose-600"
+                                                            className="flex flex-1 items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-all hover:bg-rose-50 hover:text-rose-600"
                                                             title="Delete User"
                                                         >
                                                             <Trash2 size={16} />
@@ -414,7 +472,7 @@ export default function Users({ users }: any) {
                                                                                 </div>
                                                                             )}
                                                                         </div>
-                                                                        <div className="mt-0.5 text-xs text-slate-500">
+                                                                        <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
                                                                             {
                                                                                 user.email
                                                                             }
@@ -439,45 +497,74 @@ export default function Users({ users }: any) {
                                                                 </span>
                                                             </td>
                                                             <td className="px-8 py-5">
-                                                                <span
-                                                                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
-                                                                >
-                                                                    {user.is_active
-                                                                        ? 'Active'
-                                                                        : 'Suspended'}
-                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {/* --- LOGIKA BARU UNTUK BADGE (DESKTOP) --- */}
+                                                                    {user.email_verified_at ? (
+                                                                        <span
+                                                                            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
+                                                                        >
+                                                                            {user.is_active
+                                                                                ? 'Active'
+                                                                                : 'Suspended'}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">
+                                                                            Unverified
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                             <td className="px-8 py-5 text-right">
                                                                 {user.role !==
                                                                     'admin' && (
                                                                     <div className="flex items-center justify-end gap-2">
-                                                                        <button
-                                                                            onClick={() =>
-                                                                                promptToggle(
-                                                                                    user,
-                                                                                )
-                                                                            }
-                                                                            title={
-                                                                                user.is_active
-                                                                                    ? 'Suspend User'
-                                                                                    : 'Reactivate User'
-                                                                            }
-                                                                            className={`rounded-lg p-2 transition-colors ${user.is_active ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600' : 'bg-rose-50 text-rose-600 hover:bg-emerald-50 hover:text-emerald-600'}`}
-                                                                        >
-                                                                            {user.is_active ? (
-                                                                                <UserX
+                                                                        {/* --- LOGIKA BARU UNTUK TOMBOL (DESKTOP) --- */}
+                                                                        {!user.email_verified_at ? (
+                                                                            <button
+                                                                                onClick={() =>
+                                                                                    promptVerify(
+                                                                                        user,
+                                                                                    )
+                                                                                }
+                                                                                title="Manually Verify User"
+                                                                                className="rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                                                                            >
+                                                                                <MailCheck
                                                                                     size={
                                                                                         16
                                                                                     }
                                                                                 />
-                                                                            ) : (
-                                                                                <UserCheck
-                                                                                    size={
-                                                                                        16
-                                                                                    }
-                                                                                />
-                                                                            )}
-                                                                        </button>
+                                                                            </button>
+                                                                        ) : (
+                                                                            <button
+                                                                                onClick={() =>
+                                                                                    promptToggle(
+                                                                                        user,
+                                                                                    )
+                                                                                }
+                                                                                title={
+                                                                                    user.is_active
+                                                                                        ? 'Suspend User'
+                                                                                        : 'Reactivate User'
+                                                                                }
+                                                                                className={`rounded-lg p-2 transition-colors ${user.is_active ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600' : 'bg-rose-50 text-rose-600 hover:bg-emerald-50 hover:text-emerald-600'}`}
+                                                                            >
+                                                                                {user.is_active ? (
+                                                                                    <UserX
+                                                                                        size={
+                                                                                            16
+                                                                                        }
+                                                                                    />
+                                                                                ) : (
+                                                                                    <UserCheck
+                                                                                        size={
+                                                                                            16
+                                                                                        }
+                                                                                    />
+                                                                                )}
+                                                                            </button>
+                                                                        )}
+
                                                                         <button
                                                                             onClick={() =>
                                                                                 promptDelete(
@@ -557,7 +644,7 @@ export default function Users({ users }: any) {
                 message={modalMessage}
                 confirmText={modalConfirmText}
                 variant={modalVariant}
-                isProcessing={isProcessing} // <-- PASSED THE STATE DOWN
+                isProcessing={isProcessing}
             />
         </div>
     );

@@ -133,6 +133,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
     Route::patch('/users/{user}/toggle', [AdminUserController::class, 'toggleStatus'])->name('users.toggle');
+    Route::patch('/users/{user}/verify', [AdminUserController::class, 'verify']);
 
     // Manage Products
     Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');

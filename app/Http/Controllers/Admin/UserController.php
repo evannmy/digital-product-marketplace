@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Mail\AccountDeleted;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Mail; // <-- Required for sending emails
-use App\Mail\AccountTerminated; // <-- Assuming you use the same mailable as the user settings
+use Illuminate\Support\Facades\Mail;
+use App\Mail\AccountTerminated;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -25,18 +24,19 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         // Safety check: Prevent admins from deleting themselves
-        if (auth()->id() === $user->id) {
+        if (Auth::id() === $user->id) {
             return back()->with('error', 'You cannot delete your own admin account.');
         }
 
-        // 1. CAPTURE DETAILS AND SEND NOTIFICATION EMAIL
-        // We must grab the email and name BEFORE deleting the user from the database
+        // 1. CAPTURE DETAILS AND SEND NOTIFICATION EMAIL (HANYA JIKA TERVERIFIKASI)
         $userEmail = $user->email;
         $userName = $user->name;
+        $isVerified = !is_null($user->email_verified_at);
 
-        // Send the email (You can create a new Mailable like 'AccountTerminated' 
-        // if you want the message to sound like an admin action)
-        Mail::to($userEmail)->send(new AccountTerminated($userName));
+        // Hanya kirim email jika akun tersebut sudah terverifikasi
+        if ($isVerified) {
+            Mail::to($userEmail)->send(new AccountTerminated($userName));
+        }
 
         // --- PHYSICAL FILE CLEANUP ---
 
@@ -81,12 +81,17 @@ class UserController extends Controller
         // (This will cascade and delete their products and product_media rows automatically)
         $user->delete();
 
-        return back()->with('success', 'User deleted successfully and termination email sent.');
+        // Tampilkan pesan sukses yang dinamis
+        $message = $isVerified
+            ? 'User deleted successfully and termination email sent.'
+            : 'Unverified user deleted successfully (no email sent).';
+
+        return back()->with('success', $message);
     }
 
     public function toggleStatus(User $user)
     {
-        if (auth()->id() === $user->id) {
+        if (Auth::id() === $user->id) {
             return back()->with('error', 'You cannot disable your own admin account.');
         }
 
@@ -95,5 +100,22 @@ class UserController extends Controller
         ]);
 
         return back()->with('success', 'User status updated successfully.');
+    }
+
+    // =========================================================================
+    // --- NEW: MANUAL VERIFICATION METHOD ---
+    // =========================================================================
+
+    public function verify(User $user)
+    {
+        if (!$user->email_verified_at) {
+            $user->update([
+                'email_verified_at' => now(),
+                'otp_code' => null,
+                'otp_expires_at' => null,
+            ]);
+        }
+
+        return back()->with('success', 'User has been manually verified and OTP cleared.');
     }
 }
