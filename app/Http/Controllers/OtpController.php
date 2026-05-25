@@ -11,6 +11,36 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class OtpController extends Controller
 {
+    public function show(Request $request)
+    {
+        // 1. Ambil email dari session ticket
+        $email = $request->session()->get('pending_otp_email');
+
+        if (!$email) {
+            return redirect()->route('login');
+        }
+
+        // 2. Cari user di database
+        $user = User::where('email', $email)->first();
+
+        // 3. SECURITY CHECK: Jika user dihapus oleh admin
+        if (!$user) {
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('register')->with('error', 'Account no longer exists. Please register again.');
+        }
+
+        // 4. SECURITY CHECK: Jika user sudah diverifikasi secara manual oleh admin
+        if ($user->email_verified_at !== null) {
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('login')->with('success', 'Your account has been verified by the administrator. Please log in.');
+        }
+
+        // Kirim email tersebut ke React jika lolos semua pengecekan
+        return inertia('auth/verify-otp', [
+            'pendingEmail' => $email
+        ]);
+    }
+
     public function verify(Request $request)
     {
         $request->validate([
@@ -23,10 +53,8 @@ class OtpController extends Controller
             return redirect()->route('login')->with('error', 'Session expired. Please log in again.');
         }
 
-        // 1. RATE LIMITING: Create a unique "key" for this email's attempts
+        // 1. RATE LIMITING
         $throttleKey = 'verify-otp:' . $email;
-
-        // If they have failed 5 times, block them completely
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             return back()->with('error', "Too many attempts. Please try again in {$seconds} seconds.");
@@ -34,8 +62,16 @@ class OtpController extends Controller
 
         $user = User::where('email', $email)->first();
 
+        // SECURITY CHECK: Jika user dihapus saat sedang mencoba memverifikasi
         if (!$user) {
-            return redirect()->route('login')->with('error', 'User not found.');
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('login')->with('error', 'User not found or has been deleted.');
+        }
+
+        // SECURITY CHECK: Jika user sudah diverifikasi
+        if ($user->email_verified_at !== null) {
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('login')->with('success', 'Your account is already verified. Please log in.');
         }
 
         // 2. Security Check: Has the time expired?
@@ -43,16 +79,14 @@ class OtpController extends Controller
             return back()->with('error', 'Your verification code has expired. Please request a new one.');
         }
 
-        // 3. Logic Check: Does the code match? (Cast both to string to prevent strict-type bugs)
+        // 3. Logic Check: Does the code match?
         if ((string) $user->otp_code === (string) $request->code) {
-
-            // Success! Mark as verified
             $user->markEmailAsVerified();
 
             $user->update([
                 'otp_code' => null,
                 'otp_expires_at' => null,
-                'otp_verified_at' => now(),
+                'otp_verified_at' => now(), // Opsional: pastikan kolom ini ada di database/fillable jika Anda menggunakannya
             ]);
 
             Auth::login($user);
@@ -64,8 +98,7 @@ class OtpController extends Controller
             return redirect()->route('home')->with('success', 'Email verified successfully! Welcome to Soko.');
         }
 
-        // 4. RATE LIMITING: Record a failed attempt!
-        // This locks them out for 5 minutes (300 seconds) if they hit 5 fails.
+        // 4. RATE LIMITING: Record a failed attempt
         RateLimiter::hit($throttleKey, 300);
 
         return back()->with('error', 'Invalid verification code. Please try again.');
@@ -73,72 +106,68 @@ class OtpController extends Controller
 
     public function resend(Request $request)
     {
-        // 1. Get the email from our temporary session ticket instead of Auth
         $email = $request->session()->get('pending_otp_email');
 
         if (!$email) {
             return redirect()->route('login')->with('error', 'Session expired. Please log in again.');
         }
 
-        // 2. Find the user in the database
         $user = User::where('email', $email)->first();
 
+        // SECURITY CHECK
         if (!$user) {
-            return redirect()->route('login')->with('error', 'User not found.');
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('login')->with('error', 'User not found or has been deleted.');
         }
 
-        // 3. Generate a fresh code
+        // SECURITY CHECK
+        if ($user->email_verified_at !== null) {
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('login')->with('success', 'Your account is already verified. Please log in.');
+        }
+
         $newCode = random_int(100000, 999999);
 
-        // 4. Update the database and reset the 10-minute clock
         $user->update([
             'otp_code' => $newCode,
             'otp_expires_at' => now()->addMinutes(10),
         ]);
 
-        // 5. Send the new email (Make sure your Mail facade and Mailable are imported at the top!)
-        \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\OtpVerificationMail($newCode));
+        Mail::to($user->email)->send(new OtpVerificationMail($newCode));
 
         return back()->with('success', 'A new 6-digit code has been sent to your email.');
     }
 
-    public function updateEmail(\Illuminate\Http\Request $request)
+    public function updateEmail(Request $request)
     {
         $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
         ]);
 
-        // 1. Cari siapa pengguna yang sedang mencoba mengubah email
-        $oldEmail = session('pending_otp_email');
-        $user = \App\Models\User::where('email', $oldEmail)->first();
+        $oldEmail = $request->session()->get('pending_otp_email');
+        $user = User::where('email', $oldEmail)->first();
 
+        // SECURITY CHECK
         if (!$user) {
-            return back()->with('error', 'Session expired. Please register again.');
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('register')->with('error', 'Session expired. Please register again.');
         }
 
-        // 2. Update email dan generate OTP baru
+        // SECURITY CHECK
+        if ($user->email_verified_at !== null) {
+            $request->session()->forget('pending_otp_email');
+            return redirect()->route('login')->with('success', 'Your account is already verified. You can update your email from the profile settings.');
+        }
+
         $user->email = $request->email;
         $user->otp_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         $user->otp_expires_at = now()->addMinutes(10);
         $user->save();
 
-        // 3. Update juga session ticket dengan email yang baru!
         $request->session()->put('pending_otp_email', $user->email);
 
-        // 4. Kirim ulang email
-        $user->sendEmailVerificationNotification();
+        Mail::to($user->email)->send(new OtpVerificationMail($user->otp_code));
 
         return back()->with('success', 'Email has been updated and a new OTP sent.');
-    }
-
-    public function show()
-    {
-        // Ambil email dari session ticket yang dibuat oleh FortifyServiceProvider
-        $email = session('pending_otp_email');
-
-        // Kirim email tersebut ke React
-        return inertia('auth/verify-otp', [
-            'pendingEmail' => $email
-        ]);
     }
 }
