@@ -8,11 +8,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import Navbar from '@/components/navbar';
-// --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Orders({ orders }: any) {
-    const { t } = useTranslation(); // Inject translator here
+    const { t } = useTranslation();
 
     const orderList = orders?.data || orders || [];
     const [searchQuery, setSearchQuery] = useState('');
@@ -114,8 +113,8 @@ export default function Orders({ orders }: any) {
                         </div>
                     ) : (
                         <>
-                            {/* --- 1. MOBILE VIEW --- */}
-                            <div className="block divide-y divide-slate-100 sm:hidden">
+                            {/* --- 1. MOBILE VIEW (CLEAN, STRUCTURED & DISTINCT) --- */}
+                            <div className="flex flex-col sm:hidden">
                                 {filteredOrders.map((order: any) => {
                                     const isExpanded =
                                         expandedOrderId === order.id;
@@ -125,7 +124,6 @@ export default function Orders({ orders }: any) {
                                     const buyerUsername =
                                         getBuyerUsername(order);
 
-                                    // --- THE FIX: Count the exact number of archived items ---
                                     const archivedItemsCount =
                                         order.items?.filter(
                                             (i: any) => i.is_archived,
@@ -134,61 +132,58 @@ export default function Orders({ orders }: any) {
                                     return (
                                         <div
                                             key={order.id}
-                                            className="bg-white p-5 transition-colors hover:bg-slate-50"
+                                            // DITAMBAHKAN: Pemisah visual yang tebal agar tiap order mudah dibedakan
+                                            className="border-b-[6px] border-slate-100/80 bg-white p-5 transition-colors last:border-0 hover:bg-slate-50"
                                         >
-                                            <div className="mb-3 flex items-start justify-between">
-                                                <div>
-                                                    <span className="mb-2 block font-mono text-[11px] font-bold tracking-wider text-slate-400">
-                                                        {order.id}
-                                                    </span>
-                                                    <div className="flex flex-col items-start gap-1.5">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <Package
-                                                                size={16}
-                                                                className="shrink-0 text-slate-400"
-                                                            />
-                                                            <span className="line-clamp-1 font-bold text-slate-900">
-                                                                {
-                                                                    order.productPreview
-                                                                }
-                                                            </span>
+                                            {/* Baris 1: Order ID & Date */}
+                                            <div className="mb-4 flex items-center justify-between text-[13px] font-bold tracking-widest text-slate-400 uppercase">
+                                                <span>{order.id}</span>
+                                                <span className="font-medium tracking-normal text-slate-400 normal-case">
+                                                    {order.date}
+                                                </span>
+                                            </div>
 
-                                                            {/* --- THE FIX: Dynamic Surface Badge --- */}
-                                                            {archivedItemsCount >
-                                                                0 && (
-                                                                <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
-                                                                    {order.items
-                                                                        .length ===
-                                                                    1
-                                                                        ? t(
-                                                                              'Removed',
-                                                                          )
-                                                                        : `${archivedItemsCount} ${t('Removed')}`}
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        {hasMultipleItems && (
-                                                            <span className="inline-flex items-center gap-1.5 rounded-md bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-700 ring-1 ring-purple-700/10 ring-inset">
-                                                                <PackageOpen
-                                                                    size={12}
-                                                                />
-                                                                +{' '}
-                                                                {order.items
-                                                                    .length -
-                                                                    1}{' '}
-                                                                {t(
-                                                                    'more items',
-                                                                )}
-                                                            </span>
-                                                        )}
+                                            {/* Baris 2: Product Info & Pricing */}
+                                            <div className="mb-6 flex w-full items-start justify-between">
+                                                <div className="flex w-[55%] flex-col items-start gap-2 pr-2">
+                                                    <div className="flex items-start gap-2">
+                                                        <Package
+                                                            size={18}
+                                                            className="mt-0.5 shrink-0 text-slate-400"
+                                                        />
+                                                        {/* DIPERKECIL: Font judul produk menjadi text-sm */}
+                                                        <span className="line-clamp-2 text-sm leading-snug font-bold text-slate-900">
+                                                            {
+                                                                order.productPreview
+                                                            }
+                                                        </span>
                                                     </div>
+
+                                                    {archivedItemsCount > 0 && (
+                                                        <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
+                                                            {order.items
+                                                                .length === 1
+                                                                ? t('Removed')
+                                                                : `${archivedItemsCount} ${t('Removed')}`}
+                                                        </span>
+                                                    )}
+
+                                                    {hasMultipleItems && (
+                                                        <span className="inline-flex items-center gap-1.5 rounded-md bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-700 ring-1 ring-purple-700/10 ring-inset">
+                                                            <PackageOpen
+                                                                size={12}
+                                                            />
+                                                            +{' '}
+                                                            {order.items
+                                                                .length -
+                                                                1}{' '}
+                                                            {t('more items')}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div className="flex flex-col items-end text-right">
-                                                    <span className="mb-1 block text-[11px] font-medium text-slate-400">
-                                                        {order.date}
-                                                    </span>
-                                                    <span className="text-xs font-medium text-slate-500">
+
+                                                <div className="flex w-[45%] shrink-0 flex-col items-end text-right">
+                                                    <span className="text-[11px] font-medium text-slate-500">
                                                         {t('Gross:')} Rp{' '}
                                                         {Number(
                                                             order.amount,
@@ -196,8 +191,19 @@ export default function Orders({ orders }: any) {
                                                             'id-ID',
                                                         )}
                                                     </span>
-                                                    <span className="font-black text-emerald-600">
-                                                        {t('Net:')} Rp{' '}
+                                                    <span className="text-[11px] font-medium text-rose-500">
+                                                        {t('Fee:')} Rp{' '}
+                                                        {Number(
+                                                            order.platform_fee ??
+                                                                order.amount -
+                                                                    order.net_amount,
+                                                        ).toLocaleString(
+                                                            'id-ID',
+                                                        )}
+                                                    </span>
+                                                    {/* DIPERKECIL: Font nominal bersih menjadi text-sm */}
+                                                    <span className="mt-1 text-sm font-black tracking-tight text-emerald-600">
+                                                        {t('Net Earnings: ')} Rp{' '}
                                                         {Number(
                                                             order.net_amount,
                                                         ).toLocaleString(
@@ -207,13 +213,15 @@ export default function Orders({ orders }: any) {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between text-sm">
+                                            {/* Baris 3: Pembeli & Aksi */}
+                                            <div className="flex items-end justify-between">
                                                 <div className="flex flex-col">
-                                                    <span className="mb-0.5 text-[11px] font-medium tracking-wider text-slate-500 uppercase">
+                                                    <span className="mb-0.5 text-[10px] font-bold tracking-widest text-slate-500 uppercase">
                                                         {t('Buyer')}
                                                     </span>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="font-semibold text-slate-800">
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                        {/* DIPERKECIL: Font nama pembeli menjadi text-sm */}
+                                                        <span className="text-sm font-bold text-slate-900">
                                                             {buyerName}
                                                         </span>
                                                         {buyerUsername && (
@@ -230,7 +238,7 @@ export default function Orders({ orders }: any) {
                                                         onClick={() =>
                                                             toggleRow(order.id)
                                                         }
-                                                        className="flex items-center gap-1 text-xs font-bold text-purple-600 transition-colors hover:text-purple-800"
+                                                        className="flex shrink-0 items-center gap-1 pb-0.5 text-xs font-bold text-purple-600 transition-colors hover:text-purple-800"
                                                     >
                                                         {isExpanded
                                                             ? t('Hide Details')
@@ -243,8 +251,9 @@ export default function Orders({ orders }: any) {
                                                 )}
                                             </div>
 
+                                            {/* Detail Item (Jika Diekspansi) */}
                                             {isExpanded && hasMultipleItems && (
-                                                <div className="mt-4 space-y-3 rounded-xl border-y border-r border-l-4 border-slate-100 border-l-purple-500 bg-white p-4 shadow-sm">
+                                                <div className="mt-5 space-y-3 rounded-xl border-y border-r border-l-4 border-slate-100 border-l-purple-500 bg-slate-50/50 p-4 shadow-sm">
                                                     {order.items.map(
                                                         (item: any) => (
                                                             <div
@@ -280,6 +289,19 @@ export default function Orders({ orders }: any) {
                                                                         Rp{' '}
                                                                         {Number(
                                                                             item.price,
+                                                                        ).toLocaleString(
+                                                                            'id-ID',
+                                                                        )}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-rose-500">
+                                                                        {t(
+                                                                            'Fee:',
+                                                                        )}{' '}
+                                                                        Rp{' '}
+                                                                        {Number(
+                                                                            item.platform_fee ??
+                                                                                item.price -
+                                                                                    item.net_price,
                                                                         ).toLocaleString(
                                                                             'id-ID',
                                                                         )}
@@ -327,6 +349,9 @@ export default function Orders({ orders }: any) {
                                             <th className="px-6 py-5 text-right font-bold tracking-wider uppercase">
                                                 {t('Gross')}
                                             </th>
+                                            <th className="px-6 py-5 text-right font-bold tracking-wider text-rose-500 uppercase">
+                                                {t('Fee')}
+                                            </th>
                                             <th className="px-6 py-5 text-right font-bold tracking-wider text-emerald-600 uppercase">
                                                 {t('Net Earnings')}
                                             </th>
@@ -342,7 +367,6 @@ export default function Orders({ orders }: any) {
                                         const buyerUsername =
                                             getBuyerUsername(order);
 
-                                        // --- THE FIX: Count the exact number of archived items ---
                                         const archivedItemsCount =
                                             order.items?.filter(
                                                 (i: any) => i.is_archived,
@@ -403,7 +427,6 @@ export default function Orders({ orders }: any) {
                                                                     }
                                                                 </span>
 
-                                                                {/* --- THE FIX: Dynamic Surface Badge --- */}
                                                                 {archivedItemsCount >
                                                                     0 && (
                                                                     <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
@@ -470,6 +493,16 @@ export default function Orders({ orders }: any) {
                                                             'id-ID',
                                                         )}
                                                     </td>
+                                                    <td className="px-6 py-5 text-right align-top font-medium text-rose-500">
+                                                        Rp{' '}
+                                                        {Number(
+                                                            order.platform_fee ??
+                                                                order.amount -
+                                                                    order.net_amount,
+                                                        ).toLocaleString(
+                                                            'id-ID',
+                                                        )}
+                                                    </td>
                                                     <td className="px-6 py-5 text-right align-top font-black text-emerald-600">
                                                         Rp{' '}
                                                         {Number(
@@ -485,7 +518,7 @@ export default function Orders({ orders }: any) {
                                                     hasMultipleItems && (
                                                         <tr>
                                                             <td
-                                                                colSpan={7}
+                                                                colSpan={8}
                                                                 className="border-t border-slate-100/50 bg-slate-50/50 p-0"
                                                             >
                                                                 <div className="py-6 pr-6 pl-22">
@@ -509,9 +542,14 @@ export default function Orders({ orders }: any) {
                                                                                             'Gross',
                                                                                         )}
                                                                                     </th>
+                                                                                    <th className="px-6 py-3.5 text-right font-bold tracking-wider text-rose-500 uppercase">
+                                                                                        {t(
+                                                                                            'Fee',
+                                                                                        )}
+                                                                                    </th>
                                                                                     <th className="px-6 py-3.5 text-right font-bold tracking-wider text-emerald-600 uppercase">
                                                                                         {t(
-                                                                                            'Net',
+                                                                                            'Net Earnings',
                                                                                         )}
                                                                                     </th>
                                                                                 </tr>
@@ -557,6 +595,16 @@ export default function Orders({ orders }: any) {
                                                                                                 Rp{' '}
                                                                                                 {Number(
                                                                                                     item.price,
+                                                                                                ).toLocaleString(
+                                                                                                    'id-ID',
+                                                                                                )}
+                                                                                            </td>
+                                                                                            <td className="px-6 py-3.5 text-right font-medium text-rose-500">
+                                                                                                Rp{' '}
+                                                                                                {Number(
+                                                                                                    item.platform_fee ??
+                                                                                                        item.price -
+                                                                                                            item.net_price,
                                                                                                 ).toLocaleString(
                                                                                                     'id-ID',
                                                                                                 )}
