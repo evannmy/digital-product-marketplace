@@ -409,7 +409,26 @@ export default function Index({ products, categories, filters }: any) {
                                         'Search by title or creator...',
                                     )}
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setSearch(val);
+
+                                        if (val === '') {
+                                            router.get(
+                                                '/',
+                                                {
+                                                    search: '',
+                                                    category: categorySlug,
+                                                    sort,
+                                                },
+                                                {
+                                                    preserveState: true,
+                                                    replace: true,
+                                                    preserveScroll: true,
+                                                },
+                                            );
+                                        }
+                                    }}
                                     className="h-12 w-full rounded-xl border-none bg-transparent pr-4 pl-12 text-base text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:ring-0 focus:outline-none"
                                 />
                             </div>
