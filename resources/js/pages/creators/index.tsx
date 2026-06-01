@@ -12,10 +12,13 @@ import {
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import Navbar from '@/components/navbar';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- NEW: Isolated Creator Card Component with Smart Media States ---
 function CreatorCard({ creator, auth, getBannerGradient }: any) {
-    // Independent states for each image on this specific card
+    const { t } = useTranslation(); // Inject translator here
+
     const [coverStatus, setCoverStatus] = useState<
         'loading' | 'loaded' | 'error'
     >('loading');
@@ -32,7 +35,6 @@ function CreatorCard({ creator, auth, getBannerGradient }: any) {
             <div className="relative h-28 w-full overflow-hidden bg-slate-100">
                 {creator.cover_photo_path ? (
                     coverStatus === 'error' ? (
-                        // Fallback if the banner file is physically missing (404)
                         <div className="flex h-full w-full items-center justify-center bg-slate-200/50 text-slate-400">
                             <ImageIcon size={24} className="opacity-50" />
                         </div>
@@ -61,7 +63,6 @@ function CreatorCard({ creator, auth, getBannerGradient }: any) {
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-white shadow-sm transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3">
                     {creator.avatar_path ? (
                         avatarStatus === 'error' ? (
-                            // Fallback if the avatar file is physically missing (404)
                             <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-300">
                                 <User size={32} />
                             </div>
@@ -94,7 +95,7 @@ function CreatorCard({ creator, auth, getBannerGradient }: any) {
                 )}
             </div>
 
-            {/* --- CARD CONTENT (Unchanged) --- */}
+            {/* --- CARD CONTENT --- */}
             <div className="flex grow flex-col px-6 pt-4 pb-6">
                 <div className="flex items-center gap-2">
                     <h3 className="line-clamp-1 text-xl font-black text-slate-900 transition-colors group-hover:text-purple-700">
@@ -102,7 +103,7 @@ function CreatorCard({ creator, auth, getBannerGradient }: any) {
                     </h3>
                     {auth?.user?.id === creator.id && (
                         <span className="shrink-0 rounded-md bg-purple-100 px-1.5 py-0.5 text-[10px] font-black tracking-wider text-purple-700 uppercase ring-1 ring-purple-500/20 ring-inset">
-                            You
+                            {t('You')}
                         </span>
                     )}
                 </div>
@@ -113,8 +114,10 @@ function CreatorCard({ creator, auth, getBannerGradient }: any) {
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                     <div className="flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold tracking-wide text-indigo-600 ring-1 ring-indigo-500/10 ring-inset">
                         <Package size={14} />
-                        {creator.products_count} Product
-                        {creator.products_count !== 1 ? 's' : ''}
+                        {creator.products_count}{' '}
+                        {creator.products_count !== 1
+                            ? t('Products')
+                            : t('Product')}
                     </div>
 
                     <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold tracking-wide text-amber-700 ring-1 ring-amber-500/20 ring-inset">
@@ -130,12 +133,12 @@ function CreatorCard({ creator, auth, getBannerGradient }: any) {
                             ? Number(
                                   creator.received_reviews_avg_rating,
                               ).toFixed(1)
-                            : 'New Creator'}
+                            : t('New Creator')}
                     </div>
                 </div>
 
                 <div className="mt-8 flex w-full items-center justify-between border-t border-slate-100 pt-5 text-sm font-bold text-slate-400 transition-colors group-hover:text-purple-600">
-                    <span>Explore Collection</span>
+                    <span>{t('Explore Collection')}</span>
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 transition-colors group-hover:bg-purple-50">
                         <ArrowRight
                             size={16}
@@ -149,12 +152,12 @@ function CreatorCard({ creator, auth, getBannerGradient }: any) {
 }
 
 export default function CreatorsIndex({ creators, filters }: any) {
+    const { t } = useTranslation(); // Inject translator here
     const { auth } = usePage().props as any;
 
     const [search, setSearch] = useState(filters?.search || '');
     const [sort, setSort] = useState(filters?.sort || 'products_desc');
 
-    // --- ADDED: Reference to target the search input ---
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     const handleFilter = (e: React.FormEvent) => {
@@ -180,7 +183,7 @@ export default function CreatorsIndex({ creators, filters }: any) {
 
     return (
         <>
-            <Head title="Discover Creators - Soko" />
+            <Head title={t('Discover Creators - Soko')} />
 
             <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
                 <Navbar />
@@ -189,16 +192,17 @@ export default function CreatorsIndex({ creators, filters }: any) {
                     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                         {/* HEADER */}
                         <div className="mb-12 flex flex-col items-center justify-center text-center sm:mb-16">
-                            <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-                                Meet our top{' '}
+                            <h1 className="mx-auto mb-6 max-w-3xl text-4xl leading-tight font-black tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
+                                {t('Meet our top')}{' '}
                                 <span className="bg-linear-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-                                    Creators
+                                    {t('Creators')}
                                 </span>
                             </h1>
 
-                            <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-500 sm:text-xl">
-                                Discover the talented developers, designers, and
-                                artists building the future of digital products.
+                            <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-500 sm:text-lg">
+                                {t(
+                                    'Discover the talented developers, designers, and artists building the future of digital products.',
+                                )}
                             </p>
                         </div>
 
@@ -209,7 +213,6 @@ export default function CreatorsIndex({ creators, filters }: any) {
                                 className="relative z-10 flex flex-col gap-3 rounded-2xl bg-white p-3 shadow-lg ring-1 shadow-purple-900/5 ring-slate-200/60 sm:flex-row sm:items-center"
                             >
                                 <div className="relative grow">
-                                    {/* --- UPDATED: Clickable Search Icon with cursor-pointer --- */}
                                     <Search
                                         className="absolute top-1/2 left-5 h-5 w-5 -translate-y-1/2 cursor-text text-purple-300"
                                         onClick={() =>
@@ -217,9 +220,11 @@ export default function CreatorsIndex({ creators, filters }: any) {
                                         }
                                     />
                                     <input
-                                        ref={searchInputRef} // <-- Attached the ref here
+                                        ref={searchInputRef}
                                         type="text"
-                                        placeholder="Search creators by name..."
+                                        placeholder={t(
+                                            'Search creators by name...',
+                                        )}
                                         value={search}
                                         onChange={(e) =>
                                             setSearch(e.target.value)
@@ -251,27 +256,26 @@ export default function CreatorsIndex({ creators, filters }: any) {
                                         className="h-12 w-full cursor-pointer appearance-none rounded-xl border-none bg-transparent px-5 pr-10 text-sm font-medium text-slate-600 focus:border-transparent focus:ring-0 focus:outline-none"
                                     >
                                         <option value="products_desc">
-                                            Most Products
+                                            {t('Most Products')}
                                         </option>
                                         <option value="rating_desc">
-                                            Highest Rated
+                                            {t('Highest Rated')}
                                         </option>
                                         <option value="newest">
-                                            Newest Creators
+                                            {t('Newest Creators')}
                                         </option>
                                         <option value="name_asc">
-                                            Name (A-Z)
+                                            {t('Name (A-Z)')}
                                         </option>
                                     </select>
                                     <ChevronDown className="pointer-events-none absolute top-1/2 right-5 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 </div>
 
-                                {/* --- UPDATED: Added cursor-pointer to the submit button --- */}
                                 <button
                                     type="submit"
                                     className="flex h-12 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-slate-900 px-8 text-sm font-bold text-white transition-all hover:bg-purple-600 sm:w-auto"
                                 >
-                                    Search
+                                    {t('Search')}
                                 </button>
                             </form>
                         </div>
@@ -281,10 +285,10 @@ export default function CreatorsIndex({ creators, filters }: any) {
                             <div className="flex flex-col items-center justify-center rounded-3xl border border-slate-200/60 bg-white/50 py-20 backdrop-blur-sm">
                                 <Sparkles className="mb-4 h-12 w-12 text-purple-300" />
                                 <h3 className="text-lg font-bold text-slate-900">
-                                    No creators found
+                                    {t('No creators found')}
                                 </h3>
                                 <p className="text-slate-500">
-                                    Try adjusting your search filters.
+                                    {t('Try adjusting your search filters.')}
                                 </p>
                             </div>
                         ) : (

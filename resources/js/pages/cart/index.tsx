@@ -6,13 +6,15 @@ import {
     ArrowRight,
     ShoppingCart,
     Package,
-    AlertTriangle, // <-- ADDED: For the warning badge
+    AlertTriangle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Seller {
     id: number;
@@ -37,7 +39,7 @@ interface CartItem {
     id: number;
     cart_id: number;
     product_id: number;
-    has_pending_order?: boolean; // <-- ADDED: To track pending status per item
+    has_pending_order?: boolean;
     has_purchased_order?: boolean;
     product: Product;
 }
@@ -54,6 +56,7 @@ interface CartPageProps extends PageProps {
 
 // --- Isolated Thumbnail Component for Cart Items ---
 function CartItemThumbnail({ product }: { product: Product }) {
+    const { t } = useTranslation(); // Inject translator here
     const hasMedia = product.media && product.media.length > 0;
     const fallbackImage = product.image_path;
 
@@ -86,7 +89,7 @@ function CartItemThumbnail({ product }: { product: Product }) {
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-purple-300">
                     <Package className="mb-1 h-6 w-6 opacity-50" />
                     <span className="text-[8px] font-bold tracking-widest text-slate-500 uppercase opacity-70">
-                        Error
+                        {t('Error')}
                     </span>
                 </div>
             )}
@@ -118,6 +121,7 @@ function CartItemThumbnail({ product }: { product: Product }) {
 }
 
 export default function CartPage({ cart }: CartPageProps) {
+    const { t } = useTranslation(); // Inject translator here
     const { flash } = usePage<any>().props;
 
     const [itemToDelete, setItemToDelete] = useState<number | null>(null);
@@ -154,7 +158,6 @@ export default function CartPage({ cart }: CartPageProps) {
 
     const items = cart?.items || [];
 
-    // --- NEW: Check if any item in the cart is blocking checkout ---
     const hasPendingItems = items.some((item) => item.has_pending_order);
     const hasPurchasedItems = items.some((item) => item.has_purchased_order);
 
@@ -193,7 +196,6 @@ export default function CartPage({ cart }: CartPageProps) {
             preserveScroll: true,
             onSuccess: () => {
                 setItemToDelete(null);
-                toast('Product removed from cart.', 'delete');
             },
             onFinish: () => setIsProcessing(false),
         });
@@ -207,7 +209,7 @@ export default function CartPage({ cart }: CartPageProps) {
 
     return (
         <>
-            <Head title="My Cart - Soko" />
+            <Head title={t('My Cart - Soko')} />
 
             <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
                 <Navbar />
@@ -219,7 +221,7 @@ export default function CartPage({ cart }: CartPageProps) {
                                 <ShoppingBag className="h-6 w-6 text-purple-600" />
                             </div>
                             <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                                Your Cart
+                                {t('Your Cart')}
                             </h1>
                         </div>
 
@@ -229,17 +231,18 @@ export default function CartPage({ cart }: CartPageProps) {
                                     <ShoppingCart className="h-10 w-10 text-indigo-300" />
                                 </div>
                                 <h2 className="mb-3 text-2xl font-black text-slate-900">
-                                    Your cart is empty
+                                    {t('Your cart is empty')}
                                 </h2>
                                 <p className="mb-8 max-w-md text-slate-500">
-                                    Looks like you haven't added any digital
-                                    products yet. Let's find something awesome!
+                                    {t(
+                                        "Looks like you haven't added any digital products yet. Let's find something awesome!",
+                                    )}
                                 </p>
                                 <Link
                                     href="/"
                                     className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25"
                                 >
-                                    Start Browsing{' '}
+                                    {t('Start Browsing')}{' '}
                                     <ArrowRight className="h-5 w-5" />
                                 </Link>
                             </div>
@@ -273,7 +276,7 @@ export default function CartPage({ cart }: CartPageProps) {
                                                             </Link>
 
                                                             <p className="mt-1 flex items-center gap-1 text-sm font-medium text-slate-500">
-                                                                By{' '}
+                                                                {t('By')}{' '}
                                                                 <Link
                                                                     href={`/creators/@${item.product.seller.username}`}
                                                                     className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:underline"
@@ -349,10 +352,9 @@ export default function CartPage({ cart }: CartPageProps) {
                                                                             14
                                                                         }
                                                                     />
-                                                                    Already
-                                                                    Owned
-                                                                    (Please
-                                                                    Remove)
+                                                                    {t(
+                                                                        'Already Owned (Please Remove)',
+                                                                    )}
                                                                 </span>
                                                             )}
 
@@ -364,10 +366,9 @@ export default function CartPage({ cart }: CartPageProps) {
                                                                                 14
                                                                             }
                                                                         />
-                                                                        Pending
-                                                                        Order
-                                                                        (Please
-                                                                        Remove)
+                                                                        {t(
+                                                                            'Pending Order (Please Remove)',
+                                                                        )}
                                                                     </span>
                                                                 )}
                                                         </div>
@@ -381,7 +382,9 @@ export default function CartPage({ cart }: CartPageProps) {
                                                             className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-bold text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
                                                         >
                                                             <Trash2 size={16} />
-                                                            <span>Remove</span>
+                                                            <span>
+                                                                {t('Remove')}
+                                                            </span>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -393,29 +396,30 @@ export default function CartPage({ cart }: CartPageProps) {
                                 {/* RIGHT COLUMN: Order Summary */}
                                 <div className="w-full shrink-0 overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-6 shadow-xl shadow-purple-900/5 backdrop-blur-sm sm:p-8 lg:sticky lg:top-28 lg:w-100">
                                     <h2 className="mb-6 text-xl font-black text-slate-900">
-                                        Order Summary
+                                        {t('Order Summary')}
                                     </h2>
 
                                     <div className="space-y-4 text-slate-600">
                                         <div className="flex justify-between text-sm font-semibold">
                                             <span>
-                                                Subtotal ({items.length} items)
+                                                {t('Subtotal')} ({items.length}{' '}
+                                                {t('items')})
                                             </span>
                                             <span className="text-slate-900">
                                                 {formatCurrency(subtotal)}
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm font-semibold">
-                                            <span>Taxes</span>
+                                            <span>{t('Taxes')}</span>
                                             <span className="text-slate-500">
-                                                Calculated at checkout
+                                                {t('Calculated at checkout')}
                                             </span>
                                         </div>
 
                                         <div className="my-6 border-t border-slate-100 pt-6">
                                             <div className="flex items-end justify-between">
                                                 <span className="text-base font-bold text-slate-900">
-                                                    Total
+                                                    {t('Total')}
                                                 </span>
                                                 <span className="text-3xl font-black text-slate-900">
                                                     {formatCurrency(subtotal)}
@@ -440,21 +444,25 @@ export default function CartPage({ cart }: CartPageProps) {
                                             <Spinner className="mr-2 h-5 w-5" />
                                         ) : null}
                                         {isCheckingOut
-                                            ? 'Processing...'
+                                            ? t('Processing...')
                                             : hasPurchasedItems
-                                              ? 'Remove Owned Items to Continue'
+                                              ? t(
+                                                    'Remove Owned Items to Continue',
+                                                )
                                               : hasPendingItems
-                                                ? 'Remove Pending Items to Continue'
-                                                : 'Proceed to Payment'}
+                                                ? t(
+                                                      'Remove Pending Items to Continue',
+                                                  )
+                                                : t('Proceed to Payment')}
                                     </button>
 
                                     <div className="mt-6 text-center text-sm font-semibold text-slate-500">
-                                        or{' '}
+                                        {t('or')}{' '}
                                         <Link
                                             href="/"
                                             className="text-indigo-600 hover:text-indigo-700 hover:underline"
                                         >
-                                            continue shopping
+                                            {t('continue shopping')}
                                         </Link>
                                     </div>
                                 </div>
@@ -468,8 +476,10 @@ export default function CartPage({ cart }: CartPageProps) {
                 isOpen={itemToDelete !== null}
                 onClose={() => setItemToDelete(null)}
                 onConfirm={confirmRemoveItem}
-                title="Remove Product"
-                message="Are you sure you want to remove this digital product from your cart?"
+                title={t('Remove Product')}
+                message={t(
+                    'Are you sure you want to remove this digital product from your cart?',
+                )}
                 variant="danger"
                 isProcessing={isProcessing}
             />

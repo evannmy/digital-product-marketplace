@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import SimpleNavbar from '@/components/simple-navbar';
@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslation } from '@/hooks/useTranslation';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
@@ -23,9 +24,13 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: Props) {
+    const { t } = useTranslation(); // Inject translator here
+
+    const { flash } = usePage().props as any;
+
     return (
         <>
-            <Head title="Log in - Soko" />
+            <Head title={t('Log in - Soko')} />
 
             <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
                 {/* --- HEADER --- */}
@@ -36,19 +41,33 @@ export default function Login({
                     <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-8 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                         <div className="mb-8 text-center">
                             <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900">
-                                Log in to your{' '}
+                                {t('Log in to your ')}{' '}
                                 <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                    Account
+                                    {t('Account')}
                                 </span>
                             </h1>
                             <p className="text-sm text-slate-500">
-                                Enter your email or username below to log in
+                                {t(
+                                    'Enter your email or username below to log in',
+                                )}
                             </p>
                         </div>
 
                         {status && (
                             <div className="mb-6 rounded-xl border border-purple-100 bg-purple-50 py-3 text-center text-sm font-semibold text-purple-700">
                                 {status}
+                            </div>
+                        )}
+
+                        {flash?.success && (
+                            <div className="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-center text-sm font-semibold text-emerald-700">
+                                {flash.success}
+                            </div>
+                        )}
+
+                        {flash?.error && (
+                            <div className="mb-6 rounded-xl border border-rose-100 bg-rose-50 p-3 text-center text-sm font-semibold text-rose-600">
+                                {flash.error}
                             </div>
                         )}
 
@@ -65,17 +84,19 @@ export default function Login({
                                                 htmlFor="email"
                                                 className="font-bold text-slate-700"
                                             >
-                                                Email or Username
+                                                {t('Email or Username')}
                                             </Label>
                                             <Input
                                                 id="email"
-                                                type="text" // <-- Changed from "email" to "text"
-                                                name="email" // <-- Kept as "email" so it doesn't break backend validation rules
+                                                type="text"
+                                                name="email"
                                                 required
                                                 autoFocus
                                                 tabIndex={1}
                                                 autoComplete="username"
-                                                placeholder="email@example.com or yourbrand"
+                                                placeholder={t(
+                                                    'Enter email or username',
+                                                )}
                                                 className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                             />
                                             <InputError
@@ -89,7 +110,7 @@ export default function Login({
                                                     htmlFor="password"
                                                     className="font-bold text-slate-700"
                                                 >
-                                                    Password
+                                                    {t('Password')}
                                                 </Label>
                                                 {canResetPassword && (
                                                     <TextLink
@@ -97,7 +118,7 @@ export default function Login({
                                                         className="text-sm font-semibold text-purple-600 transition-colors hover:text-purple-700"
                                                         tabIndex={5}
                                                     >
-                                                        Forgot password?
+                                                        {t('Forgot password?')}
                                                     </TextLink>
                                                 )}
                                             </div>
@@ -126,7 +147,7 @@ export default function Login({
                                                 htmlFor="remember"
                                                 className="cursor-pointer text-sm font-medium text-slate-600"
                                             >
-                                                Remember me
+                                                {t('Remember me')}
                                             </Label>
                                         </div>
 
@@ -140,19 +161,19 @@ export default function Login({
                                             {processing ? (
                                                 <Spinner className="mr-2 h-5 w-5" />
                                             ) : null}
-                                            Log in
+                                            {t('Log in')}
                                         </Button>
                                     </div>
 
                                     {canRegister && (
                                         <div className="mt-2 border-t border-slate-100 pt-6 text-center text-sm font-medium text-slate-500">
-                                            Don't have an account?{' '}
+                                            {t("Don't have an account?")}{' '}
                                             <TextLink
                                                 href={register()}
                                                 tabIndex={5}
                                                 className="font-bold text-purple-600 transition-colors hover:text-purple-700"
                                             >
-                                                Sign up
+                                                {t('Sign up')}
                                             </TextLink>
                                         </div>
                                     )}

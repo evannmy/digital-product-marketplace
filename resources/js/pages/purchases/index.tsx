@@ -19,17 +19,20 @@ import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- FIXED: Real-time Countdown Timer Component ---
 function OrderCountdown({ createdAt }: { createdAt: string }) {
-    // 1. Initialize the state correctly on the first render to avoid the sync setState warning
+    const { t } = useTranslation(); // Inject translator here
+
     const [timeInfo, setTimeInfo] = useState(() => {
         const createdTime = new Date(createdAt).getTime();
         const expirationTime = createdTime + 24 * 60 * 60 * 1000;
         const now = new Date().getTime();
         const difference = expirationTime - now;
 
-        if (difference <= 0) return { text: 'Expired', isExpired: true };
+        if (difference <= 0) return { text: t('Expired'), isExpired: true };
 
         const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
         const minutes = Math.floor((difference / 1000 / 60) % 60);
@@ -44,7 +47,6 @@ function OrderCountdown({ createdAt }: { createdAt: string }) {
     useEffect(() => {
         if (timeInfo.isExpired) return;
 
-        // 2. Only run the interval asynchronously
         const timer = setInterval(() => {
             const createdTime = new Date(createdAt).getTime();
             const expirationTime = createdTime + 24 * 60 * 60 * 1000;
@@ -52,7 +54,7 @@ function OrderCountdown({ createdAt }: { createdAt: string }) {
             const difference = expirationTime - now;
 
             if (difference <= 0) {
-                setTimeInfo({ text: 'Expired', isExpired: true });
+                setTimeInfo({ text: t('Expired'), isExpired: true });
                 clearInterval(timer);
 
                 return;
@@ -69,7 +71,7 @@ function OrderCountdown({ createdAt }: { createdAt: string }) {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [createdAt, timeInfo.isExpired]);
+    }, [createdAt, timeInfo.isExpired, t]);
 
     if (!timeInfo.text) return null;
 
@@ -81,8 +83,8 @@ function OrderCountdown({ createdAt }: { createdAt: string }) {
         >
             <Timer size={14} />
             {timeInfo.isExpired
-                ? 'Payment Time Expired'
-                : `Expires in ${timeInfo.text}`}
+                ? t('Payment Time Expired')
+                : `${t('Expires in')} ${timeInfo.text}`}
         </span>
     );
 }
@@ -133,6 +135,7 @@ function PendingItemThumbnail({ item }: { item: any }) {
 
 // --- Isolated Card for My Collection ---
 function PurchaseCard({ transaction }: { transaction: any }) {
+    const { t } = useTranslation(); // Inject translator here
     const product = transaction.product;
 
     const isArchived = !product || !!product.deleted_at;
@@ -155,7 +158,7 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                     <div className="flex h-full w-full flex-col items-center justify-center rounded-lg bg-slate-200/50 text-slate-400">
                         <PackageX size={40} className="mb-2 opacity-50" />
                         <span className="text-[10px] font-black tracking-widest uppercase opacity-70">
-                            Archived
+                            {t('Archived')}
                         </span>
                     </div>
                 ) : (
@@ -169,7 +172,7 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-purple-300">
                                 <Package className="mb-2 h-8 w-8 opacity-50" />
                                 <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase opacity-70">
-                                    Media Failed to Load
+                                    {t('Media Failed to Load')}
                                 </span>
                             </div>
                         )}
@@ -205,7 +208,7 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                     </>
                 )}
                 <div className="absolute top-4 left-4 z-20 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold tracking-wider text-purple-600 uppercase shadow-sm ring-1 ring-black/5 backdrop-blur-md">
-                    {product?.category?.name || 'Digital'}
+                    {product?.category?.name || t('Digital')}
                 </div>
             </div>
 
@@ -216,11 +219,11 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                 <h3
                     className={`mb-1.5 line-clamp-1 text-lg font-bold transition-colors ${isArchived ? 'text-slate-600' : 'text-slate-900 group-hover:text-purple-600'}`}
                 >
-                    {product?.title || 'Archived Product'}
+                    {product?.title || t('Archived Product')}
                 </h3>
 
                 <div className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-                    <span className="shrink-0">Creator:</span>
+                    <span className="shrink-0">{t('Creator:')}</span>
                     {product?.seller ? (
                         <Link
                             href={`/creators/@${product.seller.username}`}
@@ -237,16 +240,16 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                         </Link>
                     ) : (
                         <span className="truncate text-slate-400">
-                            Deleted Account
+                            {t('Deleted Account')}
                         </span>
                     )}
                 </div>
 
                 <div className="mb-6 flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
                     <Calendar size={12} />
-                    Acquired:{' '}
+                    {t('Acquired:')}{' '}
                     {new Date(transaction.created_at).toLocaleDateString(
-                        'en-US',
+                        'en-US', // Bisa disesuaikan dengan locale aktif nanti jika diinginkan
                         { month: 'short', day: 'numeric', year: 'numeric' },
                     )}
                 </div>
@@ -258,7 +261,7 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                             className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-rose-50 py-3 text-sm font-bold text-rose-500"
                         >
                             <PackageX size={16} />
-                            File No Longer in Database
+                            {t('File No Longer in Database')}
                         </button>
                     ) : (
                         <a
@@ -268,7 +271,9 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                             className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-all ${isArchived ? 'bg-slate-800 hover:bg-slate-900 hover:shadow-md hover:shadow-slate-900/20' : 'bg-emerald-500 hover:bg-emerald-600 hover:shadow-md hover:shadow-emerald-500/20'}`}
                         >
                             <Download size={16} />
-                            {isArchived ? 'Download Archive' : 'Download File'}
+                            {isArchived
+                                ? t('Download Archive')
+                                : t('Download File')}
                         </a>
                     )}
 
@@ -278,17 +283,17 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                             className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-200/50 py-3 text-sm font-bold text-slate-400"
                         >
                             {isArchived
-                                ? 'Store Page Unavailable'
+                                ? t('Store Page Unavailable')
                                 : isLocked
-                                  ? 'Product Suspended'
-                                  : 'Product Hidden'}
+                                  ? t('Product Disabled by Admin')
+                                  : t('Product Hidden')}
                         </button>
                     ) : (
                         <Link
                             href={`/products/${product?.slug}`}
                             className="hover:purple-50 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-50 py-3 text-sm font-bold text-slate-600 transition-colors hover:text-purple-700"
                         >
-                            View Product Page
+                            {t('View Product Page')}
                         </Link>
                     )}
                 </div>
@@ -302,6 +307,7 @@ export default function PurchasesIndex({
     pendingOrders,
     filters,
 }: any) {
+    const { t } = useTranslation(); // Inject translator here
     const { flash } = usePage<any>().props;
 
     useEffect(() => {
@@ -364,11 +370,10 @@ export default function PurchasesIndex({
                 preserveScroll: true,
                 onSuccess: () => {
                     setCancelModalConfig({ isOpen: false, orderId: null });
-                    toast('Order cancelled successfully.', 'info');
                 },
                 onError: () => {
                     setCancelModalConfig({ isOpen: false, orderId: null });
-                    toast('Failed to cancel order.', 'error');
+                    toast(t('Failed to cancel order.'), 'error');
                 },
                 onFinish: () => setIsProcessing(false),
             },
@@ -377,24 +382,28 @@ export default function PurchasesIndex({
 
     return (
         <>
-            <Head title="My Purchases - Soko" />
+            <Head title={t('My Purchases - Soko')} />
             <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
                 <Navbar />
 
                 <main className="relative z-10 mx-auto w-full max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
-                    <div className="mb-16 flex flex-col items-center justify-center text-center">
-                        <div className="mb-4 inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold tracking-wider text-indigo-600 uppercase ring-1 ring-indigo-500/10 ring-inset">
-                            Buyer Dashboard
+                    {/* HEADER */}
+                    <div className="mb-12 flex flex-col items-center justify-center text-center sm:mb-16">
+                        <div className="mb-6 inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold tracking-wider text-indigo-600 uppercase ring-1 ring-indigo-500/10 ring-inset">
+                            {t('Buyer Dashboard')}
                         </div>
-                        <h1 className="mb-4 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-                            Your Digital{' '}
+
+                        <h1 className="mx-auto mb-6 max-w-3xl text-4xl leading-tight font-black tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
+                            {t('Your Digital')}{' '}
                             <span className="bg-linear-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-                                Purchases
+                                {t('Purchases')}
                             </span>
                         </h1>
-                        <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500 sm:text-xl">
-                            Manage your payments and access your downloaded
-                            products.
+
+                        <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-500 sm:text-lg">
+                            {t(
+                                'Manage your payments and access your downloaded products.',
+                            )}
                         </p>
                     </div>
 
@@ -409,11 +418,12 @@ export default function PurchasesIndex({
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-black tracking-tight text-slate-900">
-                                        Action Required
+                                        {t('Action Required')}
                                     </h2>
                                     <p className="text-sm font-medium text-slate-500">
-                                        Please complete the payment to unlock
-                                        your files.
+                                        {t(
+                                            'Please complete the payment to unlock your files.',
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -443,14 +453,16 @@ export default function PurchasesIndex({
                                                     <span
                                                         className={`font-mono text-xs font-bold tracking-tighter uppercase ${order.status === 'cancelled' ? 'text-slate-300' : 'text-slate-400'}`}
                                                     >
-                                                        Order #{order.id}
+                                                        {t('Order')} #{order.id}
                                                     </span>
 
                                                     {order.status ===
                                                     'verifying' ? (
                                                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 uppercase">
                                                             <Clock size={10} />{' '}
-                                                            Verifying Receipt
+                                                            {t(
+                                                                'Verifying Receipt',
+                                                            )}
                                                         </span>
                                                     ) : order.status ===
                                                       'cancelled' ? (
@@ -458,14 +470,16 @@ export default function PurchasesIndex({
                                                             <XCircle
                                                                 size={10}
                                                             />{' '}
-                                                            Cancelled
+                                                            {t('Cancelled')}
                                                         </span>
                                                     ) : (
                                                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 uppercase">
                                                             <AlertCircle
                                                                 size={10}
                                                             />{' '}
-                                                            Awaiting Payment
+                                                            {t(
+                                                                'Awaiting Payment',
+                                                            )}
                                                         </span>
                                                     )}
                                                 </div>
@@ -523,7 +537,9 @@ export default function PurchasesIndex({
 
                                                                     <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                                                                         <span className="shrink-0 font-medium">
-                                                                            Creator:
+                                                                            {t(
+                                                                                'Creator:',
+                                                                            )}
                                                                         </span>
                                                                         {item
                                                                             .product
@@ -556,13 +572,13 @@ export default function PurchasesIndex({
                                                                             </Link>
                                                                         ) : (
                                                                             <span className="truncate text-slate-400 italic">
-                                                                                Deleted
-                                                                                Account
+                                                                                {t(
+                                                                                    'Deleted Account',
+                                                                                )}
                                                                             </span>
                                                                         )}
                                                                     </div>
 
-                                                                    {/* --- ADDED: The React Countdown Component displays here! --- */}
                                                                     {order.status ===
                                                                         'pending' &&
                                                                         order.created_at && (
@@ -584,7 +600,7 @@ export default function PurchasesIndex({
                                                     <p
                                                         className={`mb-1 text-xs font-bold tracking-widest uppercase ${order.status === 'cancelled' ? 'text-slate-300' : 'text-slate-400'}`}
                                                     >
-                                                        Total Due
+                                                        {t('Total Due')}
                                                     </p>
                                                     <p
                                                         className={`text-3xl font-black ${order.status === 'cancelled' ? 'text-slate-400 line-through' : 'text-slate-900'}`}
@@ -598,7 +614,7 @@ export default function PurchasesIndex({
                                                 {order.status ===
                                                 'cancelled' ? (
                                                     <div className="w-full cursor-not-allowed rounded-2xl bg-slate-100 px-8 py-4 text-center text-sm font-bold text-slate-400 sm:w-auto">
-                                                        Order Closed
+                                                        {t('Order Closed')}
                                                     </div>
                                                 ) : (
                                                     <div className="flex w-full flex-col gap-2 sm:w-auto">
@@ -606,7 +622,9 @@ export default function PurchasesIndex({
                                                             href={`/orders/${order.id}/pay`}
                                                             className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-sm font-black text-white shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-xl hover:shadow-purple-500/25 sm:w-auto`}
                                                         >
-                                                            Continue Payment
+                                                            {t(
+                                                                'Continue Payment',
+                                                            )}
                                                             <ChevronRight
                                                                 size={18}
                                                             />
@@ -620,8 +638,9 @@ export default function PurchasesIndex({
                                                             }
                                                             className="w-full rounded-xl px-4 py-3 text-xs font-bold text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
                                                         >
-                                                            Cancel / Change
-                                                            Payment
+                                                            {t(
+                                                                'Cancel / Change Payment',
+                                                            )}
                                                         </button>
                                                     </div>
                                                 )}
@@ -644,11 +663,12 @@ export default function PurchasesIndex({
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-black tracking-tight text-slate-900">
-                                        My Collection
+                                        {t('My Collection')}
                                     </h2>
                                     <p className="text-sm font-medium text-slate-500">
-                                        Successfully purchased files ready for
-                                        download.
+                                        {t(
+                                            'Successfully purchased files ready for download.',
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -663,7 +683,9 @@ export default function PurchasesIndex({
                                         <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                         <input
                                             type="text"
-                                            placeholder="Search products..."
+                                            placeholder={t(
+                                                'Search products...',
+                                            )}
                                             value={search}
                                             onChange={(e) =>
                                                 setSearch(e.target.value)
@@ -693,10 +715,10 @@ export default function PurchasesIndex({
                                             className="h-10 w-full cursor-pointer appearance-none rounded-xl border-none bg-transparent px-4 pr-9 text-sm font-medium text-slate-600 focus:ring-0 focus:outline-none"
                                         >
                                             <option value="newest">
-                                                Recently Purchased
+                                                {t('Recently Purchased')}
                                             </option>
                                             <option value="oldest">
-                                                Oldest Purchases
+                                                {t('Oldest Purchases')}
                                             </option>
                                         </select>
                                         <ChevronDown className="pointer-events-none absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -717,20 +739,22 @@ export default function PurchasesIndex({
                                 </div>
                                 <h3 className="mb-2 text-xl font-bold text-slate-900">
                                     {search
-                                        ? 'No results found'
-                                        : 'Your collection is empty'}
+                                        ? t('No results found')
+                                        : t('Your collection is empty')}
                                 </h3>
                                 <p className="mb-8 max-w-md text-slate-500">
                                     {search
-                                        ? `We couldn't find anything matching "${search}".`
-                                        : "You haven't completed any purchases yet. Once your orders are approved, your files will appear here."}
+                                        ? `${t("We couldn't find anything matching")} "${search}".`
+                                        : t(
+                                              "You haven't completed any purchases yet. Once your orders are approved, your files will appear here.",
+                                          )}
                                 </p>
                                 {!search && (
                                     <Link
                                         href="/"
                                         className="rounded-xl bg-slate-900 px-8 py-3.5 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25"
                                     >
-                                        Browse Marketplace
+                                        {t('Browse Marketplace')}
                                     </Link>
                                 )}
                             </div>
@@ -775,9 +799,11 @@ export default function PurchasesIndex({
                     setCancelModalConfig({ isOpen: false, orderId: null })
                 }
                 onConfirm={executeCancel}
-                title="Cancel Order"
-                message="Are you sure you want to cancel this order? This will void the current transaction so you can check out again with a different payment method. This action cannot be undone."
-                confirmText="Yes, cancel it"
+                title={t('Cancel Order')}
+                message={t(
+                    'Are you sure you want to cancel this order? This will void the current transaction so you can check out again with a different payment method. This action cannot be undone.',
+                )}
+                confirmText={t('Yes, cancel it')}
                 variant="danger"
                 isProcessing={isProcessing}
             />

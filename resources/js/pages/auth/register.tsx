@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -10,10 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslation } from '@/hooks/useTranslation';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
 export default function Register() {
+    const { t } = useTranslation(); // Inject translator here
+
+    const { flash } = usePage().props as any;
+
     const [nameLength, setNameLength] = useState(0);
     const [usernameLength, setUsernameLength] = useState(0);
 
@@ -57,7 +62,7 @@ export default function Register() {
 
     return (
         <>
-            <Head title="Register - Soko" />
+            <Head title={t('Register - Soko')} />
 
             {/* Global Background matching the Discover & Login Pages */}
             <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
@@ -69,16 +74,23 @@ export default function Register() {
                     <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-8 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                         <div className="mb-8 text-center">
                             <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900">
-                                Create an{' '}
+                                {t('Create an')}{' '}
                                 <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                    Account
+                                    {t('Account')}
                                 </span>
                             </h1>
                             <p className="text-sm text-slate-500">
-                                Enter your details below to set up your
-                                storefront
+                                {t(
+                                    'Enter your details below to set up your storefront',
+                                )}
                             </p>
                         </div>
+
+                        {flash?.error && (
+                            <div className="mb-6 rounded-xl border border-rose-100 bg-rose-50 p-3 text-center text-sm font-semibold text-rose-600">
+                                {flash.error}
+                            </div>
+                        )}
 
                         <Form
                             {...store.form()}
@@ -99,7 +111,7 @@ export default function Register() {
                                                     htmlFor="name"
                                                     className="font-bold text-slate-700"
                                                 >
-                                                    Full Name
+                                                    {t('Full Name')}
                                                 </Label>
                                                 <span
                                                     className={`text-xs font-bold ${nameLength >= 50 ? 'text-rose-500' : 'text-slate-400'}`}
@@ -121,7 +133,7 @@ export default function Register() {
                                                         e.target.value.length,
                                                     )
                                                 }
-                                                placeholder="e.g. John Doe"
+                                                placeholder={t('e.g. John Doe')}
                                                 className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all autofill:shadow-[inset_0_0_0px_1000px_#faf5ff] autofill:[-webkit-text-fill-color:#0f172a] focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                             />
                                             <InputError
@@ -137,7 +149,7 @@ export default function Register() {
                                                     htmlFor="username"
                                                     className="font-bold text-slate-700"
                                                 >
-                                                    Username
+                                                    {t('Username')}
                                                 </Label>
                                                 <span
                                                     className={`text-xs font-bold ${usernameLength >= 30 ? 'text-rose-500' : 'text-slate-400'}`}
@@ -177,7 +189,7 @@ export default function Register() {
                                                             'idle',
                                                         );
                                                     }}
-                                                    placeholder="yourbrand"
+                                                    placeholder={t('Username')}
                                                     className={`h-12 w-full rounded-xl border bg-slate-50/50 pr-10 pl-9 shadow-sm transition-all autofill:shadow-[inset_0_0_0px_1000px_#faf5ff] autofill:[-webkit-text-fill-color:#0f172a] focus:bg-white focus:outline-none focus-visible:ring-0 ${
                                                         usernameStatus ===
                                                         'taken'
@@ -214,15 +226,17 @@ export default function Register() {
                                             {usernameStatus === 'available' &&
                                                 !errors.username && (
                                                     <p className="mt-1 text-xs font-bold text-emerald-600">
-                                                        Looks good! This
-                                                        username is available.
+                                                        {t(
+                                                            'Looks good! This username is available.',
+                                                        )}
                                                     </p>
                                                 )}
                                             {usernameStatus === 'taken' &&
                                                 !errors.username && (
                                                     <p className="mt-1 text-xs font-bold text-rose-600">
-                                                        This username is already
-                                                        taken.
+                                                        {t(
+                                                            'This username is already taken.',
+                                                        )}
                                                     </p>
                                                 )}
                                             <InputError
@@ -237,7 +251,7 @@ export default function Register() {
                                                 htmlFor="email"
                                                 className="font-bold text-slate-700"
                                             >
-                                                Email address
+                                                {t('Email address')}
                                             </Label>
                                             <Input
                                                 id="email"
@@ -246,7 +260,9 @@ export default function Register() {
                                                 tabIndex={3}
                                                 autoComplete="email"
                                                 name="email"
-                                                placeholder="email@example.com"
+                                                placeholder={t(
+                                                    'email@example.com',
+                                                )}
                                                 className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all autofill:shadow-[inset_0_0_0px_1000px_#faf5ff] autofill:[-webkit-text-fill-color:#0f172a] focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                             />
                                             <InputError
@@ -261,7 +277,7 @@ export default function Register() {
                                                 htmlFor="password"
                                                 className="font-bold text-slate-700"
                                             >
-                                                Password
+                                                {t('Password')}
                                             </Label>
                                             <PasswordInput
                                                 id="password"
@@ -269,7 +285,9 @@ export default function Register() {
                                                 tabIndex={4}
                                                 autoComplete="new-password"
                                                 name="password"
-                                                placeholder="Create a password"
+                                                placeholder={t(
+                                                    'Create a password',
+                                                )}
                                                 className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all autofill:shadow-[inset_0_0_0px_1000px_#faf5ff] autofill:[-webkit-text-fill-color:#0f172a] focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                             />
                                             <InputError
@@ -284,7 +302,7 @@ export default function Register() {
                                                 htmlFor="password_confirmation"
                                                 className="font-bold text-slate-700"
                                             >
-                                                Confirm password
+                                                {t('Confirm password')}
                                             </Label>
                                             <PasswordInput
                                                 id="password_confirmation"
@@ -292,7 +310,9 @@ export default function Register() {
                                                 tabIndex={5}
                                                 autoComplete="new-password"
                                                 name="password_confirmation"
-                                                placeholder="Confirm password"
+                                                placeholder={t(
+                                                    'Confirm password',
+                                                )}
                                                 className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all autofill:shadow-[inset_0_0_0px_1000px_#faf5ff] autofill:[-webkit-text-fill-color:#0f172a] focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                             />
                                             <InputError
@@ -317,19 +337,19 @@ export default function Register() {
                                             {processing ? (
                                                 <Spinner className="mr-2 h-5 w-5" />
                                             ) : null}
-                                            Create account
+                                            {t('Create account')}
                                         </Button>
                                     </div>
 
                                     {/* Log In Link */}
                                     <div className="mt-2 border-t border-slate-100 pt-6 text-center text-sm font-medium text-slate-500">
-                                        Already have an account?{' '}
+                                        {t('Already have an account?')}{' '}
                                         <TextLink
                                             href={login()}
                                             tabIndex={7}
                                             className="font-bold text-purple-600 transition-colors hover:text-purple-700"
                                         >
-                                            Log in
+                                            {t('Log in')}
                                         </TextLink>
                                     </div>
                                 </>

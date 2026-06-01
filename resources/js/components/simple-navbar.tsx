@@ -1,6 +1,8 @@
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- ADD THE PROP DEFINITION ---
 type Props = {
@@ -12,6 +14,7 @@ export default function SimpleNavbar({
     backUrl,
     hideBackButton = false,
 }: Props) {
+    const { t } = useTranslation(); // Inject translator here
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -63,8 +66,10 @@ export default function SimpleNavbar({
                                 size={16}
                                 className="transition-transform group-hover:-translate-x-1"
                             />
-                            <span className="hidden sm:inline">Back</span>
-                            <span className="sm:hidden">Back</span>
+                            <span className="hidden sm:inline">
+                                {t('Back')}
+                            </span>
+                            <span className="sm:hidden">{t('Back')}</span>
                         </button>
                     </div>
                 )}

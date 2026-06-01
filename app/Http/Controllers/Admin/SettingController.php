@@ -118,6 +118,6 @@ class SettingController extends Controller
         // Cleanup Deleted Categories
         Category::whereNotIn('id', $incomingCategoryIds)->delete();
 
-        return back()->with('success', 'Platform settings updated successfully.');
+        return back()->with('success', __('Platform settings updated successfully.'));
     }
 }

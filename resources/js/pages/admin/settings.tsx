@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import {
     Save,
     Percent,
@@ -6,18 +6,36 @@ import {
     Building2,
     Plus,
     Trash2,
-    Layers, // <-- ADDED: For the Category section
+    Layers,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function AdminSettings({
     settings,
     withdrawalMethods = [],
-    categories = [], // <-- ADDED: Loads from database
+    categories = [],
 }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
+    // --- 1. AMBIL FLASH DARI INERTIA ---
+    const { flash } = usePage().props as any;
+
+    // --- 2. PASANG LISTENER UNTUK TOAST OTOMATIS ---
+    useEffect(() => {
+        if (flash?.success) {
+            toast(flash.success, 'success');
+        }
+
+        if (flash?.error) {
+            toast(flash.error, 'error');
+        }
+    }, [flash]);
+
     // --- MODAL STATE (Updated to handle multiple types) ---
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
@@ -35,18 +53,17 @@ export default function AdminSettings({
         withdrawal_free_threshold:
             settings?.withdrawal_free_threshold || '500000',
         withdrawal_methods: withdrawalMethods,
-        categories: categories, // <-- ADDED: Category State
+        categories: categories,
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post('/admin/settings', {
             preserveScroll: true,
-            onSuccess: () =>
-                toast('Platform settings updated successfully!', 'success'),
+            // Hapus bagian onSuccess() karena pesan sukses sudah ditangani otomatis oleh useEffect di atas.
             onError: () =>
                 toast(
-                    'Failed to update settings. Please check your inputs.',
+                    t('Failed to update settings. Please check your inputs.'),
                     'error',
                 ),
         });
@@ -63,7 +80,8 @@ export default function AdminSettings({
 
     const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\./g, '');
-        setData('withdrawal_free_threshold', rawValue);
+        // FIX: Added 'as never' for Inertia TypeScript compatibility
+        setData('withdrawal_free_threshold', rawValue as never);
     };
 
     const handleFeeChange = (
@@ -79,20 +97,21 @@ export default function AdminSettings({
         return text
             .toString()
             .toLowerCase()
-            .replace(/\s+/g, '-') // Replace spaces with -
-            .replace(/[^\w-]+/g, '') // Remove all non-word chars
-            .replace(/--+/g, '-') // Replace multiple - with single -
-            .replace(/^-+/, '') // Trim - from start of text
-            .replace(/-+$/, ''); // Trim - from end of text
+            .replace(/\s+/g, '-')
+            .replace(/[^\w-]+/g, '')
+            .replace(/--+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
     };
 
     // --- DYNAMIC ARRAY HANDLERS (WITHDRAWALS) ---
     const addMethod = () => {
         const newIndex = data.withdrawal_methods.length;
+        // FIX: Added 'as never'
         setData('withdrawal_methods', [
             ...data.withdrawal_methods,
             { id: null, name: '', fee: '0', is_active: true },
-        ]);
+        ] as never);
         setTimeout(() => {
             const newElement = document.getElementById(
                 `method-name-${newIndex}`,
@@ -105,16 +124,18 @@ export default function AdminSettings({
     const updateMethod = (index: number, field: string, value: any) => {
         const newMethods = [...data.withdrawal_methods];
         newMethods[index] = { ...newMethods[index], [field]: value };
-        setData('withdrawal_methods', newMethods);
+        // FIX: Added 'as never'
+        setData('withdrawal_methods', newMethods as never);
     };
 
     // --- DYNAMIC ARRAY HANDLERS (CATEGORIES) ---
     const addCategory = () => {
         const newIndex = data.categories.length;
+        // FIX: Added 'as never'
         setData('categories', [
             ...data.categories,
             { id: null, name: '', slug: '' },
-        ]);
+        ] as never);
         setTimeout(() => {
             const newElement = document.getElementById(
                 `category-name-${newIndex}`,
@@ -127,7 +148,6 @@ export default function AdminSettings({
     const updateCategory = (index: number, field: string, value: string) => {
         const newCats = [...data.categories];
 
-        // Auto-generate the slug if the user is typing the name
         if (field === 'name') {
             newCats[index] = {
                 ...newCats[index],
@@ -138,7 +158,8 @@ export default function AdminSettings({
             newCats[index] = { ...newCats[index], [field]: value };
         }
 
-        setData('categories', newCats);
+        // FIX: Added 'as never'
+        setData('categories', newCats as never);
     };
 
     // --- REMOVAL LOGIC ---
@@ -151,11 +172,13 @@ export default function AdminSettings({
             if (modalConfig.type === 'withdrawal') {
                 const newMethods = [...data.withdrawal_methods];
                 newMethods.splice(modalConfig.removeIndex, 1);
-                setData('withdrawal_methods', newMethods);
+                // FIX: Added 'as never'
+                setData('withdrawal_methods', newMethods as never);
             } else if (modalConfig.type === 'category') {
                 const newCats = [...data.categories];
                 newCats.splice(modalConfig.removeIndex, 1);
-                setData('categories', newCats);
+                // FIX: Added 'as never'
+                setData('categories', newCats as never);
             }
         }
 
@@ -164,17 +187,16 @@ export default function AdminSettings({
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="Platform Settings - Soko Admin" />
+            <Head title={t('Platform Settings - Soko Admin')} />
             <Navbar />
 
             <main className="relative z-10 mx-auto max-w-4xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
                 <div className="mb-10">
                     <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                        Platform Settings
+                        {t('Platform Settings')}
                     </h1>
                     <p className="mt-2 text-lg text-slate-500">
-                        Configure global marketplace rules, categories, and fee
-                        structures.
+                        {t('Manage platform rules, categories, and fees.')}
                     </p>
                 </div>
 
@@ -187,17 +209,18 @@ export default function AdminSettings({
                                     size={20}
                                     className="text-slate-400"
                                 />
-                                Global Financial Rules
+                                {t('Global Financial Rules')}
                             </h2>
 
                             <div className="grid gap-6 sm:grid-cols-2">
                                 <div>
                                     <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
-                                        Platform Cut (Revenue Share)
+                                        {t('Platform Cut (Revenue Share)')}
                                     </label>
                                     <p className="mb-4 text-xs font-medium text-slate-500">
-                                        The percentage taken by Soko from every
-                                        successful sale.
+                                        {t(
+                                            'The percentage taken by Soko from every successful sale.',
+                                        )}
                                     </p>
                                     <div className="relative">
                                         <input
@@ -206,10 +229,11 @@ export default function AdminSettings({
                                             max="100"
                                             className="w-full [appearance:textfield] rounded-xl border border-slate-200 bg-white/50 px-4 py-3 pr-10 text-sm shadow-sm transition-colors focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                             value={data.platform_cut_percentage}
+                                            // FIX: Added 'as never'
                                             onChange={(e) =>
                                                 setData(
                                                     'platform_cut_percentage',
-                                                    e.target.value,
+                                                    e.target.value as never,
                                                 )
                                             }
                                             required
@@ -222,11 +246,12 @@ export default function AdminSettings({
 
                                 <div>
                                     <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
-                                        Free Withdrawal Threshold
+                                        {t('Free Withdrawal Minimum')}
                                     </label>
                                     <p className="mb-4 text-xs font-medium text-slate-500">
-                                        Withdrawals over this amount (Rp) bypass
-                                        the transfer fee.
+                                        {t(
+                                            'Withdrawals over this amount bypass the transfer fee.',
+                                        )}
                                     </p>
                                     <div className="relative">
                                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 font-bold text-slate-400">
@@ -255,11 +280,12 @@ export default function AdminSettings({
                                             size={20}
                                             className="text-slate-400"
                                         />
-                                        Marketplace Categories
+                                        {t('Marketplace Categories')}
                                     </h2>
                                     <p className="mt-1 text-sm font-medium text-slate-500">
-                                        Manage the product categories available
-                                        to sellers.
+                                        {t(
+                                            'Manage the product categories available to sellers.',
+                                        )}
                                     </p>
                                 </div>
                                 <button
@@ -267,7 +293,7 @@ export default function AdminSettings({
                                     onClick={addCategory}
                                     className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-purple-50 px-4 py-2.5 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-100"
                                 >
-                                    <Plus size={18} /> Add Category
+                                    <Plus size={18} /> {t('Add Category')}
                                 </button>
                             </div>
 
@@ -280,14 +306,16 @@ export default function AdminSettings({
                                         >
                                             <div className="flex-1">
                                                 <label className="mb-1.5 block text-xs font-bold text-slate-500">
-                                                    Category Name
+                                                    {t('Category Name')}
                                                 </label>
                                                 <input
                                                     id={`category-name-${index}`}
                                                     type="text"
                                                     required
                                                     maxLength={100}
-                                                    placeholder="e.g. 3D Models"
+                                                    placeholder={t(
+                                                        'e.g. 3D Models',
+                                                    )}
                                                     value={category.name}
                                                     onChange={(e) =>
                                                         updateCategory(
@@ -302,7 +330,7 @@ export default function AdminSettings({
 
                                             <div className="flex-1">
                                                 <label className="mb-1.5 block text-xs font-bold text-slate-500">
-                                                    URL Slug
+                                                    {t('URL Slug')}
                                                 </label>
                                                 <input
                                                     type="text"
@@ -330,7 +358,7 @@ export default function AdminSettings({
                                                         )
                                                     }
                                                     className="rounded-lg p-2 text-rose-400 transition-colors hover:bg-rose-100 hover:text-rose-600"
-                                                    title="Remove Category"
+                                                    title={t('Remove Category')}
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
@@ -341,8 +369,9 @@ export default function AdminSettings({
 
                                 {data.categories.length === 0 && (
                                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-sm text-slate-500">
-                                        No categories exist. Click "Add
-                                        Category" to create one.
+                                        {t(
+                                            'No categories exist. Click "Add Category" to create one.',
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -357,12 +386,12 @@ export default function AdminSettings({
                                             size={20}
                                             className="text-slate-400"
                                         />
-                                        Withdrawal Methods & Fees
+                                        {t('Withdrawal Methods & Fees')}
                                     </h2>
                                     <p className="mt-1 text-sm font-medium text-slate-500">
-                                        Manage the bank options available to
-                                        sellers and their specific transfer
-                                        costs.
+                                        {t(
+                                            'Manage the bank options available to sellers and their specific transfer costs.',
+                                        )}
                                     </p>
                                 </div>
                                 <button
@@ -370,7 +399,7 @@ export default function AdminSettings({
                                     onClick={addMethod}
                                     className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-600 transition-colors hover:bg-emerald-100"
                                 >
-                                    <Plus size={18} /> Add Method
+                                    <Plus size={18} /> {t('Add Method')}
                                 </button>
                             </div>
 
@@ -383,13 +412,15 @@ export default function AdminSettings({
                                         >
                                             <div className="flex-1">
                                                 <label className="mb-1.5 block text-xs font-bold text-slate-500">
-                                                    Bank / E-Wallet Name
+                                                    {t('Bank / E-Wallet Name')}
                                                 </label>
                                                 <input
                                                     id={`method-name-${index}`}
                                                     type="text"
                                                     required
-                                                    placeholder="e.g. BCA, GoPay"
+                                                    placeholder={t(
+                                                        'e.g. BCA, GoPay',
+                                                    )}
                                                     value={method.name}
                                                     onChange={(e) =>
                                                         updateMethod(
@@ -404,7 +435,7 @@ export default function AdminSettings({
 
                                             <div className="relative w-full sm:w-48">
                                                 <label className="mb-1.5 block text-xs font-bold text-slate-500">
-                                                    Transfer Fee (Rp)
+                                                    {t('Transfer Fee (Rp)')}
                                                 </label>
                                                 <input
                                                     type="text"
@@ -443,8 +474,8 @@ export default function AdminSettings({
                                                         className={`text-sm font-bold ${method.is_active ? 'text-emerald-700' : 'text-slate-400'}`}
                                                     >
                                                         {method.is_active
-                                                            ? 'Active'
-                                                            : 'Disabled'}
+                                                            ? t('Active')
+                                                            : t('Disabled')}
                                                     </span>
                                                 </label>
 
@@ -457,7 +488,7 @@ export default function AdminSettings({
                                                         )
                                                     }
                                                     className="rounded-lg p-2 text-rose-400 transition-colors hover:bg-rose-100 hover:text-rose-600"
-                                                    title="Remove Method"
+                                                    title={t('Remove Method')}
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
@@ -468,8 +499,9 @@ export default function AdminSettings({
 
                                 {data.withdrawal_methods.length === 0 && (
                                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-10 text-center text-sm text-slate-500">
-                                        No withdrawal methods configured. Click
-                                        "Add Method" to create one.
+                                        {t(
+                                            'No withdrawal methods configured. Click "Add Method" to create one.',
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -483,10 +515,10 @@ export default function AdminSettings({
                                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-rose-600 hover:shadow-lg hover:shadow-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                             >
                                 {processing ? (
-                                    'Saving...'
+                                    t('Saving...')
                                 ) : (
                                     <>
-                                        <Save size={20} /> Save Platform Rules
+                                        <Save size={20} /> {t('Save')}
                                     </>
                                 )}
                             </button>
@@ -508,16 +540,20 @@ export default function AdminSettings({
                 onConfirm={confirmRemove}
                 title={
                     modalConfig.type === 'withdrawal'
-                        ? 'Remove Withdrawal Method'
-                        : 'Remove Category'
+                        ? t('Remove Withdrawal Method')
+                        : t('Remove Category')
                 }
                 message={
                     modalConfig.type === 'withdrawal'
-                        ? 'Are you sure you want to remove this withdrawal method? This will prevent sellers from selecting it in the future.'
-                        : 'Are you sure you want to delete this category? Make sure no active products are currently using it.'
+                        ? t(
+                              'Are you sure you want to remove this withdrawal method? This will prevent sellers from selecting it in the future.',
+                          )
+                        : t(
+                              'Are you sure you want to delete this category? Make sure no active products are currently using it.',
+                          )
                 }
-                confirmText="Yes, remove it"
-                cancelText="Cancel"
+                confirmText={t('Yes, remove it')}
+                cancelText={t('Cancel')}
                 variant="danger"
             />
         </div>

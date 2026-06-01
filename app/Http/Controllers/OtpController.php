@@ -26,13 +26,13 @@ class OtpController extends Controller
         // 3. SECURITY CHECK: Jika user dihapus oleh admin
         if (!$user) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('register')->with('error', 'Account no longer exists. Please register again.');
+            return redirect()->route('register')->with('error', __('Account no longer exists. Please register again.'));
         }
 
         // 4. SECURITY CHECK: Jika user sudah diverifikasi secara manual oleh admin
         if ($user->email_verified_at !== null) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('login')->with('success', 'Your account has been verified by the administrator. Please log in.');
+            return redirect()->route('login')->with('success', __('Your account has been verified by the administrator. Please log in.'));
         }
 
         // Kirim email tersebut ke React jika lolos semua pengecekan
@@ -50,14 +50,14 @@ class OtpController extends Controller
         $email = $request->session()->get('pending_otp_email');
 
         if (!$email) {
-            return redirect()->route('login')->with('error', 'Session expired. Please log in again.');
+            return redirect()->route('login')->with('error', __('Session expired. Please log in again.'));
         }
 
         // 1. RATE LIMITING
         $throttleKey = 'verify-otp:' . $email;
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
-            return back()->with('error', "Too many attempts. Please try again in {$seconds} seconds.");
+            return back()->with('error', __('Too many attempts. Please try again in :seconds seconds.', ['seconds' => $seconds]));
         }
 
         $user = User::where('email', $email)->first();
@@ -65,18 +65,18 @@ class OtpController extends Controller
         // SECURITY CHECK: Jika user dihapus saat sedang mencoba memverifikasi
         if (!$user) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('login')->with('error', 'User not found or has been deleted.');
+            return redirect()->route('login')->with('error', __('User not found or has been deleted.'));
         }
 
         // SECURITY CHECK: Jika user sudah diverifikasi
         if ($user->email_verified_at !== null) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('login')->with('success', 'Your account is already verified. Please log in.');
+            return redirect()->route('login')->with('success', __('Your account is already verified. Please log in.'));
         }
 
         // 2. Security Check: Has the time expired?
         if (now()->isAfter($user->otp_expires_at)) {
-            return back()->with('error', 'Your verification code has expired. Please request a new one.');
+            return back()->with('error', __('Your verification code has expired. Please request a new one.'));
         }
 
         // 3. Logic Check: Does the code match?
@@ -95,13 +95,13 @@ class OtpController extends Controller
             $request->session()->forget('pending_otp_email');
             RateLimiter::clear($throttleKey);
 
-            return redirect()->route('home')->with('success', 'Email verified successfully! Welcome to Soko.');
+            return redirect()->route('home')->with('success', __('Email verified successfully! Welcome to Soko.'));
         }
 
         // 4. RATE LIMITING: Record a failed attempt
         RateLimiter::hit($throttleKey, 300);
 
-        return back()->with('error', 'Invalid verification code. Please try again.');
+        return back()->with('error', __('Invalid verification code. Please try again.'));
     }
 
     public function resend(Request $request)
@@ -109,7 +109,7 @@ class OtpController extends Controller
         $email = $request->session()->get('pending_otp_email');
 
         if (!$email) {
-            return redirect()->route('login')->with('error', 'Session expired. Please log in again.');
+            return redirect()->route('login')->with('error', __('Session expired. Please log in again.'));
         }
 
         $user = User::where('email', $email)->first();
@@ -117,13 +117,13 @@ class OtpController extends Controller
         // SECURITY CHECK
         if (!$user) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('login')->with('error', 'User not found or has been deleted.');
+            return redirect()->route('login')->with('error', __('User not found or has been deleted.'));
         }
 
         // SECURITY CHECK
         if ($user->email_verified_at !== null) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('login')->with('success', 'Your account is already verified. Please log in.');
+            return redirect()->route('login')->with('success', __('Your account is already verified. Please log in.'));
         }
 
         $newCode = random_int(100000, 999999);
@@ -135,7 +135,7 @@ class OtpController extends Controller
 
         Mail::to($user->email)->send(new OtpVerificationMail($newCode));
 
-        return back()->with('success', 'A new 6-digit code has been sent to your email.');
+        return back()->with('success', __('A new 6-digit code has been sent to your email.'));
     }
 
     public function updateEmail(Request $request)
@@ -150,13 +150,13 @@ class OtpController extends Controller
         // SECURITY CHECK
         if (!$user) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('register')->with('error', 'Session expired. Please register again.');
+            return redirect()->route('register')->with('error', __('Session expired. Please register again.'));
         }
 
         // SECURITY CHECK
         if ($user->email_verified_at !== null) {
             $request->session()->forget('pending_otp_email');
-            return redirect()->route('login')->with('success', 'Your account is already verified. You can update your email from the profile settings.');
+            return redirect()->route('login')->with('success', __('Your account is already verified. You can update your email from the profile settings.'));
         }
 
         $user->email = $request->email;
@@ -168,6 +168,6 @@ class OtpController extends Controller
 
         Mail::to($user->email)->send(new OtpVerificationMail($user->otp_code));
 
-        return back()->with('success', 'Email has been updated and a new OTP sent.');
+        return back()->with('success', __('Email has been updated and a new OTP sent.'));
     }
 }

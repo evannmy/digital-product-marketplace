@@ -14,6 +14,7 @@ use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\RegisterResponse;
 use Laravel\Fortify\Contracts\LoginResponse;
+use Laravel\Fortify\Contracts\PasswordUpdateResponse;
 use Illuminate\Support\Facades\Auth;
 
 // --- NEW IMPORTS REQUIRED FOR CUSTOM AUTHENTICATION ---
@@ -57,7 +58,7 @@ class FortifyServiceProvider extends ServiceProvider
                 // 2. Block if the account is suspended (is_active is false)
                 if (! $user->is_active) {
                     throw ValidationException::withMessages([
-                        Fortify::username() => __('Your account has been suspended. Please contact the administrator.'),
+                        Fortify::username() => __('Your account is deactivated. Please contact the administrator.'),
                     ]);
                 }
 
@@ -115,6 +116,15 @@ class FortifyServiceProvider extends ServiceProvider
 
                     // If they ARE verified and are normal users, let them log in normally to the home page!
                     return redirect()->intended(config('fortify.home'));
+                }
+            };
+        });
+
+        $this->app->singleton(PasswordUpdateResponse::class, function () {
+            return new class implements PasswordUpdateResponse {
+                public function toResponse($request)
+                {
+                    return back()->with('success', __('Password securely updated!'));
                 }
             };
         });

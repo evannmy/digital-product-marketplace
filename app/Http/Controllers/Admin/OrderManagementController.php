@@ -55,10 +55,11 @@ class OrderManagementController extends Controller
     {
         // Guardrail
         if ($order->status === 'success') {
-            return back()->with('error', 'Cannot cancel a completed order.');
+            // --- DIBUNGKUS DENGAN __() ---
+            return back()->with('error', __('Cannot cancel a completed order.'));
         }
 
-        // --- 2. THE FIX: Removed the Midtrans ping to speed up the Admin panel ---
+        // Removed the Midtrans ping to speed up the Admin panel
         // (Because the local snap_token is wiped, the user can immediately re-checkout. 
         // The old invoice on Midtrans will simply expire quietly on its own).
 
@@ -67,6 +68,7 @@ class OrderManagementController extends Controller
             'snap_token' => null
         ]);
 
-        return back()->with('success', 'Order forcefully cancelled.');
+        // --- DIBUNGKUS DENGAN __() ---
+        return back()->with('success', __('Order cancelled.'));
     }
 }

@@ -1,4 +1,4 @@
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 import {
     Percent,
     Clock,
@@ -13,14 +13,28 @@ import {
     ChevronDown,
     EyeOff,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import BackToTop from '@/components/back-to-top';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PromotionsIndex({ products }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // --- ADDED: Ambil flash dari Inertia ---
+    const { flash } = usePage().props as any;
+
+    // --- ADDED: Listener otomatis untuk Toast ---
+    useEffect(() => {
+        if (flash?.success) toast(flash.success, 'success');
+
+        if (flash?.error) toast(flash.error, 'error');
+    }, [flash]);
 
     const {
         data,
@@ -82,7 +96,7 @@ export default function PromotionsIndex({ products }: any) {
         clearErrors('starts_at', 'ends_at');
         setCustomHours('');
         setCustomMinutes('');
-        toast('Duration calculated and applied!', 'success');
+        toast(t('Duration calculated and applied!'), 'success');
     };
 
     // --- LOGIC: Real-time Search & Status Filtering ---
@@ -132,7 +146,6 @@ export default function PromotionsIndex({ products }: any) {
     };
 
     // --- LOGIC: Submission ---
-    // --- LOGIC: Submission ---
     const submitPromotion = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -161,7 +174,7 @@ export default function PromotionsIndex({ products }: any) {
                 };
             }
 
-            return currentData; // Kembalikan data asli jika tidak ada input custom time
+            return currentData;
         });
 
         post(route('promotions.apply'), {
@@ -175,13 +188,15 @@ export default function PromotionsIndex({ products }: any) {
                     'product_ids',
                 );
                 setShowCustomDates(false);
-                setCustomHours(''); // <-- Pastikan input dibersihkan setelah sukses
-                setCustomMinutes(''); // <-- Pastikan input dibersihkan setelah sukses
-                toast('Flash sale successfully applied!', 'success');
+                setCustomHours('');
+                setCustomMinutes('');
             },
             onError: (err) => {
                 console.error('Backend Validation Failed:', err);
-                toast('Failed to apply. Check the form for errors.', 'error');
+                toast(
+                    t('Failed to apply. Check the form for errors.'),
+                    'error',
+                );
             },
         });
     };
@@ -198,14 +213,10 @@ export default function PromotionsIndex({ products }: any) {
                 onSuccess: () => {
                     setIsClearModalOpen(false);
                     reset('product_ids');
-                    toast(
-                        `Discounts cleared from ${idsToClear.length} product(s).`,
-                        'delete',
-                    );
                 },
                 onError: (err) => {
                     console.error('Backend Validation Failed:', err);
-                    toast('Failed to clear discounts.', 'error');
+                    toast(t('Failed to clear discounts.'), 'error');
                 },
             },
         );
@@ -220,9 +231,8 @@ export default function PromotionsIndex({ products }: any) {
         (p: any) => p.is_discount_active,
     );
 
-    // Format display dates for the summary view
     const formatDisplayDate = (dateString: string) => {
-        if (!dateString) return 'Not set';
+        if (!dateString) return t('Not set');
 
         return new Date(dateString).toLocaleString('en-US', {
             month: 'short',
@@ -234,22 +244,22 @@ export default function PromotionsIndex({ products }: any) {
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] pb-24 font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900 sm:pb-0">
-            <Head title="Manage Promotions - Soko" />
+            <Head title={t('Manage Promotions - Soko')} />
 
             <Navbar />
 
-            {/* UPDATED: Separated vertical padding on main, width on inner div */}
             <main className="relative z-10 pt-32 pb-24">
                 <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
                         <div>
                             <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                                Promotions
+                                {t('Promotions')}
                             </h1>
                             <p className="mt-2 text-lg text-slate-500">
-                                Create flash sales and manage bulk discounts for
-                                your products.
+                                {t(
+                                    'Create flash sales and manage bulk discounts for your products.',
+                                )}
                             </p>
                         </div>
                     </div>
@@ -273,7 +283,7 @@ export default function PromotionsIndex({ products }: any) {
                                             />
                                         </div>
                                         <h3 className="text-lg font-black text-slate-900">
-                                            Create Flash Sale
+                                            {t('Create Flash Sale')}
                                         </h3>
                                     </div>
                                 </div>
@@ -287,7 +297,7 @@ export default function PromotionsIndex({ products }: any) {
                                                 size={16}
                                                 className="text-slate-400"
                                             />
-                                            Discount Percentage
+                                            {t('Discount Percentage')}
                                         </label>
                                         <div className="relative">
                                             <input
@@ -302,7 +312,7 @@ export default function PromotionsIndex({ products }: any) {
                                                     )
                                                 }
                                                 className={`w-full rounded-xl border bg-white/50 px-4 py-3 pr-10 text-sm shadow-sm transition-colors focus:bg-white focus:ring-1 focus:outline-none ${errors.discount_percentage ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-500'} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                                                placeholder="e.g. 20"
+                                                placeholder={t('e.g. 20')}
                                             />
                                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
                                                 <span className="font-bold text-slate-400">
@@ -323,11 +333,11 @@ export default function PromotionsIndex({ products }: any) {
                                             selectedProducts.length > 0 && (
                                                 <div className="mt-4 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/50">
                                                     <div className="bg-emerald-100/50 px-4 py-2.5 text-xs font-bold tracking-wider text-emerald-800 uppercase">
-                                                        Price Preview (
+                                                        {t('Price Preview')} (
                                                         {
                                                             selectedProducts.length
                                                         }{' '}
-                                                        items)
+                                                        {t('items')})
                                                     </div>
                                                     <div className="max-h-48 overflow-y-auto p-4">
                                                         <ul className="space-y-3">
@@ -384,7 +394,7 @@ export default function PromotionsIndex({ products }: any) {
                                                     size={16}
                                                     className="text-slate-400"
                                                 />
-                                                Schedule
+                                                {t('Timezone')}
                                             </label>
                                             <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
                                                 {userTimeZone}
@@ -394,7 +404,7 @@ export default function PromotionsIndex({ products }: any) {
                                         {/* Primary Duration Calculator */}
                                         <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
                                             <label className="mb-2 block text-xs font-bold text-slate-500">
-                                                Fast Duration Calculator
+                                                {t('Set Time Duration')}
                                             </label>
                                             <div className="flex items-end gap-2">
                                                 <div className="flex-1">
@@ -416,7 +426,7 @@ export default function PromotionsIndex({ products }: any) {
                                                             )
                                                         }
                                                         className="block w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors [-moz-appearance:textfield] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                        placeholder="Hours"
+                                                        placeholder={t('Hours')}
                                                     />
                                                 </div>
                                                 <div className="flex-1">
@@ -439,7 +449,9 @@ export default function PromotionsIndex({ products }: any) {
                                                             )
                                                         }
                                                         className="block w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors [-moz-appearance:textfield] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                        placeholder="Minutes"
+                                                        placeholder={t(
+                                                            'Minutes',
+                                                        )}
                                                     />
                                                 </div>
                                                 <button
@@ -453,7 +465,7 @@ export default function PromotionsIndex({ products }: any) {
                                                     }
                                                     className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-700 hover:shadow-md disabled:opacity-30"
                                                 >
-                                                    Add
+                                                    {t('Set')}
                                                 </button>
                                             </div>
                                         </div>
@@ -463,7 +475,7 @@ export default function PromotionsIndex({ products }: any) {
                                             <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
                                                 <div className="mb-1 flex justify-between text-xs">
                                                     <span className="font-semibold text-purple-900">
-                                                        Starts:
+                                                        {t('Starts:')}
                                                     </span>
                                                     <span className="text-purple-700">
                                                         {formatDisplayDate(
@@ -473,7 +485,7 @@ export default function PromotionsIndex({ products }: any) {
                                                 </div>
                                                 <div className="flex justify-between text-xs">
                                                     <span className="font-semibold text-purple-900">
-                                                        Ends:
+                                                        {t('Ends:')}
                                                     </span>
                                                     <span className="text-purple-700">
                                                         {formatDisplayDate(
@@ -493,13 +505,13 @@ export default function PromotionsIndex({ products }: any) {
                                                 }
                                                 className="w-full py-2 text-center text-xs font-bold text-slate-400 transition-colors hover:text-purple-600"
                                             >
-                                                Set exact calendar dates instead
+                                                {t('Set using date')}
                                             </button>
                                         ) : (
                                             <div className="flex animate-in flex-col gap-4 duration-200 fade-in slide-in-from-top-2">
                                                 <div className="border-t border-slate-100 pt-4">
                                                     <label className="mb-1.5 block text-xs font-bold text-slate-500">
-                                                        Starts At
+                                                        {t('Starts At')}
                                                     </label>
                                                     <div className="relative">
                                                         <input
@@ -530,7 +542,7 @@ export default function PromotionsIndex({ products }: any) {
                                                 </div>
                                                 <div>
                                                     <label className="mb-1.5 block text-xs font-bold text-slate-500">
-                                                        Ends At
+                                                        {t('Ends At')}
                                                     </label>
                                                     <div className="relative">
                                                         <input
@@ -566,7 +578,7 @@ export default function PromotionsIndex({ products }: any) {
                                                     }
                                                     className="mt-2 text-xs font-bold text-slate-400 transition-colors hover:text-slate-600"
                                                 >
-                                                    Hide exact dates
+                                                    {t('Hide date settings')}
                                                 </button>
                                             </div>
                                         )}
@@ -583,8 +595,9 @@ export default function PromotionsIndex({ products }: any) {
                                         }
                                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-700 hover:shadow-lg hover:shadow-purple-500/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                                     >
-                                        Launch on {data.product_ids.length}{' '}
-                                        Item(s)
+                                        {t('Apply to')}{' '}
+                                        {data.product_ids.length}{' '}
+                                        {t('Product(s)')}
                                     </button>
                                 </div>
                             </form>
@@ -598,7 +611,7 @@ export default function PromotionsIndex({ products }: any) {
                             <div className="flex shrink-0 flex-col gap-4 border-b border-slate-100 bg-slate-50 px-6 py-5 sm:px-8 sm:py-6">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-black text-slate-900">
-                                        Select Products
+                                        {t('Select Products')}
                                     </h2>
                                     <button
                                         type="button"
@@ -606,8 +619,8 @@ export default function PromotionsIndex({ products }: any) {
                                         className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
                                     >
                                         {isAllFilteredSelected
-                                            ? 'Deselect All'
-                                            : 'Select All'}
+                                            ? t('Deselect All')
+                                            : t('Select All')}
                                     </button>
                                 </div>
 
@@ -620,7 +633,9 @@ export default function PromotionsIndex({ products }: any) {
                                         />
                                         <input
                                             type="text"
-                                            placeholder="Search products by title..."
+                                            placeholder={t(
+                                                'Search products by title...',
+                                            )}
                                             value={searchQuery}
                                             onChange={(e) =>
                                                 setSearchQuery(e.target.value)
@@ -644,13 +659,13 @@ export default function PromotionsIndex({ products }: any) {
                                             className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pr-8 pl-9 text-sm font-medium text-slate-700 transition-all outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                         >
                                             <option value="all">
-                                                All Products
+                                                {t('All Products')}
                                             </option>
                                             <option value="active">
-                                                Active Promo
+                                                {t('Active Promo')}
                                             </option>
                                             <option value="inactive">
-                                                No Promo
+                                                {t('No Promo')}
                                             </option>
                                         </select>
                                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
@@ -667,7 +682,7 @@ export default function PromotionsIndex({ products }: any) {
                                             className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-100"
                                         >
                                             <XCircle size={16} />
-                                            Remove Discounts (
+                                            {t('Remove Discounts')} (
                                             {selectedProductsWithPromos.length})
                                         </button>
                                     )}
@@ -682,11 +697,12 @@ export default function PromotionsIndex({ products }: any) {
                                             <Search className="h-8 w-8 text-slate-300" />
                                         </div>
                                         <h3 className="text-sm font-bold text-slate-900">
-                                            No matching products
+                                            {t('No matching products')}
                                         </h3>
                                         <p className="mt-1 text-xs text-slate-500">
-                                            Try adjusting your search or
-                                            filters.
+                                            {t(
+                                                'Try adjusting your search or filters.',
+                                            )}
                                         </p>
                                     </div>
                                 ) : (
@@ -739,7 +755,9 @@ export default function PromotionsIndex({ products }: any) {
                                                                                 }
                                                                                 className="shrink-0"
                                                                             />{' '}
-                                                                            Suspended
+                                                                            {t(
+                                                                                'Suspended',
+                                                                            )}
                                                                         </span>
                                                                     )}
 
@@ -753,7 +771,9 @@ export default function PromotionsIndex({ products }: any) {
                                                                                     }
                                                                                     className="shrink-0"
                                                                                 />{' '}
-                                                                                Hidden
+                                                                                {t(
+                                                                                    'Hidden',
+                                                                                )}
                                                                             </span>
                                                                         )}
                                                                 </div>
@@ -787,7 +807,9 @@ export default function PromotionsIndex({ products }: any) {
                                                                         }
                                                                         className="fill-current"
                                                                     />
-                                                                    Promo Price:
+                                                                    {t(
+                                                                        'Promo Price:',
+                                                                    )}{' '}
                                                                     Rp{' '}
                                                                     {Math.round(
                                                                         Number(
@@ -799,8 +821,9 @@ export default function PromotionsIndex({ products }: any) {
                                                                 </div>
                                                             ) : (
                                                                 <span className="text-xs font-medium text-slate-400">
-                                                                    No active
-                                                                    promo
+                                                                    {t(
+                                                                        'No active promo',
+                                                                    )}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -821,9 +844,14 @@ export default function PromotionsIndex({ products }: any) {
                 isOpen={isClearModalOpen}
                 onClose={() => setIsClearModalOpen(false)}
                 onConfirm={confirmClearPromotion}
-                title="Remove Discounts"
-                message={`Are you sure you want to completely remove the active discounts from the ${selectedProductsWithPromos.length} valid selected product(s)?`}
-                confirmText="Yes, clear discounts"
+                title={t('Remove Discounts')}
+                message={t(
+                    'Are you sure you want to completely remove the active discounts from the :count valid selected product(s)?',
+                ).replace(
+                    ':count',
+                    selectedProductsWithPromos.length.toString(),
+                )}
+                confirmText={t('Yes, clear discounts')}
                 variant="danger"
             />
 

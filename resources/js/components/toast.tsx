@@ -1,4 +1,3 @@
-import { Link } from '@inertiajs/react';
 import { CheckCircle, Trash2, X, AlertTriangle } from 'lucide-react';
 
 interface ToastProps {
@@ -14,7 +13,6 @@ export default function Toast({
     message,
     onClose,
     type = 'success',
-    showCartLink = false,
 }: ToastProps) {
     // 1. Dictionary for the outer border and shadow glows
     const wrapperStyles = {
@@ -61,14 +59,6 @@ export default function Toast({
                     <p className="text-sm font-bold text-slate-900">
                         {message}
                     </p>
-                    {showCartLink && type === 'success' && (
-                        <Link
-                            href="/cart"
-                            className="text-xs font-semibold text-emerald-600 transition-colors hover:text-emerald-700 hover:underline"
-                        >
-                            View cart & checkout &rarr;
-                        </Link>
-                    )}
                 </div>
 
                 <button

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\EnsurePendingOtpSession;
+use Illuminate\Support\Facades\Session;
 
 // --- User Controllers ---
 use App\Http\Controllers\ProductController;
@@ -27,6 +28,12 @@ use App\Http\Controllers\Admin\OrderManagementController as AdminOrderController
 // ==========================================
 Route::post('/check-username', [ProfileController::class, 'checkUsername']);
 Route::post('/midtrans/callback', [TransactionController::class, 'callback'])->name('midtrans.callback');
+Route::post('/language/{locale}', function ($locale) {
+    if (in_array($locale, ['en', 'id'])) {
+        Session::put('locale', $locale);
+    }
+    return redirect()->back();
+})->name('language.switch');
 
 // ==========================================
 // 1. PUBLIC ROUTES (Guests & Users)

@@ -50,11 +50,11 @@ class SettingsController extends Controller
 
         // Check if Laravel successfully fired the email
         if ($status === \Illuminate\Support\Facades\Password::RESET_LINK_SENT) {
-            return back()->with('success', 'A secure password reset link has been sent to your email!');
+            return back()->with('success', __('A secure password reset link has been sent to your email!'));
         }
 
         // Fallback error if something goes wrong (e.g., mail server issues)
-        return back()->with('error', 'Unable to send reset link. Please try again later.');
+        return back()->with('error', __('Unable to send reset link. Please try again later.'));
     }
 
     /**
@@ -77,7 +77,7 @@ class SettingsController extends Controller
             // Redirect back with a beautiful error message!
             return redirect()->route('settings.index')->with(
                 'error',
-                "Too many attempts. Please try again in {$minutes} minutes."
+                __('Too many attempts. Please try again in :minutes minutes.', ['minutes' => $minutes])
             );
         }
 
@@ -94,7 +94,7 @@ class SettingsController extends Controller
         ]);
 
         if ($request->email === $user->email) {
-            return redirect()->route('settings.index')->with('success', 'Email settings updated.');
+            return redirect()->route('settings.index')->with('success', __('Email settings updated.'));
         }
 
         // --- 3. RECORD THE ATTEMPT ---
@@ -114,7 +114,7 @@ class SettingsController extends Controller
 
         return redirect()->route('settings.index')->with([
             'require_otp' => true,
-            'success' => 'OTP sent to your new email!'
+            'success' => __('OTP sent to your new email!')
         ]);
     }
 
@@ -134,7 +134,7 @@ class SettingsController extends Controller
 
         // 2. Check if the OTP matches and hasn't expired
         if (!$pendingData || (string) $request->otp !== (string) $pendingData['otp']) {
-            return redirect()->route('settings.index')->withErrors(['otp' => 'Invalid or expired verification code.']);
+            return redirect()->route('settings.index')->withErrors(['otp' => __('Invalid or expired verification code.')]);
         }
 
         // 3. Success! NOW we update the database because they proved ownership.
@@ -145,7 +145,7 @@ class SettingsController extends Controller
         // 4. Clear the Cache so it can't be reused
         Cache::forget('pending_email_' . $user->id);
 
-        return redirect()->route('settings.index')->with('success', 'Email successfully verified and updated!');
+        return redirect()->route('settings.index')->with('success', __('Email successfully verified and updated!'));
     }
 
     /**
@@ -159,7 +159,7 @@ class SettingsController extends Controller
         // Manual Rate Limiting (Protects from spam)
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
             $minutes = ceil(RateLimiter::availableIn($rateLimitKey) / 60);
-            return back()->with('error', "Too many attempts. Please try again in {$minutes} minutes.");
+            return back()->with('error', __('Too many attempts. Please try again in :minutes minutes.', ['minutes' => $minutes]));
         }
 
         RateLimiter::hit($rateLimitKey, 600);
@@ -173,7 +173,7 @@ class SettingsController extends Controller
 
         return back()->with([
             'require_delete_otp' => true,
-            'success' => 'Security code sent to your email.'
+            'success' => __('Security code sent to your email.')
         ]);
     }
 
@@ -190,7 +190,7 @@ class SettingsController extends Controller
         $expectedOtp = Cache::get('deletion_otp_' . $user->id);
 
         if (!$expectedOtp || (string) $request->otp !== (string) $expectedOtp) {
-            return back()->withErrors(['otp' => 'Invalid or expired verification code.']);
+            return back()->withErrors(['otp' => __('Invalid or expired verification code.')]);
         }
 
         // 1. OTP is correct! Clear cache
@@ -248,6 +248,6 @@ class SettingsController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/')->with('success', 'Your account has been successfully deleted. We are sorry to see you go!');
+        return redirect('/')->with('success', __('Your account has been successfully deleted. We are sorry to see you go!'));
     }
 }

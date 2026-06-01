@@ -51,19 +51,18 @@ class PromotionController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Flash sale successfully applied to selected products!');
+        return redirect()->back()->with('success', __('Flash sale successfully applied to selected products!'));
     }
 
     public function clear(Request $request)
     {
-        // 1. Validate that the seller actually selected products
         $request->validate([
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'exists:products,id',
         ]);
 
-        // 2. Mass-update the selected products to wipe the discount data
-        Product::whereIn('id', $request->product_ids)
+        // Hitung berapa banyak produk yang sebenarnya dimiliki seller ini dari array yang dikirim
+        $clearedCount = Product::whereIn('id', $request->product_ids)
             ->where('seller_id', $request->user()->id)
             ->update([
                 'discount_price' => null,
@@ -71,6 +70,10 @@ class PromotionController extends Controller
                 'discount_ends_at' => null,
             ]);
 
-        return redirect()->back()->with('success', 'Discount successfully removed from selected products!');
+        // --- DIBUNGKUS DENGAN __() MENGGUNAKAN PLACEHOLDER ---
+        return redirect()->back()->with(
+            'success',
+            __('Discounts cleared from :count product(s).', ['count' => $clearedCount])
+        );
     }
 }

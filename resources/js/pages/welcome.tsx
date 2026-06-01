@@ -1,28 +1,29 @@
 import { Head, Link, router, usePage, useRemember } from '@inertiajs/react';
 import axios from 'axios';
 import { Search, ChevronDown, Sparkles, PlayCircle } from 'lucide-react';
-// --- ADDED useMemo TO THE IMPORT ---
 import { useState, useEffect, useRef, useMemo } from 'react';
 import BackToTop from '@/components/back-to-top';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- Isolated Product Card Component ---
 function ProductCard({ product, auth }: { product: any; auth: any }) {
+    // Inject translator here
+    const { t } = useTranslation();
+
     const hasMedia = product.media && product.media.length > 0;
 
-    // Track main media status
     const [mediaStatus, setMediaStatus] = useState<
         'loading' | 'loaded' | 'error'
     >(hasMedia ? 'loading' : 'loaded');
 
-    // Track avatar loading status
     const [avatarStatus, setAvatarStatus] = useState<
         'loading' | 'loaded' | 'error'
     >('loading');
 
-    // Reference to control the video playback
     const videoRef = useRef<HTMLVideoElement>(null);
 
     return (
@@ -30,26 +31,22 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
             href={`/products/${product.slug}`}
             className="group relative flex h-full flex-col overflow-hidden rounded-3xl bg-white text-left ring-1 ring-slate-200 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10 hover:ring-purple-200"
         >
-            {/* --- SMART MEDIA AREA --- */}
             <div className="relative flex aspect-4/3 w-full items-center justify-center overflow-hidden bg-linear-to-br from-slate-50 to-indigo-50/50 p-6">
-                {/* 1. LOADING STATE */}
                 {mediaStatus === 'loading' && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50/50 backdrop-blur-sm">
                         <Spinner className="h-8 w-8 animate-spin text-purple-400" />
                     </div>
                 )}
 
-                {/* 2. ERROR STATE */}
                 {mediaStatus === 'error' && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-purple-300">
                         <Sparkles className="mb-2 h-8 w-8 opacity-50" />
                         <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase opacity-70">
-                            media failed to load
+                            {t('media failed to load')}
                         </span>
                     </div>
                 )}
 
-                {/* 3. ACTUAL MEDIA */}
                 {hasMedia ? (
                     product.media[0].file_type === 'video' ? (
                         <div
@@ -99,13 +96,11 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
                     </div>
                 )}
 
-                {/* Category Badge */}
                 <div className="absolute top-4 left-4 z-20 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold tracking-wider text-purple-600 uppercase shadow-sm ring-1 ring-black/5 backdrop-blur-md">
-                    {product.category?.name || 'Asset'}
+                    {product.category?.name || t('Asset')}
                 </div>
             </div>
 
-            {/* --- CONTENT AREA --- */}
             <div className="flex grow flex-col bg-white p-6 sm:p-7">
                 <h3 className="mb-3 line-clamp-1 text-xl font-bold tracking-tight text-slate-900 transition-colors group-hover:text-purple-600">
                     {product.title}
@@ -113,14 +108,14 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
 
                 <p className="mb-8 line-clamp-2 grow text-sm leading-relaxed text-slate-500">
                     {product.description ||
-                        'Comprehensive digital asset package with full source code and documentation included.'}
+                        t(
+                            'Comprehensive digital asset package with full source code and documentation included.',
+                        )}
                 </p>
 
-                {/* Footer */}
                 <div className="mt-auto flex items-end justify-between gap-4 border-t border-slate-100 pt-5">
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-purple-50 text-xs font-bold text-purple-600 ring-1 ring-purple-100">
-                            {/* --- SMART AVATAR RENDER --- */}
                             {product.seller?.avatar_path &&
                             avatarStatus !== 'error' ? (
                                 <img
@@ -145,16 +140,17 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
 
                         <div className="flex min-w-0 flex-col items-start">
                             <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                                Creator
+                                {t('Creator')}
                             </span>
                             <div className="flex w-full items-center gap-1.5">
                                 <span className="truncate text-sm font-semibold text-slate-900">
-                                    {product.seller?.name || 'Verified Seller'}
+                                    {product.seller?.name ||
+                                        t('Verified Seller')}
                                 </span>
 
                                 {auth?.user?.id === product.seller?.id && (
                                     <span className="shrink-0 rounded-md bg-purple-100 px-1.5 py-0.5 text-[9px] font-black tracking-wider text-purple-700 uppercase ring-1 ring-purple-500/20 ring-inset">
-                                        You
+                                        {t('You')}
                                     </span>
                                 )}
                             </div>
@@ -171,7 +167,7 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
                             <>
                                 <div className="flex items-center gap-2">
                                     <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black text-rose-600 uppercase">
-                                        Sale
+                                        {t('Sale')}
                                     </span>
                                     <span className="text-xl font-black tracking-tight text-rose-600">
                                         Rp{' '}
@@ -205,6 +201,9 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
 }
 
 export default function Index({ products, categories, filters }: any) {
+    // Inject translator here
+    const { t } = useTranslation();
+
     const { version } = usePage() as any;
     const { flash, auth } = usePage().props as any;
 
@@ -230,7 +229,6 @@ export default function Index({ products, categories, filters }: any) {
         return null;
     };
 
-    // --- FIXED: Wrapped in useMemo to prevent referential equality issues across renders ---
     const safeFilters = useMemo(() => {
         return Array.isArray(filters) ? {} : filters || {};
     }, [filters]);
@@ -346,24 +344,24 @@ export default function Index({ products, categories, filters }: any) {
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
-            <Head title="Discover - Soko" />
+            <Head title={t('Discover - Soko')} />
 
             <Navbar />
 
             <main className="relative overflow-hidden pt-32 pb-24">
                 <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mb-12 text-center sm:mb-16">
-                        <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-                            Everything you need to{' '}
-                            <br className="hidden sm:block" />
-                            <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                build and learn.
+                    <div className="mx-auto mb-12 max-w-3xl text-center">
+                        <h1 className="mb-6 text-4xl leading-tight font-black tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
+                            {t('Everything you need to')}{' '}
+                            <span className="bg-linear-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+                                {t('create and grow.')}
                             </span>
                         </h1>
-                        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-500 sm:text-xl">
-                            Discover a curated library of premium design assets,
-                            expert ebooks, and digital tools delivered instantly
-                            to your workspace.
+
+                        <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-500 sm:text-lg">
+                            {t(
+                                'Discover premium design assets, expert e-books, and digital tools to fuel your next project.',
+                            )}
                         </p>
                     </div>
 
@@ -371,9 +369,9 @@ export default function Index({ products, categories, filters }: any) {
                         auth?.user?.role !== 'admin' && (
                             <div
                                 className={`mx-auto mt-6 mb-8 flex justify-center ${
-                                    auth?.user
-                                        ? 'min-[1000px]:hidden'
-                                        : 'md:hidden'
+                                    !auth?.user
+                                        ? 'min-[900px]:hidden'
+                                        : 'min-[1000px]:hidden'
                                 }`}
                             >
                                 <Link
@@ -384,9 +382,9 @@ export default function Index({ products, categories, filters }: any) {
                                         size={16}
                                         className="mr-2 text-purple-500"
                                     />
-                                    Are you a creator?{' '}
+                                    {t('Sell your digital products.')}{' '}
                                     <span className="ml-1.5 font-bold underline decoration-purple-300 underline-offset-4 transition-colors group-hover:decoration-purple-600">
-                                        Start selling today &rarr;
+                                        {t('Start here')} &rarr;
                                     </span>
                                 </Link>
                             </div>
@@ -407,7 +405,9 @@ export default function Index({ products, categories, filters }: any) {
                                 <input
                                     ref={searchInputRef}
                                     type="text"
-                                    placeholder="Search by title or creator..."
+                                    placeholder={t(
+                                        'Search by title or creator...',
+                                    )}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="h-12 w-full rounded-xl border-none bg-transparent pr-4 pl-12 text-base text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:ring-0 focus:outline-none"
@@ -438,16 +438,16 @@ export default function Index({ products, categories, filters }: any) {
                                     className="h-12 w-full cursor-pointer appearance-none rounded-xl border-none bg-transparent px-5 pr-10 text-sm font-medium text-slate-600 focus:border-transparent focus:ring-0 focus:outline-none"
                                 >
                                     <option value="newest">
-                                        Newest Arrivals
+                                        {t('Newest Arrivals')}
                                     </option>
                                     <option value="price_asc">
-                                        Lowest Price
+                                        {t('Lowest Price')}
                                     </option>
                                     <option value="price_desc">
-                                        Highest Price
+                                        {t('Highest Price')}
                                     </option>
                                     <option value="rating_desc">
-                                        Top Rated
+                                        {t('Top Rated')}
                                     </option>
                                 </select>
                                 <ChevronDown className="pointer-events-none absolute top-1/2 right-5 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -457,7 +457,7 @@ export default function Index({ products, categories, filters }: any) {
                                 type="submit"
                                 className="flex h-12 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-slate-900 px-8 text-sm font-bold text-white transition-all hover:bg-purple-600 sm:w-auto"
                             >
-                                Search
+                                {t('Search')}
                             </button>
                         </form>
 
@@ -470,7 +470,7 @@ export default function Index({ products, categories, filters }: any) {
                                     }
                                     className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-5 pr-10 text-sm font-semibold text-slate-700 shadow-sm focus:border-purple-400 focus:ring-0 focus:outline-none"
                                 >
-                                    <option value="">All</option>
+                                    <option value="">{t('All')}</option>
                                     {categories &&
                                         categories.map((cat: any) => (
                                             <option
@@ -498,7 +498,7 @@ export default function Index({ products, categories, filters }: any) {
                                                     : 'font-medium text-slate-700 hover:text-slate-900'
                                             }`}
                                         >
-                                            All
+                                            {t('All')}
                                         </button>
 
                                         {categories &&
@@ -532,10 +532,12 @@ export default function Index({ products, categories, filters }: any) {
                         <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white/50 py-24 text-center">
                             <Sparkles className="mb-4 h-12 w-12 text-slate-300" />
                             <h3 className="text-lg font-bold text-slate-900">
-                                No products found
+                                {t('No products found')}
                             </h3>
                             <p className="mt-1 text-slate-500">
-                                Try adjusting your filters or search term.
+                                {t(
+                                    'Try adjusting your filters or search term.',
+                                )}
                             </p>
                         </div>
                     ) : (
@@ -580,10 +582,10 @@ export default function Index({ products, categories, filters }: any) {
                                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                             ></path>
                                         </svg>
-                                        Loading...
+                                        {t('Loading...')}
                                     </>
                                 ) : (
-                                    'Load More Products'
+                                    t('Load More Products')
                                 )}
                             </button>
                         </div>

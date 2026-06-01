@@ -1,4 +1,4 @@
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 import {
     Lock,
     Trash2,
@@ -8,7 +8,6 @@ import {
     Mail,
     CheckCircle2,
 } from 'lucide-react';
-// --- ADDED: useCallback to the imports ---
 import { useState, useRef, useEffect, useCallback } from 'react';
 import InputError from '@/components/input-error';
 import Navbar from '@/components/navbar';
@@ -18,9 +17,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Settings({ auth }: any) {
     const user = auth.user;
+
+    // Inject translator here
+    const { t } = useTranslation();
+
+    // --- ADDED: Ambil flash dari Inertia ---
+    const { flash } = usePage().props as any;
+
+    // --- ADDED: Listener otomatis untuk Toast ---
+    useEffect(() => {
+        if (flash?.success) toast(flash.success, 'success');
+
+        if (flash?.error) toast(flash.error, 'error');
+    }, [flash]);
 
     // ==========================================
     // --- EMAIL UPDATE LOGIC ---
@@ -52,12 +66,10 @@ export default function Settings({ auth }: any) {
             onSuccess: (page: any) => {
                 if (page.props.flash?.require_otp) {
                     setShowOtpModal(true);
-                } else {
-                    toast('Email updated successfully!', 'success');
                 }
             },
             onError: () =>
-                toast('Failed to update email. Check for errors.', 'error'),
+                toast(t('Failed to update email. Check for errors.'), 'error'),
         });
     };
 
@@ -94,17 +106,14 @@ export default function Settings({ auth }: any) {
             const newOtp = [...otpValues];
 
             if (otpValues[index] !== '') {
-                // 1. Jika ADA isinya: Hapus angkanya...
                 newOtp[index] = '';
                 setOtpValues(newOtp);
                 setOtpData('otp', newOtp.join(''));
 
-                // ...DAN langsung pindah ke kotak sebelumnya
                 if (index > 0) {
                     inputRefs.current[index - 1]?.focus();
                 }
             } else if (index > 0) {
-                // 2. Jika KOSONG: Hanya pindah mundur (tidak menghapus)
                 inputRefs.current[index - 1]?.focus();
             }
         } else if (e.key === 'ArrowLeft' && index > 0) {
@@ -136,7 +145,6 @@ export default function Settings({ auth }: any) {
         }
     };
 
-    // --- FIXED: Wrapped in useCallback ---
     const submitOtp = useCallback(
         (e?: React.FormEvent | Event) => {
             if (e) e.preventDefault();
@@ -147,14 +155,12 @@ export default function Settings({ auth }: any) {
                     setShowOtpModal(false);
                     resetOtp();
                     setOtpValues(['', '', '', '', '', '']);
-                    toast('Email verified successfully!', 'success');
                 },
             });
         },
         [verifyOtp, resetOtp],
     );
 
-    // --- FIXED: Wrapped in useCallback ---
     const closeOtpModal = useCallback(() => {
         setShowOtpModal(false);
         resetOtp();
@@ -184,10 +190,12 @@ export default function Settings({ auth }: any) {
             preserveScroll: true,
             onSuccess: () => {
                 resetPwd();
-                toast('Password securely updated!', 'success');
             },
             onError: () =>
-                toast('Failed to update password. Check for errors.', 'error'),
+                toast(
+                    t('Failed to update password. Check for errors.'),
+                    'error',
+                ),
         });
     };
 
@@ -197,9 +205,8 @@ export default function Settings({ auth }: any) {
             {},
             {
                 preserveScroll: true,
-                onSuccess: () =>
-                    toast('Reset link sent to your email!', 'success'),
-                onError: () => toast('Failed to send reset link.', 'error'),
+                onSuccess: () => {},
+                onError: () => toast(t('Failed to send reset link.'), 'error'),
             },
         );
     };
@@ -249,7 +256,7 @@ export default function Settings({ auth }: any) {
                 },
                 onError: () => {
                     setIsRequestingDeletion(false);
-                    toast('Failed to request deletion code.', 'error');
+                    toast(t('Failed to request deletion code.'), 'error');
                 },
             },
         );
@@ -277,17 +284,14 @@ export default function Settings({ auth }: any) {
             const newOtp = [...deleteOtpValues];
 
             if (deleteOtpValues[index] !== '') {
-                // 1. Jika ADA isinya: Hapus angkanya...
                 newOtp[index] = '';
                 setDeleteOtpValues(newOtp);
                 setDeleteData('otp', newOtp.join(''));
 
-                // ...DAN langsung pindah ke kotak sebelumnya
                 if (index > 0) {
                     deleteInputRefs.current[index - 1]?.focus();
                 }
             } else if (index > 0) {
-                // 2. Jika KOSONG: Hanya pindah mundur (tidak menghapus)
                 deleteInputRefs.current[index - 1]?.focus();
             }
         } else if (e.key === 'ArrowLeft' && index > 0) {
@@ -319,7 +323,6 @@ export default function Settings({ auth }: any) {
         }
     };
 
-    // --- FIXED: Wrapped in useCallback ---
     const confirmAccountDeletion = useCallback(
         (e?: React.FormEvent | Event) => {
             if (e) e.preventDefault();
@@ -330,14 +333,13 @@ export default function Settings({ auth }: any) {
                     setDeleteOtpValues(['', '', '', '', '', '']);
                     setDeleteData('otp', '');
                     deleteInputRefs.current[0]?.focus();
-                    toast('Invalid or expired code.', 'error');
+                    toast(t('Invalid or expired code.'), 'error');
                 },
             });
         },
-        [destroyUser, setDeleteData],
+        [destroyUser, setDeleteData, t],
     );
 
-    // --- FIXED: Wrapped in useCallback ---
     const closeDeleteModal = useCallback(() => {
         setShowDeleteOtpModal(false);
         resetDelete();
@@ -394,7 +396,6 @@ export default function Settings({ auth }: any) {
         deleteData.otp,
         otpProcessing,
         deleteProcessing,
-        // --- ADDED: The required functions to the array ---
         closeOtpModal,
         submitOtp,
         closeDeleteModal,
@@ -406,16 +407,18 @@ export default function Settings({ auth }: any) {
     // ==========================================
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="Account Settings - Soko" />
+            <Head title={t('Account Settings - Soko')} />
             <Navbar />
 
             <main className="relative z-10 mx-auto max-w-4xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
                 <div className="mb-10">
                     <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                        Account Settings
+                        {t('Account Settings')}
                     </h1>
                     <p className="mt-2 text-lg text-slate-500">
-                        Manage your security, preferences, and private data.
+                        {t(
+                            'Manage your security, preferences, and private data.',
+                        )}
                     </p>
                 </div>
 
@@ -425,11 +428,12 @@ export default function Settings({ auth }: any) {
                         <div className="border-b border-slate-100 bg-slate-50/80 px-6 py-5 sm:px-10">
                             <h2 className="flex items-center gap-3 text-lg font-black text-slate-900">
                                 <Mail className="text-purple-500" size={24} />{' '}
-                                Email Address
+                                {t('Email Address')}
                             </h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Update the email address associated with your
-                                account.
+                                {t(
+                                    'Update the email address associated with your account.',
+                                )}
                             </p>
                         </div>
                         <form
@@ -441,7 +445,7 @@ export default function Settings({ auth }: any) {
                                     htmlFor="email"
                                     className="font-bold text-slate-700"
                                 >
-                                    Current Email
+                                    {t('Current Email')}
                                 </Label>
                                 <Input
                                     id="email"
@@ -470,12 +474,13 @@ export default function Settings({ auth }: any) {
                                     {profileProcessing ? (
                                         <Spinner className="mr-2 h-5 w-5" />
                                     ) : null}
-                                    Save & Verify Email
+                                    {t('Save & Verify Email')}
                                 </Button>
 
                                 {!needsVerification && (
                                     <span className="flex items-center gap-1 text-sm font-bold text-emerald-600">
-                                        <CheckCircle2 size={16} /> Verified
+                                        <CheckCircle2 size={16} />{' '}
+                                        {t('Verified')}
                                     </span>
                                 )}
                             </div>
@@ -487,11 +492,12 @@ export default function Settings({ auth }: any) {
                         <div className="border-b border-slate-100 bg-slate-50/80 px-6 py-5 sm:px-10">
                             <h2 className="flex items-center gap-3 text-lg font-black text-slate-900">
                                 <Shield className="text-purple-500" size={24} />{' '}
-                                Security
+                                {t('Security')}
                             </h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Ensure your account is using a long, random
-                                password to stay secure.
+                                {t(
+                                    'Ensure your account is using a long, random password to stay secure.',
+                                )}
                             </p>
                         </div>
                         <form
@@ -500,7 +506,7 @@ export default function Settings({ auth }: any) {
                         >
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
-                                    Current Password
+                                    {t('Current Password')}
                                 </label>
                                 <div className="w-full max-w-md">
                                     <PasswordInput
@@ -511,7 +517,9 @@ export default function Settings({ auth }: any) {
                                                 e.target.value,
                                             )
                                         }
-                                        placeholder="Enter current password"
+                                        placeholder={t(
+                                            'Enter current password',
+                                        )}
                                         className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-colors focus:border-purple-500 focus:bg-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                     />
 
@@ -529,7 +537,7 @@ export default function Settings({ auth }: any) {
                                             onClick={sendResetEmail}
                                             className="cursor-pointer text-xs font-bold text-purple-600 transition-colors hover:text-purple-700 hover:underline"
                                         >
-                                            Forgot current password?
+                                            {t('Forgot current password?')}
                                         </button>
                                     </div>
                                 </div>
@@ -537,7 +545,7 @@ export default function Settings({ auth }: any) {
 
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
-                                    New Password
+                                    {t('New Password')}
                                 </label>
                                 <div className="w-full max-w-md">
                                     <PasswordInput
@@ -548,7 +556,7 @@ export default function Settings({ auth }: any) {
                                                 e.target.value,
                                             )
                                         }
-                                        placeholder="Create new password"
+                                        placeholder={t('Create new password')}
                                         className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-colors focus:border-purple-500 focus:bg-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                     />
                                     {pwdErrors.password && (
@@ -562,7 +570,7 @@ export default function Settings({ auth }: any) {
 
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
-                                    Confirm New Password
+                                    {t('Confirm New Password')}
                                 </label>
                                 <div className="w-full max-w-md">
                                     <PasswordInput
@@ -573,7 +581,7 @@ export default function Settings({ auth }: any) {
                                                 e.target.value,
                                             )
                                         }
-                                        placeholder="Confirm new password"
+                                        placeholder={t('Confirm new password')}
                                         className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-colors focus:border-purple-500 focus:bg-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                     />
                                 </div>
@@ -584,7 +592,7 @@ export default function Settings({ auth }: any) {
                                     disabled={pwdProcessing}
                                     className="flex cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50 disabled:hover:translate-y-0"
                                 >
-                                    <Lock size={16} /> Update Password
+                                    <Lock size={16} /> {t('Update Password')}
                                 </button>
                             </div>
                         </form>
@@ -599,18 +607,18 @@ export default function Settings({ auth }: any) {
                                         className="text-rose-500"
                                         size={24}
                                     />{' '}
-                                    Account Deletion
+                                    {t('Account Deletion')}
                                 </h2>
                             </div>
                             <div className="flex flex-col items-start justify-between gap-6 p-6 sm:flex-row sm:items-center sm:p-10">
                                 <div>
                                     <h3 className="font-bold text-slate-900">
-                                        Delete Account
+                                        {t('Delete Account')}
                                     </h3>
                                     <p className="mt-1 max-w-lg text-sm text-slate-500">
-                                        Once your account is deleted, all of its
-                                        resources and data will be permanently
-                                        deleted. This action cannot be undone.
+                                        {t(
+                                            'Once your account is deleted, all of its resources and data will be permanently deleted. This action cannot be undone.',
+                                        )}
                                     </p>
                                 </div>
 
@@ -625,7 +633,7 @@ export default function Settings({ auth }: any) {
                                     ) : (
                                         <Trash2 size={18} className="mr-2" />
                                     )}
-                                    Request Deletion
+                                    {t('Request Deletion')}
                                 </Button>
                             </div>
                         </div>
@@ -647,17 +655,19 @@ export default function Settings({ auth }: any) {
                                 <Mail size={32} />
                             </div>
                             <h2 className="text-2xl font-black text-slate-900">
-                                Check your inbox
+                                {t('Check your inbox')}
                             </h2>
                             <p className="mt-2 text-sm text-slate-500">
-                                We sent a 6-digit verification code to <br />
+                                {t('We sent a 6-digit verification code to')}{' '}
+                                <br />
                                 <span className="font-bold text-slate-700">
                                     {profileData.email}
                                 </span>
                             </p>
                             <p className="mt-2 text-xs font-medium text-slate-400">
-                                Can't find it? Make sure to check your spam or
-                                junk folder.
+                                {t(
+                                    "Can't find it? Make sure to check your spam or junk folder.",
+                                )}
                             </p>
                         </div>
 
@@ -685,9 +695,7 @@ export default function Settings({ auth }: any) {
                                                 handleOtpKeyDown(index, e)
                                             }
                                             onPaste={handleOtpPaste}
-                                            // KEMBALIKAN KE SELECT
                                             onFocus={(e) => e.target.select()}
-                                            // KEMBALIKAN KE CARET-TRANSPARENT
                                             className="h-14 w-12 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-2xl font-bold text-slate-900 caret-transparent shadow-sm transition-all selection:bg-purple-200 selection:text-purple-900 focus:border-purple-400 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                             autoFocus={index === 0}
                                         />
@@ -711,7 +719,7 @@ export default function Settings({ auth }: any) {
                                 {otpProcessing ? (
                                     <Spinner className="mr-2 h-5 w-5" />
                                 ) : null}
-                                Verify Account
+                                {t('Verify Account')}
                             </Button>
 
                             <div className="mt-6 text-center">
@@ -720,7 +728,7 @@ export default function Settings({ auth }: any) {
                                     onClick={closeOtpModal}
                                     className="cursor-pointer text-xs font-bold text-slate-400 transition-colors hover:text-slate-600 hover:underline"
                                 >
-                                    I'll verify later
+                                    {t("I'll verify later")}
                                 </button>
                             </div>
                         </form>
@@ -751,17 +759,18 @@ export default function Settings({ auth }: any) {
                                 <AlertTriangle size={32} />
                             </div>
                             <h2 className="text-2xl font-black text-slate-900">
-                                Verify Deletion
+                                {t('Verify Deletion')}
                             </h2>
                             <p className="mt-2 text-sm text-slate-500">
-                                We sent a secure deletion code to <br />
+                                {t('We sent a secure deletion code to')} <br />
                                 <span className="font-bold text-slate-700">
                                     {user.email}
                                 </span>
                             </p>
                             <p className="mt-2 text-xs font-medium text-slate-400">
-                                Can't find it? Make sure to check your spam or
-                                junk folder.
+                                {t(
+                                    "Can't find it? Make sure to check your spam or junk folder.",
+                                )}
                             </p>
                         </div>
 
@@ -790,9 +799,7 @@ export default function Settings({ auth }: any) {
                                                 handleDeleteOtpKeyDown(index, e)
                                             }
                                             onPaste={handleDeleteOtpPaste}
-                                            // KEMBALIKAN KE SELECT
                                             onFocus={(e) => e.target.select()}
-                                            // KEMBALIKAN KE CARET-TRANSPARENT
                                             className="h-14 w-12 rounded-xl border border-rose-200 bg-rose-50/50 text-center text-2xl font-bold text-rose-900 caret-transparent shadow-sm transition-all selection:bg-rose-200 selection:text-rose-900 focus:border-rose-500 focus:ring-0 focus:outline-none sm:h-16 sm:w-14"
                                             autoFocus={index === 0}
                                         />
@@ -817,7 +824,7 @@ export default function Settings({ auth }: any) {
                                 {deleteProcessing ? (
                                     <Spinner className="mr-2 h-5 w-5" />
                                 ) : null}
-                                Permanently Delete Account
+                                {t('Permanently Delete Account')}
                             </Button>
 
                             <div className="mt-6 text-center">
@@ -826,7 +833,7 @@ export default function Settings({ auth }: any) {
                                     onClick={closeDeleteModal}
                                     className="cursor-pointer text-xs font-bold text-slate-400 transition-colors hover:text-slate-600 hover:underline"
                                 >
-                                    Cancel
+                                    {t('Cancel')}
                                 </button>
                             </div>
                         </form>

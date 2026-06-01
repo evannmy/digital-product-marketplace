@@ -18,10 +18,13 @@ import {
     Landmark,
     ClipboardList,
     Wallet,
+    Globe, // <-- Globe Icon for Language Menu
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Navbar() {
+    const { t } = useTranslation();
     const { url } = usePage();
     const { auth, cartCount } = usePage().props as any;
 
@@ -29,12 +32,49 @@ export default function Navbar() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-    // --- NEW: Track avatar loading status globally for the navbar ---
+    const [isLangOpen, setIsLangOpen] = useState(false);
+    const langDropdownRef = useRef<HTMLDivElement>(null);
+
+    const [currentLang] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('language');
+
+            if (stored) return stored;
+
+            const browserLang =
+                navigator.language || (navigator as any).userLanguage || 'en';
+
+            return browserLang.toLowerCase().startsWith('id') ? 'id' : 'en';
+        }
+
+        return 'en';
+    });
+
+    useEffect(() => {
+        if (!localStorage.getItem('language')) {
+            localStorage.setItem('language', currentLang);
+        }
+    }, [currentLang]);
+
     const [avatarStatus, setAvatarStatus] = useState<
         'loading' | 'loaded' | 'error'
     >('loading');
 
     const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+    const changeLanguage = (lang: string) => {
+        localStorage.setItem('language', lang);
+        router.post(
+            `/language/${lang}`,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    window.location.reload();
+                },
+            },
+        );
+    };
 
     useEffect(() => {
         if (isMobileMenuOpen) {
@@ -50,7 +90,6 @@ export default function Navbar() {
 
     useEffect(() => {
         router.reload({ only: ['cartCount'] });
-
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
 
@@ -66,15 +105,23 @@ export default function Navbar() {
             ) {
                 setIsProfileOpen(false);
             }
-        };
 
-        const handleScrollClose = () => {
-            if (isProfileOpen) {
-                setIsProfileOpen(false);
+            if (
+                isLangOpen &&
+                langDropdownRef.current &&
+                !langDropdownRef.current.contains(event.target as Node)
+            ) {
+                setIsLangOpen(false);
             }
         };
 
-        if (isProfileOpen) {
+        const handleScrollClose = () => {
+            if (isProfileOpen) setIsProfileOpen(false);
+
+            if (isLangOpen) setIsLangOpen(false);
+        };
+
+        if (isProfileOpen || isLangOpen) {
             document.addEventListener('mousedown', handleClickOutside);
             document.addEventListener('touchstart', handleClickOutside);
             window.addEventListener('scroll', handleScrollClose, {
@@ -87,7 +134,7 @@ export default function Navbar() {
             document.removeEventListener('touchstart', handleClickOutside);
             window.removeEventListener('scroll', handleScrollClose);
         };
-    }, [isProfileOpen]);
+    }, [isProfileOpen, isLangOpen]);
 
     const isAdmin = auth?.user?.role === 'admin';
     const isDiscoverActive = url === '/' || url.startsWith('/?');
@@ -103,8 +150,8 @@ export default function Navbar() {
                 }`}
             >
                 <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-10">
-                        {/* Typographic Logo */}
+                    <div className="flex items-center gap-6 xl:gap-10">
+                        {/* 1. Typographic Logo */}
                         <Link
                             href={isAdmin ? '/admin' : '/'}
                             className="group flex items-baseline"
@@ -124,7 +171,7 @@ export default function Navbar() {
 
                         {/* --- DESKTOP NAVIGATION LOGIC --- */}
                         {isAdmin ? (
-                            <nav className="hidden items-center gap-1 rounded-full bg-rose-50/50 p-1 ring-1 ring-rose-100 md:flex">
+                            <nav className="hidden items-center gap-1 rounded-full bg-rose-50/50 p-1 ring-1 ring-rose-100 min-[1100px]:flex">
                                 <Link
                                     href="/admin"
                                     className={`rounded-full px-5 py-1.5 text-sm transition-all ${
@@ -133,7 +180,7 @@ export default function Navbar() {
                                             : 'font-medium text-slate-500 hover:bg-rose-100/50 hover:text-slate-900'
                                     }`}
                                 >
-                                    Dashboard
+                                    {t('Dashboard')}
                                 </Link>
                                 <Link
                                     href="/admin/users"
@@ -143,7 +190,7 @@ export default function Navbar() {
                                             : 'font-medium text-slate-500 hover:bg-rose-100/50 hover:text-slate-900'
                                     }`}
                                 >
-                                    Users
+                                    {t('Users')}
                                 </Link>
                                 <Link
                                     href="/admin/products"
@@ -153,7 +200,7 @@ export default function Navbar() {
                                             : 'font-medium text-slate-500 hover:bg-rose-100/50 hover:text-slate-900'
                                     }`}
                                 >
-                                    Products
+                                    {t('Products')}
                                 </Link>
                                 <Link
                                     href="/admin/orders"
@@ -163,7 +210,7 @@ export default function Navbar() {
                                             : 'font-medium text-slate-500 hover:bg-rose-100/50 hover:text-slate-900'
                                     }`}
                                 >
-                                    Orders
+                                    {t('Orders')}
                                 </Link>
                                 <Link
                                     href="/admin/finances"
@@ -173,7 +220,7 @@ export default function Navbar() {
                                             : 'font-medium text-slate-500 hover:bg-rose-100/50 hover:text-slate-900'
                                     }`}
                                 >
-                                    Finances
+                                    {t('Finances')}
                                 </Link>
                                 <Link
                                     href="/admin/settings"
@@ -183,50 +230,116 @@ export default function Navbar() {
                                             : 'font-medium text-slate-500 hover:bg-rose-100/50 hover:text-slate-900'
                                     }`}
                                 >
-                                    Settings
+                                    {t('Settings')}
                                 </Link>
                             </nav>
                         ) : (
-                            <nav className="hidden items-center gap-1 rounded-full bg-slate-200/50 p-1 md:flex">
-                                <Link
-                                    href="/"
-                                    className={`rounded-full px-5 py-1.5 text-sm transition-all ${
-                                        isDiscoverActive
-                                            ? 'bg-white font-bold text-purple-700 shadow-sm ring-1 ring-black/5'
-                                            : 'font-medium text-slate-500 hover:bg-slate-200/50 hover:text-slate-900'
-                                    }`}
-                                >
-                                    Discover
-                                </Link>
-
-                                <Link
-                                    href="/creators"
-                                    className={`rounded-full px-5 py-1.5 text-sm transition-all ${
-                                        url.startsWith('/creators')
-                                            ? 'bg-white font-bold text-purple-700 shadow-sm ring-1 ring-black/5'
-                                            : 'font-medium text-slate-500 hover:bg-slate-200/50 hover:text-slate-900'
-                                    }`}
-                                >
-                                    Creators
-                                </Link>
-
-                                {auth?.user && (
+                            /* --- DIBUNGKUS DALAM DIV BARU DENGAN GAP LEBIH KECIL (gap-3) --- */
+                            <div
+                                className={`hidden items-center gap-3 ${!auth?.user ? 'min-[900px]:flex' : 'md:flex'}`}
+                            >
+                                {/* A. Menu Navigasi (Pill) */}
+                                <nav className="flex items-center gap-1 rounded-full bg-slate-200/50 p-1">
                                     <Link
-                                        href="/purchases"
-                                        className={`rounded-full px-5 py-1.5 text-sm transition-all ${
-                                            url.startsWith('/purchases')
+                                        href="/"
+                                        className={`rounded-full px-4 py-1.5 text-sm transition-all xl:px-5 ${
+                                            isDiscoverActive
                                                 ? 'bg-white font-bold text-purple-700 shadow-sm ring-1 ring-black/5'
-                                                : 'font-medium text-slate-500 hover:bg-slate-200/50 hover:text-slate-900'
+                                                : 'font-medium text-slate-500 hover:bg-white/60 hover:text-slate-900'
                                         }`}
                                     >
-                                        Purchases
+                                        {t('Discover')}
                                     </Link>
+
+                                    <Link
+                                        href="/creators"
+                                        className={`rounded-full px-4 py-1.5 text-sm transition-all xl:px-5 ${
+                                            url.startsWith('/creators')
+                                                ? 'bg-white font-bold text-purple-700 shadow-sm ring-1 ring-black/5'
+                                                : 'font-medium text-slate-500 hover:bg-white/60 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        {t('Creators')}
+                                    </Link>
+
+                                    {auth?.user && (
+                                        <Link
+                                            href="/purchases"
+                                            className={`rounded-full px-4 py-1.5 text-sm transition-all xl:px-5 ${
+                                                url.startsWith('/purchases')
+                                                    ? 'bg-white font-bold text-purple-700 shadow-sm ring-1 ring-black/5'
+                                                    : 'font-medium text-slate-500 hover:bg-white/60 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            {t('Purchases')}
+                                        </Link>
+                                    )}
+                                </nav>
+
+                                {/* B. Menu Bahasa (Langsung di sebelah kanan Pill) */}
+                                {!auth?.user && (
+                                    <div
+                                        className="relative hidden md:block"
+                                        ref={langDropdownRef}
+                                    >
+                                        <button
+                                            onClick={() =>
+                                                setIsLangOpen(!isLangOpen)
+                                            }
+                                            className="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 font-medium text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900"
+                                        >
+                                            <Globe size={18} />
+                                            <span className="text-sm uppercase">
+                                                {currentLang}
+                                            </span>
+                                            <ChevronDown
+                                                size={14}
+                                                className={`transition-transform ${isLangOpen ? 'rotate-180' : ''}`}
+                                            />
+                                        </button>
+
+                                        {isLangOpen && (
+                                            <div className="absolute top-full left-0 z-50 mt-3 w-40 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl ring-1 shadow-slate-200/50 ring-black">
+                                                <div className="border-b border-slate-50 px-4 py-2">
+                                                    <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                                        {t('Language')}
+                                                    </p>
+                                                </div>
+                                                <div className="py-1">
+                                                    <button
+                                                        onClick={() =>
+                                                            changeLanguage('en')
+                                                        }
+                                                        className={`flex w-full items-center px-4 py-2 text-sm transition-colors ${currentLang === 'en' ? 'bg-slate-50 font-bold text-slate-900' : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                                                    >
+                                                        English
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            changeLanguage('id')
+                                                        }
+                                                        className={`flex w-full items-center px-4 py-2 text-sm transition-colors ${currentLang === 'id' ? 'bg-slate-50 font-bold text-slate-900' : 'font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                                                    >
+                                                        Indonesia
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
-                            </nav>
+                            </div>
                         )}
                     </div>
 
-                    <div className="hidden items-center gap-5 md:flex">
+                    <div
+                        className={`hidden items-center gap-5 ${
+                            isAdmin
+                                ? 'min-[1100px]:flex'
+                                : !auth?.user
+                                  ? 'min-[900px]:flex'
+                                  : 'md:flex'
+                        }`}
+                    >
                         {auth?.user &&
                             !isAdmin &&
                             auth.user.role === 'buyer' && (
@@ -238,7 +351,7 @@ export default function Navbar() {
                                         size={14}
                                         className="text-purple-500"
                                     />
-                                    Start Selling
+                                    {t('Sell Your Work')}
                                 </Link>
                             )}
 
@@ -265,7 +378,7 @@ export default function Navbar() {
                             </Link>
                         )}
 
-                        {auth?.user && !isAdmin && (
+                        {auth?.user && (
                             <div className="h-6 w-px bg-slate-200"></div>
                         )}
 
@@ -320,8 +433,8 @@ export default function Navbar() {
                                         <div className="border-b border-slate-50 px-4 py-3">
                                             <p className="text-xs font-medium tracking-wider text-slate-400 uppercase">
                                                 {isAdmin
-                                                    ? 'Administrator'
-                                                    : 'Account'}
+                                                    ? t('Administrator')
+                                                    : t('Account')}
                                             </p>
                                             <p className="truncate text-sm font-semibold text-slate-900">
                                                 {auth.user.email}
@@ -340,7 +453,7 @@ export default function Navbar() {
                                                         size={16}
                                                         className={`mr-3 ${url.startsWith('/profile') ? 'text-purple-500' : 'text-slate-400'}`}
                                                     />
-                                                    My Profile
+                                                    {t('My Profile')}
                                                 </Link>
                                             )}
 
@@ -355,7 +468,7 @@ export default function Navbar() {
                                                     size={16}
                                                     className={`mr-3 ${url.startsWith('/settings') ? (isAdmin ? 'text-rose-500' : 'text-purple-500') : 'text-slate-400'}`}
                                                 />
-                                                Account Settings
+                                                {t('Account Settings')}
                                             </Link>
 
                                             {!isAdmin &&
@@ -377,7 +490,9 @@ export default function Navbar() {
                                                                 size={16}
                                                                 className="mr-3 text-purple-400"
                                                             />
-                                                            Start Selling
+                                                            {t(
+                                                                'Sell Your Work',
+                                                            )}
                                                         </Link>
                                                     </>
                                                 )}
@@ -387,7 +502,7 @@ export default function Navbar() {
                                                     <>
                                                         <div className="my-1 border-t border-slate-50"></div>
                                                         <p className="px-4 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                                                            Seller Hub
+                                                            {t('Seller Hub')}
                                                         </p>
                                                         <Link
                                                             href={route(
@@ -404,7 +519,9 @@ export default function Navbar() {
                                                                 size={16}
                                                                 className={`mr-3 ${route().current('products.mine') ? 'text-emerald-500' : 'text-slate-400'}`}
                                                             />
-                                                            Manage Products
+                                                            {t(
+                                                                'Manage Products',
+                                                            )}
                                                         </Link>
 
                                                         <Link
@@ -422,7 +539,7 @@ export default function Navbar() {
                                                                 size={16}
                                                                 className={`mr-3 ${route().current('promotions.index') ? 'text-emerald-500' : 'text-slate-400'}`}
                                                             />
-                                                            Promotions
+                                                            {t('Promotions')}
                                                         </Link>
 
                                                         <Link
@@ -438,7 +555,7 @@ export default function Navbar() {
                                                                 size={16}
                                                                 className={`mr-3 ${url.startsWith('/seller/orders') ? 'text-emerald-500' : 'text-slate-400'}`}
                                                             />
-                                                            Sales History
+                                                            {t('Sales History')}
                                                         </Link>
 
                                                         <Link
@@ -454,10 +571,36 @@ export default function Navbar() {
                                                                 size={16}
                                                                 className={`mr-3 ${url.startsWith('/seller/earnings') ? 'text-emerald-500' : 'text-slate-400'}`}
                                                             />
-                                                            My Earnings
+                                                            {t('My Earnings')}
                                                         </Link>
                                                     </>
                                                 )}
+                                        </div>
+                                        {/* --- ADDED: LANGUAGE SELECTOR IN PROFILE DROPDOWN --- */}
+                                        <div className="border-t border-slate-50 py-2">
+                                            <p className="px-4 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                                                {t('Language')}
+                                            </p>
+                                            <div className="flex gap-2 px-4">
+                                                <button
+                                                    onClick={() => {
+                                                        changeLanguage('en');
+                                                        setIsProfileOpen(false); // Tutup popup setelah diklik
+                                                    }}
+                                                    className={`flex-1 rounded-lg py-1.5 text-xs transition-colors ${currentLang === 'en' ? 'bg-slate-900 font-bold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200'}`}
+                                                >
+                                                    English
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        changeLanguage('id');
+                                                        setIsProfileOpen(false); // Tutup popup setelah diklik
+                                                    }}
+                                                    className={`flex-1 rounded-lg py-1.5 text-xs transition-colors ${currentLang === 'id' ? 'bg-slate-900 font-bold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200'}`}
+                                                >
+                                                    Indonesia
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="border-t border-slate-50 py-1">
                                             <Link
@@ -470,7 +613,7 @@ export default function Navbar() {
                                                     size={16}
                                                     className="mr-3 text-slate-400"
                                                 />{' '}
-                                                Log Out
+                                                {t('Log Out')}
                                             </Link>
                                         </div>
                                     </div>
@@ -486,7 +629,7 @@ export default function Navbar() {
                                         size={14}
                                         className="text-purple-500"
                                     />
-                                    Start Selling
+                                    {t('Sell Your Work')}
                                 </Link>
 
                                 {/* Garis vertikal pembatas agar UI rapi */}
@@ -497,20 +640,28 @@ export default function Navbar() {
                                     href={route('login')}
                                     className="text-sm font-bold text-slate-600 hover:text-purple-600"
                                 >
-                                    Log in
+                                    {t('Log in')}
                                 </Link>
                                 <Link
                                     href={route('register')}
                                     className="rounded-full bg-slate-900 px-5 py-2 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25"
                                 >
-                                    Get Started
+                                    {t('Get Started')}
                                 </Link>
                             </>
                         )}
                     </div>
 
                     {/* Mobile Right Actions */}
-                    <div className="flex items-center gap-2 md:hidden">
+                    <div
+                        className={`flex items-center gap-2 ${
+                            isAdmin
+                                ? 'min-[1100px]:hidden'
+                                : !auth?.user
+                                  ? 'min-[900px]:hidden'
+                                  : 'md:hidden'
+                        }`}
+                    >
                         {auth?.user && !isAdmin && (
                             <Link
                                 href="/cart"
@@ -548,7 +699,15 @@ export default function Navbar() {
 
             {/* --- MOBILE MENU --- */}
             {isMobileMenuOpen && (
-                <div className="fixed inset-x-0 top-18 z-40 border-b border-slate-200 bg-white shadow-xl md:hidden">
+                <div
+                    className={`fixed inset-x-0 top-18 z-40 border-b border-slate-200 bg-white shadow-xl ${
+                        isAdmin
+                            ? 'min-[1100px]:hidden'
+                            : !auth?.user
+                              ? 'min-[900px]:hidden'
+                              : 'md:hidden'
+                    }`}
+                >
                     <div className="max-h-[calc(100vh-72px)] overflow-y-auto px-4 py-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-track]:bg-transparent">
                         <nav className="flex flex-col gap-2">
                             {/* --- MOBILE NAVIGATION LOGIC --- */}
@@ -563,7 +722,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className="mr-4 text-slate-400"
                                             />{' '}
-                                            Dashboard
+                                            {t('Dashboard')}
                                         </div>
                                     </Link>
                                     <Link
@@ -575,7 +734,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className="mr-4 text-slate-400"
                                             />{' '}
-                                            Manage Users
+                                            {t('Manage Users')}
                                         </div>
                                     </Link>
                                     <Link
@@ -587,7 +746,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className="mr-4 text-slate-400"
                                             />{' '}
-                                            Manage Products
+                                            {t('Manage Products')}
                                         </div>
                                     </Link>
                                     <Link
@@ -599,7 +758,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className="mr-4 text-slate-400"
                                             />{' '}
-                                            Order Verifications
+                                            {t('Order Verifications')}
                                         </div>
                                     </Link>
                                     <Link
@@ -611,7 +770,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className="mr-4 text-slate-400"
                                             />{' '}
-                                            Platform Finances
+                                            {t('Platform Finances')}
                                         </div>
                                     </Link>
                                     <Link
@@ -623,7 +782,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className="mr-4 text-slate-400"
                                             />{' '}
-                                            Platform Settings
+                                            {t('Platform Settings')}
                                         </div>
                                     </Link>
                                 </>
@@ -633,7 +792,7 @@ export default function Navbar() {
                                         href="/"
                                         className={`flex items-center justify-between rounded-xl px-4 py-3 text-lg transition-colors ${isDiscoverActive ? 'bg-purple-50 font-bold text-purple-700' : 'font-medium text-slate-600 hover:bg-slate-50'}`}
                                     >
-                                        Discover{' '}
+                                        {t('Discover')}
                                         {isDiscoverActive && (
                                             <span className="h-2 w-2 rounded-full bg-purple-500"></span>
                                         )}
@@ -642,7 +801,7 @@ export default function Navbar() {
                                         href="/creators"
                                         className={`flex items-center justify-between rounded-xl px-4 py-3 text-lg transition-colors ${url.startsWith('/creators') ? 'bg-purple-50 font-bold text-purple-700' : 'font-medium text-slate-600 hover:bg-slate-50'}`}
                                     >
-                                        Creators{' '}
+                                        {t('Creators')}
                                         {url.startsWith('/creators') && (
                                             <span className="h-2 w-2 rounded-full bg-purple-500"></span>
                                         )}
@@ -656,7 +815,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className="mr-2 text-purple-500"
                                             />{' '}
-                                            Start Selling
+                                            {t('Sell Your Work')}
                                         </Link>
                                     </div>
                                 </>
@@ -725,7 +884,7 @@ export default function Navbar() {
                                                 size={18}
                                                 className={`mr-4 ${url.startsWith('/profile') ? 'text-purple-500' : 'text-slate-400'}`}
                                             />{' '}
-                                            My Profile
+                                            {t('My Profile')}
                                         </Link>
                                     )}
 
@@ -737,7 +896,7 @@ export default function Navbar() {
                                             size={18}
                                             className={`mr-4 ${url.startsWith('/settings') ? (isAdmin ? 'text-rose-500' : 'text-purple-500') : 'text-slate-400'}`}
                                         />{' '}
-                                        Account Settings
+                                        {t('Account Settings')}
                                     </Link>
 
                                     {!isAdmin && (
@@ -750,7 +909,7 @@ export default function Navbar() {
                                                     size={18}
                                                     className={`mr-4 ${url.startsWith('/purchases') ? 'text-purple-500' : 'text-slate-400'}`}
                                                 />{' '}
-                                                My Purchases
+                                                {t('My Purchases')}
                                             </Link>
                                             <Link
                                                 href="/cart"
@@ -761,7 +920,7 @@ export default function Navbar() {
                                                         size={18}
                                                         className={`mr-4 ${url.startsWith('/cart') ? 'text-purple-500' : 'text-slate-400'}`}
                                                     />{' '}
-                                                    My Cart
+                                                    {t('My Cart')}
                                                 </div>
                                                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-sm font-bold text-purple-600">
                                                     {cartCount || 0}
@@ -774,7 +933,7 @@ export default function Navbar() {
                                         auth.user.role === 'seller' && (
                                             <div className="mt-3 mb-2 rounded-2xl border border-emerald-100/50 bg-emerald-50/50 p-2">
                                                 <p className="px-3 py-2 text-[10px] font-bold tracking-wider text-emerald-600 uppercase">
-                                                    Seller Hub
+                                                    {t('Seller Hub')}
                                                 </p>
                                                 <Link
                                                     href={route(
@@ -786,7 +945,7 @@ export default function Navbar() {
                                                         size={18}
                                                         className={`mr-4 ${route().current('products.mine') ? 'text-emerald-600' : 'text-emerald-500'}`}
                                                     />{' '}
-                                                    Manage Products
+                                                    {t('Manage Products')}
                                                 </Link>
 
                                                 <Link
@@ -799,7 +958,7 @@ export default function Navbar() {
                                                         size={18}
                                                         className={`mr-4 ${route().current('promotions.index') ? 'text-emerald-600' : 'text-emerald-500'}`}
                                                     />{' '}
-                                                    Promotions
+                                                    {t('Promotions')}
                                                 </Link>
 
                                                 <Link
@@ -810,7 +969,7 @@ export default function Navbar() {
                                                         size={18}
                                                         className={`mr-4 ${url.startsWith('/seller/orders') ? 'text-emerald-600' : 'text-emerald-500'}`}
                                                     />{' '}
-                                                    Sales History
+                                                    {t('Sales History')}
                                                 </Link>
 
                                                 <Link
@@ -821,10 +980,36 @@ export default function Navbar() {
                                                         size={18}
                                                         className={`mr-4 ${url.startsWith('/seller/earnings') ? 'text-emerald-600' : 'text-emerald-500'}`}
                                                     />{' '}
-                                                    My Earnings
+                                                    {t('My Earnings')}
                                                 </Link>
                                             </div>
                                         )}
+
+                                    {/* --- ADDED: MOBILE LANGUAGE SWITCHER --- */}
+                                    <hr className="my-3 border-slate-100" />
+                                    <div className="px-2 pb-2">
+                                        <p className="px-2 py-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                                            {t('Language')}
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() =>
+                                                    changeLanguage('en')
+                                                }
+                                                className={`flex-1 rounded-xl px-3 py-2.5 text-sm transition-colors ${currentLang === 'en' ? 'bg-slate-900 font-bold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200'}`}
+                                            >
+                                                English
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    changeLanguage('id')
+                                                }
+                                                className={`flex-1 rounded-xl px-3 py-2.5 text-sm transition-colors ${currentLang === 'id' ? 'bg-slate-900 font-bold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200'}`}
+                                            >
+                                                Indonesia
+                                            </button>
+                                        </div>
+                                    </div>
 
                                     <hr className="my-3 border-slate-100" />
                                     <Link
@@ -837,23 +1022,60 @@ export default function Navbar() {
                                             size={18}
                                             className="mr-4 text-rose-400"
                                         />{' '}
-                                        Log Out
+                                        {t('Log Out')}
                                     </Link>
                                 </>
                             ) : (
                                 <>
                                     <hr className="my-4 border-slate-100" />
+
+                                    {/* --- ADDED: MOBILE LANGUAGE SWITCHER FOR GUESTS --- */}
+                                    <div className="px-2 pb-4">
+                                        <p className="px-2 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                                            {t('Language')}
+                                        </p>
+                                        <div className="flex rounded-lg bg-slate-100/80 p-1">
+                                            <button
+                                                onClick={() =>
+                                                    changeLanguage('en')
+                                                }
+                                                className={`flex-1 rounded-md py-1.5 text-xs transition-all ${
+                                                    currentLang === 'en'
+                                                        ? 'bg-white font-bold text-slate-900 shadow-sm ring-1 ring-black/5'
+                                                        : 'font-medium text-slate-500 hover:text-slate-700'
+                                                }`}
+                                            >
+                                                English
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    changeLanguage('id')
+                                                }
+                                                className={`flex-1 rounded-md py-1.5 text-xs transition-all ${
+                                                    currentLang === 'id'
+                                                        ? 'bg-white font-bold text-slate-900 shadow-sm ring-1 ring-black/5'
+                                                        : 'font-medium text-slate-500 hover:text-slate-700'
+                                                }`}
+                                            >
+                                                Indonesia
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Separator */}
+                                    <hr className="mt-1 mb-4 border-slate-100" />
+
                                     <Link
                                         href={route('login')}
                                         className="flex w-full items-center justify-center rounded-xl bg-slate-100 px-4 py-3.5 text-base font-bold text-slate-900 transition-colors hover:bg-slate-200"
                                     >
-                                        Log in
+                                        {t('Log in')}
                                     </Link>
                                     <Link
                                         href={route('register')}
                                         className="mt-2 flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-slate-900/20 transition-colors hover:bg-slate-800"
                                     >
-                                        Get Started
+                                        {t('Get Started')}
                                     </Link>
                                 </>
                             )}

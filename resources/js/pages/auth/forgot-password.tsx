@@ -8,11 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ForgotPassword({ status }: { status?: string }) {
+    const { t } = useTranslation(); // Inject translator here
+
     return (
         <>
-            <Head title="Forgot Password - Soko" />
+            <Head title={t('Forgot Password - Soko')} />
 
             {/* Global Background matching the Auth Flow */}
             <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
@@ -24,14 +28,15 @@ export default function ForgotPassword({ status }: { status?: string }) {
                     <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-8 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                         <div className="mb-8 text-center">
                             <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900">
-                                Reset{' '}
+                                {t('Reset')}{' '}
                                 <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                    Password
+                                    {t('Password')}
                                 </span>
                             </h1>
                             <p className="text-sm text-slate-500">
-                                Enter your email to receive a password reset
-                                link
+                                {t(
+                                    'Enter your email to receive a password reset link',
+                                )}
                             </p>
                         </div>
 
@@ -50,7 +55,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                             htmlFor="email"
                                             className="font-bold text-slate-700"
                                         >
-                                            Email address
+                                            {t('Email address')}
                                         </Label>
                                         <Input
                                             id="email"
@@ -58,7 +63,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                             name="email"
                                             autoComplete="off"
                                             autoFocus
-                                            placeholder="email@example.com"
+                                            placeholder={t('email@example.com')}
                                             className="h-12 rounded-xl border border-slate-200 bg-slate-50/50 px-4 shadow-sm transition-all autofill:shadow-[inset_0_0_0px_1000px_#faf5ff] autofill:[-webkit-text-fill-color:#0f172a] focus:border-purple-400 focus:ring-0 focus:outline-none focus-visible:ring-0"
                                         />
                                         <InputError
@@ -77,7 +82,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                         {processing ? (
                                             <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
                                         ) : null}
-                                        Send Reset Link
+                                        {t('Send Reset Link')}
                                     </Button>
                                 </>
                             )}
@@ -85,12 +90,12 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
                         {/* Return to Login Link */}
                         <div className="mt-6 border-t border-slate-100 pt-6 text-center text-sm font-medium text-slate-500">
-                            Or, return to{' '}
+                            {t('Or, return to ')}
                             <TextLink
                                 href={login()}
                                 className="font-bold text-purple-600 transition-colors hover:text-purple-700"
                             >
-                                Log in
+                                {t('Log in')}
                             </TextLink>
                         </div>
                     </div>

@@ -65,18 +65,18 @@ class FinancialController extends Controller
     public function approveWithdrawal(Withdrawal $withdrawal)
     {
         if ($withdrawal->status !== 'pending') {
-            return back()->with('error', 'Only pending withdrawals can be approved.');
+            return back()->with('error', __('Only pending withdrawals can be approved.'));
         }
         $withdrawal->update(['status' => 'completed']);
-        return back()->with('success', 'Withdrawal marked as completed! The seller has been notified.');
+        return back()->with('success', __('Withdrawal marked as completed!'));
     }
 
     public function rejectWithdrawal(Withdrawal $withdrawal)
     {
         if ($withdrawal->status !== 'pending') {
-            return back()->with('error', 'Only pending withdrawals can be rejected.');
+            return back()->with('error', __('Only pending withdrawals can be rejected.'));
         }
         $withdrawal->update(['status' => 'failed']);
-        return back()->with('success', 'Withdrawal rejected. The funds have been returned to the seller\'s balance.');
+        return back()->with('success', __('Withdrawal rejected. The funds have been returned to the seller\'s balance.'));
     }
 }

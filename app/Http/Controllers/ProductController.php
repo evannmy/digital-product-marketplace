@@ -152,7 +152,7 @@ class ProductController extends Controller
         }
 
         // Send the user back to the marketplace grid with a success message!
-        return redirect()->route('products.mine')->with('success', 'Product published successfully with media gallery!');
+        return redirect()->route('products.mine')->with('success', __('Product published successfully with media gallery!'));
     }
 
     public function show(Request $request, Product $product)
@@ -242,13 +242,13 @@ class ProductController extends Controller
 
         // --- 2. Security Gate ---
         if (!$isOwner && !$hasPurchased && !$isAdmin) {
-            abort(403, 'Unauthorized. You must purchase this product to download it.');
+            abort(403, __('Unauthorized. You must purchase this product to download it.'));
         }
 
         // --- 3. File Verification ---
         // Make sure the path actually exists in the DB before checking the disk
         if (!$product->file_path || !Storage::exists($product->file_path)) {
-            abort(404, 'Digital file not found on the server.');
+            abort(404, __('Digital file not found on the server.'));
         }
 
         // --- 4. Professional Filename Formatting ---
@@ -265,7 +265,7 @@ class ProductController extends Controller
     {
         // 1. Verify ownership
         if ($request->user()->id !== $product->seller_id) {
-            abort(403, 'Unauthorized action. You do not own this product.');
+            abort(403, __('Unauthorized action. You do not own this product.'));
         }
 
         // 2. LOAD THE MEDIA GALLERY! (Crucial for the React frontend)
@@ -284,7 +284,7 @@ class ProductController extends Controller
     {
         // 1. Security Layer: Verify ownership
         if ($request->user()->id !== $product->seller_id) {
-            abort(403, 'Unauthorized action.');
+            abort(403, __('Unauthorized action.'));
         }
 
         // 2. Validation (Updated for media gallery)
@@ -382,14 +382,14 @@ class ProductController extends Controller
         }
 
         // 6. Return the seller to their product page using the SLUG!
-        return redirect()->route('products.mine', $product->slug)->with('success', 'Product updated successfully!');
+        return redirect()->route('products.mine', $product->slug)->with('success', __('Product updated successfully!'));
     }
 
     public function destroy(Request $request, Product $product)
     {
         // 1. Security Layer: Verify ownership
         if ($request->user()->id !== $product->seller_id) {
-            abort(403, 'Unauthorized action. You cannot delete someone else\'s product.');
+            abort(403, __('Unauthorized action. You cannot delete someone else\'s product.'));
         }
 
         // 2. Always delete public promotional media to save server space
@@ -408,7 +408,7 @@ class ProductController extends Controller
             $product->delete();
 
             return redirect()->route('products.mine')
-                ->with('success', 'Product hidden from store, but kept available in libraries for past buyers.');
+                ->with('success', __('Product hidden from store, but kept available in libraries for past buyers.'));
         } else {
             // --- SCENARIO B: Product has 0 sales ---
             // Nobody needs this. Destroy the heavy source file to save server storage.
@@ -420,7 +420,7 @@ class ProductController extends Controller
             $product->forceDelete();
 
             return redirect()->route('products.mine')
-                ->with('success', 'Product and all files permanently deleted.');
+                ->with('success', __('Product and all files permanently deleted.'));
         }
     }
 
@@ -433,7 +433,7 @@ class ProductController extends Controller
 
         // Security check 2: Enforce the Admin Lock
         if ($product->is_locked) {
-            return back()->with('error', 'Cannot publish this product. It has been suspended by an Administrator.');
+            return back()->with('error', __('Cannot publish this product. It has been disabled by an Administrator.'));
         }
 
         // Flip the current status and save
@@ -442,11 +442,11 @@ class ProductController extends Controller
         ]);
 
         // --- THE FIX: Create the dynamic message in the backend ---
-        $statusText = $product->is_active ? 'published' : 'hidden';
-        $message = "\"{$product->title}\" is now {$statusText}.";
-
-        // Send the beautiful, dynamic message to React!
-        return back()->with('success', $message);
+        if ($product->is_active) {
+            return back()->with('success', __('":title" is now published.', ['title' => $product->title]));
+        } else {
+            return back()->with('success', __('":title" is now hidden.', ['title' => $product->title]));
+        }
     }
 
     public function mine(Request $request)

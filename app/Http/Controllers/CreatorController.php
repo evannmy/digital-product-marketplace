@@ -131,7 +131,7 @@ class CreatorController extends Controller
         $user->update(['role' => 'seller']);
 
         // Redirect with a success toast notification
-        return redirect()->route('products.mine')->with('success', 'Welcome to the Creator Hub!');
+        return redirect()->route('products.mine')->with('success', __('Welcome to the Creator Hub!'));
     }
 
     // =========================================================================
@@ -175,7 +175,7 @@ class CreatorController extends Controller
             ->map(function ($item) {
                 return [
                     'id' => 'ITM-' . $item->id,
-                    'title' => $item->product ? $item->product->title : 'Archived Product',
+                    'title' => $item->product ? $item->product->title : __('Archived Product'),
                     'date' => $item->created_at->format('M j, Y'),
                     'gross' => $item->price,
                     'fee' => $item->platform_fee,
@@ -230,7 +230,7 @@ class CreatorController extends Controller
 
         if ($hasPending) {
             return back()->withErrors([
-                'amount' => 'You already have a pending withdrawal. Please wait for it to be processed before requesting another.'
+                'amount' => __('You already have a pending withdrawal. Please wait for it to be processed before requesting another.')
             ]);
         }
 
@@ -255,7 +255,7 @@ class CreatorController extends Controller
         $realAvailableBalance = $totalNetRevenue - $totalWithdrawnOrPending;
 
         if ($validated['amount'] > $realAvailableBalance) {
-            return back()->withErrors(['amount' => 'Insufficient funds available for this withdrawal.']);
+            return back()->withErrors(['amount' => __('Insufficient funds available for this withdrawal.')]);
         }
 
         // 4. Calculate the Bank Transfer Fee dynamically
@@ -274,7 +274,7 @@ class CreatorController extends Controller
             'status' => 'pending',
         ]);
 
-        return back()->with('success', 'Withdrawal request submitted successfully!');
+        return back()->with('success', __('Withdrawal request submitted successfully!'));
     }
 
     // =========================================================================
@@ -308,12 +308,12 @@ class CreatorController extends Controller
             $sellerNet = $order->items->sum('seller_earnings');
 
             $productPreview = $order->items->map(function ($item) {
-                return $item->product ? $item->product->title : 'Archived Product';
+                return $item->product ? $item->product->title : __('Archived Product');
             })->implode(', ');
 
             return [
                 'id' => 'ORD-' . $order->id,
-                'buyer' => ($order->buyer) ? $order->buyer->name : 'Deleted User',
+                'buyer' => ($order->buyer) ? $order->buyer->name : __('Deleted User'),
                 'buyer_username' => ($order->buyer) ? $order->buyer->username : null,
 
                 'amount' => $sellerGross,
@@ -324,7 +324,7 @@ class CreatorController extends Controller
                 'items' => $order->items->map(function ($item) {
                     return [
                         'id' => 'ITM-' . $item->id,
-                        'title' => $item->product ? $item->product->title : 'Archived Product',
+                        'title' => $item->product ? $item->product->title : __('Archived Product'),
                         'price' => $item->price,
                         'net_price' => $item->seller_earnings,
                         'is_archived' => $item->product ? $item->product->trashed() : true,

@@ -1,4 +1,3 @@
-import { Link } from '@inertiajs/react';
 import { CheckCircle, Trash2, X, AlertTriangle, Info } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -104,14 +103,6 @@ export default function Toaster() {
                     <p className="text-sm font-bold text-slate-900">
                         {currentToast?.message || ''}
                     </p>
-                    {currentToast?.showCartLink && type === 'success' && (
-                        <Link
-                            href="/cart"
-                            className="text-xs font-semibold text-emerald-600 transition-colors hover:text-emerald-700 hover:underline"
-                        >
-                            View cart & checkout &rarr;
-                        </Link>
-                    )}
                 </div>
 
                 <button

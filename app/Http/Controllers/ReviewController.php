@@ -29,7 +29,7 @@ class ReviewController extends Controller
             ->exists();
 
         if (!$hasPurchased) {
-            return back()->with('error', 'You must purchase this product before reviewing it.');
+            return back()->with('error', __('You must purchase this product before reviewing it.'));
         }
 
         // 3. Security Check: Create or Update the review (prevents spamming multiple reviews)
@@ -39,6 +39,6 @@ class ReviewController extends Controller
         );
 
         // THE FIX: Added the flash message so your React Toaster catches it!
-        return back()->with('success', 'Review submitted successfully!');
+        return back()->with('success', __('Review submitted successfully!'));
     }
 }

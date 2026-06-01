@@ -7,25 +7,36 @@ import {
     ServerCrash,
 } from 'lucide-react';
 import Navbar from '@/components/navbar';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ErrorPage({ status }: { status: number }) {
+    // Inject translator here
+    const { t } = useTranslation();
+
     // Map the status code to a user-friendly title
     const title =
         {
-            503: 'Service Unavailable',
-            500: 'Server Error',
-            404: 'Page Not Found',
-            403: 'Forbidden Access',
-        }[status] || 'An Error Occurred';
+            503: t('Service Unavailable'),
+            500: t('Server Error'),
+            404: t('Page Not Found'),
+            403: t('Forbidden Access'),
+        }[status] || t('An Error Occurred');
 
     // Map the status code to a helpful description
     const description =
         {
-            503: 'Sorry, we are doing some maintenance. Please check back soon.',
-            500: 'Whoops, something went wrong on our servers. We are looking into it.',
-            404: 'Sorry, the page or product you are looking for could not be found.',
-            403: 'Sorry, you do not have permission to access this page.',
-        }[status] || 'An unexpected error occurred.';
+            503: t(
+                'Sorry, we are doing some maintenance. Please check back soon.',
+            ),
+            500: t(
+                'Whoops, something went wrong on our servers. We are looking into it.',
+            ),
+            404: t(
+                'Sorry, the page or product you are looking for could not be found.',
+            ),
+            403: t('Sorry, you do not have permission to access this page.'),
+        }[status] || t('An unexpected error occurred.');
 
     // Choose an icon based on the error type
     const ErrorIcon =
@@ -63,7 +74,7 @@ export default function ErrorPage({ status }: { status: number }) {
                     className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25"
                 >
                     <Home size={20} />
-                    Back to Homepage
+                    {t('Back to Homepage')}
                 </Link>
             </main>
         </div>

@@ -46,7 +46,7 @@ class ProfileController extends Controller
             'remove_cover_photo' => ['nullable', 'boolean'],
             'remove_avatar' => ['nullable', 'boolean'],
         ], [
-            'username.regex' => 'The username may only contain letters, numbers, and underscores.'
+            'username.regex' => __('The username may only contain letters, numbers, and underscores.')
         ]);
 
         $user = $request->user();
@@ -99,7 +99,7 @@ class ProfileController extends Controller
 
         $user->save();
 
-        return back()->with('success', 'Profile updated successfully!');
+        return back()->with('success', __('Profile updated successfully!'));
     }
 
     /**

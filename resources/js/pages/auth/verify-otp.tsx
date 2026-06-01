@@ -1,13 +1,16 @@
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { AlertCircle, Edit2 } from 'lucide-react'; // <-- ADDED: Ikon untuk UX yang lebih baik
+import { AlertCircle, Edit2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import SimpleNavbar from '@/components/simple-navbar';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function VerifyOtp() {
+    const { t } = useTranslation(); // Inject translator here
     const { flash, pendingEmail } = usePage().props as any;
 
-    const displayEmail = pendingEmail || 'your email';
+    const displayEmail = pendingEmail || t('your email');
 
     const [countdown, setCountdown] = useState(0);
     const [isEditingEmail, setIsEditingEmail] = useState(false);
@@ -24,7 +27,7 @@ export default function VerifyOtp() {
         processing: processingEmail,
         errors: emailErrors,
     } = useForm({
-        email: displayEmail !== 'your email' ? displayEmail : '',
+        email: displayEmail !== t('your email') ? displayEmail : '',
     });
 
     const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
@@ -36,7 +39,8 @@ export default function VerifyOtp() {
         const newOtp = [...otpValues];
         newOtp[index] = value.substring(value.length - 1);
         setOtpValues(newOtp);
-        setData('code', newOtp.join(''));
+        // FIX: Added 'as never' if your specific Inertia version complains about string not being never
+        setData('code', newOtp.join('') as never);
 
         if (value && index < 5 && inputRefs.current[index + 1]) {
             inputRefs.current[index + 1]?.focus();
@@ -54,7 +58,7 @@ export default function VerifyOtp() {
             if (otpValues[index] !== '') {
                 newOtp[index] = '';
                 setOtpValues(newOtp);
-                setData('code', newOtp.join(''));
+                setData('code', newOtp.join('') as never);
 
                 if (index > 0) {
                     inputRefs.current[index - 1]?.focus();
@@ -84,7 +88,7 @@ export default function VerifyOtp() {
             }
 
             setOtpValues(newOtp);
-            setData('code', newOtp.join(''));
+            setData('code', newOtp.join('') as never);
             const focusIndex = Math.min(pastedData.length, 5);
             inputRefs.current[focusIndex]?.focus();
         }
@@ -102,7 +106,7 @@ export default function VerifyOtp() {
                 setIsEditingEmail(false);
                 setCountdown(60);
                 setOtpValues(['', '', '', '', '', '']);
-                setData('code', '');
+                setData('code', '' as never);
             },
         });
     };
@@ -119,7 +123,7 @@ export default function VerifyOtp() {
                 onSuccess: () => {
                     setCountdown(60);
                     setOtpValues(['', '', '', '', '', '']);
-                    setData('code', '');
+                    setData('code', '' as never);
                     inputRefs.current[0]?.focus();
                 },
             },
@@ -136,7 +140,7 @@ export default function VerifyOtp() {
 
     return (
         <>
-            <Head title="Verify Email - Soko" />
+            <Head title={t('Verify Email - Soko')} />
 
             <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
                 <SimpleNavbar />
@@ -145,17 +149,16 @@ export default function VerifyOtp() {
                     <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-8 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                         <div className="mb-6 text-center">
                             <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900">
-                                Verify{' '}
+                                {t('Verify')}{' '}
                                 <span className="bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                                    Account
+                                    {t('Account')}
                                 </span>
                             </h1>
 
                             <p className="text-sm leading-relaxed text-slate-500">
-                                We've sent a 6-digit security code to:
+                                {t("We've sent a 6-digit security code to:")}
                             </p>
 
-                            {/* --- UX FIX: Posisi Edit Email dipindah ke atas, tepat di bawah teks --- */}
                             <div className="my-4">
                                 {!isEditingEmail ? (
                                     <div className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 py-2 pr-2 pl-4 shadow-sm">
@@ -170,7 +173,7 @@ export default function VerifyOtp() {
                                             className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-slate-50 hover:text-purple-600"
                                         >
                                             <Edit2 size={14} />
-                                            Change
+                                            {t('Change')}
                                         </button>
                                     </div>
                                 ) : (
@@ -179,19 +182,22 @@ export default function VerifyOtp() {
                                         className="mx-auto flex w-full max-w-sm flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm"
                                     >
                                         <label className="text-left text-sm font-bold text-slate-700">
-                                            Update your email address
+                                            {t('Update your email address')}
                                         </label>
                                         <div className="flex gap-2">
                                             <input
                                                 type="email"
                                                 value={emailData.email}
+                                                // FIX: Added 'as never'
                                                 onChange={(e) =>
                                                     setEmailData(
                                                         'email',
-                                                        e.target.value,
+                                                        e.target.value as never,
                                                     )
                                                 }
-                                                placeholder="Enter correct email"
+                                                placeholder={t(
+                                                    'Enter correct email',
+                                                )}
                                                 required
                                                 className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none"
                                             />
@@ -201,8 +207,8 @@ export default function VerifyOtp() {
                                                 className="cursor-pointer rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold whitespace-nowrap text-white transition-colors hover:bg-purple-600 disabled:opacity-50"
                                             >
                                                 {processingEmail
-                                                    ? 'Saving...'
-                                                    : 'Save'}
+                                                    ? t('Saving...')
+                                                    : t('Save')}
                                             </button>
                                         </div>
                                         {emailErrors.email && (
@@ -217,26 +223,25 @@ export default function VerifyOtp() {
                                             }
                                             className="cursor-pointer text-left text-xs font-medium text-slate-500 hover:text-slate-900"
                                         >
-                                            Cancel
+                                            {t('Cancel')}
                                         </button>
                                     </form>
                                 )}
                             </div>
 
-                            {/* --- UX FIX: Banner Peringatan Spam --- */}
                             <div className="mx-auto mt-2 max-w-sm rounded-xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
                                 <div className="flex items-start gap-3 text-left">
                                     <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
                                     <p className="text-xs leading-relaxed font-medium text-amber-800">
                                         <strong className="font-bold text-amber-900">
-                                            Can't find the email?
+                                            {t("Can't find the email?")}
                                         </strong>
                                         <br />
-                                        Make sure to check your{' '}
+                                        {t('Make sure to check your ')}
                                         <span className="font-bold underline decoration-amber-300 underline-offset-2">
-                                            Spam or Junk
+                                            {t('Spam or Junk')}
                                         </span>{' '}
-                                        folder.
+                                        {t(' folder.')}
                                     </p>
                                 </div>
                             </div>
@@ -257,7 +262,7 @@ export default function VerifyOtp() {
                         <form onSubmit={submit} className="flex flex-col gap-6">
                             <div>
                                 <label className="mb-4 block text-center text-sm font-bold text-slate-700">
-                                    Enter 6-Digit Code
+                                    {t('Enter 6-Digit Code')}
                                 </label>
 
                                 <div className="flex justify-center gap-2 sm:gap-3">
@@ -308,7 +313,7 @@ export default function VerifyOtp() {
                                     {processing ? (
                                         <Spinner className="mr-2 h-5 w-5" />
                                     ) : null}
-                                    Verify Account
+                                    {t('Verify Account')}
                                 </button>
 
                                 <button
@@ -326,8 +331,8 @@ export default function VerifyOtp() {
                                     }`}
                                 >
                                     {countdown > 0
-                                        ? `Resend code in ${countdown}s`
-                                        : "Didn't receive it? Resend code"}
+                                        ? `${t('Resend code in ')}${countdown}${t('s')}`
+                                        : t("Didn't receive it? Resend code")}
                                 </button>
                             </div>
                         </form>

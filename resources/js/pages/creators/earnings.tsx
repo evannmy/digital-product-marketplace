@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import {
     Wallet,
     ArrowUpRight,
@@ -15,20 +15,39 @@ import {
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Earnings({
     stats,
     recentSales,
     withdrawals,
     withdrawalMethods,
-    platformSettings, // <-- ADDED: Accept the settings from Laravel
+    platformSettings,
 }: any) {
+    const { t } = useTranslation();
+
+    // --- 1. AMBIL FLASH DARI INERTIA ---
+    const { flash } = usePage().props as any;
+
+    // --- 2. PASANG LISTENER UNTUK TOAST OTOMATIS ---
+    useEffect(() => {
+        if (flash?.success) {
+            toast(flash.success, 'success');
+        }
+
+        if (flash?.error) {
+            toast(flash.error, 'error');
+        }
+        // Catatan: Error validasi form (seperti insufficient funds)
+        // secara otomatis akan dimasukkan ke variabel 'errors' oleh useForm,
+        // dan Anda sudah merendernya di dalam JSX: {errors.amount && <p>{errors.amount}</p>}
+    }, [flash]);
+
     const [activeTab, setActiveTab] = useState<'sales' | 'withdrawals'>(
         'sales',
     );
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
-    // --- ADDED: Extract dynamic settings with safe fallbacks ---
     const minWithdrawal = Number(platformSettings?.withdrawal_minimum || 20000);
     const freeThreshold = Number(
         platformSettings?.withdrawal_free_threshold || 500000,
@@ -47,12 +66,10 @@ export default function Earnings({
 
     const pendingStats = withdrawals?.reduce(
         (acc: { gross: number; fee: number; net: number }, wd: any) => {
-            // Include both pending and processing states to be safe
             if (wd.status === 'pending' || wd.status === 'processing') {
                 const amount = Number(wd.amount || 0);
                 const fee = Number(wd.fee || 0);
                 const net = Number(wd.net_amount || amount - fee || 0);
-
                 acc.gross += amount;
                 acc.fee += fee;
                 acc.net += net;
@@ -68,11 +85,8 @@ export default function Earnings({
     );
 
     useEffect(() => {
-        if (isWithdrawModalOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
+        if (isWithdrawModalOpen) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = 'unset';
 
         return () => {
             document.body.style.overflow = 'unset';
@@ -86,12 +100,13 @@ export default function Earnings({
             onSuccess: () => {
                 setIsWithdrawModalOpen(false);
                 reset();
-                toast('Withdrawal request submitted successfully!', 'success');
+                // Hapus toast sukses manual di sini
                 setActiveTab('withdrawals');
             },
             onError: () => {
+                // Biarkan toast error ini sebagai fallback jika ada masalah server
                 toast(
-                    'Failed to submit request. Please check the form.',
+                    t('Failed to submit request. Please check the form.'),
                     'error',
                 );
             },
@@ -111,21 +126,21 @@ export default function Earnings({
             case 'completed':
                 return (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-500/20 ring-inset">
-                        <CheckCircle size={12} /> Completed
+                        <CheckCircle size={12} /> {t('Completed')}
                     </span>
                 );
             case 'pending':
             case 'processing':
                 return (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-500/20 ring-inset">
-                        <Clock size={12} /> Processing
+                        <Clock size={12} /> {t('Processing')}
                     </span>
                 );
             case 'failed':
             case 'rejected':
                 return (
                     <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 ring-1 ring-rose-500/20 ring-inset">
-                        <XCircle size={12} /> Failed
+                        <XCircle size={12} /> {t('Failed')}
                     </span>
                 );
             default:
@@ -139,17 +154,16 @@ export default function Earnings({
 
     return (
         <div className="relative min-h-screen overflow-x-hidden bg-[#FAFAFC] font-sans text-slate-900 selection:bg-emerald-200 selection:text-emerald-900">
-            <Head title="My Earnings - Soko" />
+            <Head title={t('My Earnings - Soko')} />
             <Navbar />
-
             <main className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
                 <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                            My Earnings
+                            {t('My Earnings')}
                         </h1>
                         <p className="mt-2 text-sm font-medium text-slate-500">
-                            Manage your revenue and withdraw your funds.
+                            {t('Manage your revenue and withdraw your funds.')}
                         </p>
                     </div>
                 </div>
@@ -164,11 +178,12 @@ export default function Earnings({
                                 </div>
                                 <div>
                                     <p className="mb-1 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                        Total Gross Sales
+                                        {t('Total Gross Sales')}
                                     </p>
                                     <p className="max-w-xs text-xs leading-relaxed font-medium text-slate-500">
-                                        The total amount paid by buyers for your
-                                        products before platform deductions.
+                                        {t(
+                                            'The total amount paid by buyers for your products before platform deductions.',
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -176,7 +191,6 @@ export default function Earnings({
                                 <h2 className="bg-linear-to-br from-slate-900 to-slate-700 bg-clip-text text-4xl font-black break-all text-transparent sm:text-5xl sm:break-normal md:text-6xl">
                                     {formatCurrency(stats?.grossRevenue || 0)}
                                 </h2>
-
                                 <div className="mt-3 flex flex-col gap-2 sm:items-end">
                                     <div className="flex items-center justify-start gap-1.5 text-sm font-bold text-rose-500 sm:justify-end">
                                         <TrendingDown size={16} />
@@ -185,11 +199,9 @@ export default function Earnings({
                                             {formatCurrency(
                                                 stats?.platformFees || 0,
                                             )}{' '}
-                                            (Platform Fees)
+                                            {t('(Platform Fees)')}
                                         </span>
                                     </div>
-
-                                    {/* --- ADDED: Net Sales Calculation --- */}
                                     <div className="flex w-full items-center justify-start border-t border-slate-200/60 pt-2 text-base font-black text-emerald-600 sm:w-auto sm:justify-end">
                                         <span>
                                             ={' '}
@@ -197,7 +209,7 @@ export default function Earnings({
                                                 (stats?.grossRevenue || 0) -
                                                     (stats?.platformFees || 0),
                                             )}{' '}
-                                            Net Sales
+                                            {t('Net Sales')}
                                         </span>
                                     </div>
                                 </div>
@@ -211,25 +223,25 @@ export default function Earnings({
                                 <Clock className="h-7 w-7 text-amber-500" />
                             </div>
                             <p className="mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                Pending Withdrawals
+                                {t('Pending Withdrawals')}
                             </p>
                             <p className="mb-6 text-xs font-medium text-slate-500">
-                                Funds currently being processed by the platform
-                                administrators.
+                                {t(
+                                    'Funds currently being processed by the platform administrators.',
+                                )}
                             </p>
                         </div>
                         <div>
                             <div className="mb-1 text-[10px] font-bold tracking-wider text-emerald-600 uppercase">
-                                Net Expected
+                                {t('Total Earned')}
                             </div>
                             <h3 className="text-3xl font-black break-all text-slate-900 sm:break-normal">
                                 {formatCurrency(pendingStats.net)}
                             </h3>
-
-                            {/* Dynamic breakdown of the gross and fees */}
                             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-400">
                                 <span>
-                                    Gross: {formatCurrency(pendingStats.gross)}
+                                    {t('Withdrawal Amount:')}{' '}
+                                    {formatCurrency(pendingStats.gross)}
                                 </span>
                                 {pendingStats.fee > 0 && (
                                     <>
@@ -239,7 +251,7 @@ export default function Earnings({
                                                 size={12}
                                                 className="mr-0.5"
                                             />
-                                            Fee:{' '}
+                                            {t('Fee:')}{' '}
                                             {formatCurrency(pendingStats.fee)}
                                         </span>
                                     </>
@@ -255,45 +267,43 @@ export default function Earnings({
                                 <ShieldCheck className="h-6 w-6 text-[#4ADE80]" />
                             </div>
                             <p className="mb-2 text-xs font-bold tracking-wider text-[#4ADE80] uppercase">
-                                Available for Payout (Net)
+                                {t('Available for Payout')}
                             </p>
                             <p className="mb-8 max-w-md text-sm font-medium text-slate-400">
-                                These funds have cleared, deductions are taken,
-                                and they are ready for withdrawal.
+                                {t('These funds are ready for withdrawal.')}
                             </p>
                         </div>
                         <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
                             <h3 className="text-4xl font-black break-all text-white sm:text-5xl sm:break-normal">
                                 {formatCurrency(stats?.availablePayout || 0)}
                             </h3>
-
                             <div className="flex flex-col items-start gap-2 sm:items-end">
                                 <button
                                     onClick={() => setIsWithdrawModalOpen(true)}
                                     disabled={
-                                        hasPendingWithdrawal || // <-- ADDED: Lock if pending!
+                                        hasPendingWithdrawal ||
                                         !stats?.availablePayout ||
                                         stats.availablePayout < minWithdrawal
                                     }
                                     className="group flex items-center justify-center gap-2 rounded-xl bg-[#327254] px-6 py-3 text-sm font-bold text-emerald-50 transition-all hover:bg-[#3D8C66] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
                                 >
-                                    Request Withdrawal
+                                    {t('Request Withdrawal')}{' '}
                                     <ArrowUpRight
                                         size={18}
                                         className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 disabled:group-hover:translate-x-0 disabled:group-hover:translate-y-0"
                                     />
                                 </button>
-
-                                {/* --- UPDATED: Dynamic Warning Message --- */}
                                 {hasPendingWithdrawal ? (
                                     <span className="text-xs font-medium text-amber-500">
-                                        ⏳ You have a pending request. Please
-                                        wait for it to process.
+                                        ⏳{' '}
+                                        {t(
+                                            "We're processing your request. Please give it a moment.",
+                                        )}
                                     </span>
                                 ) : !stats?.availablePayout ||
                                   stats.availablePayout < minWithdrawal ? (
                                     <span className="text-xs font-medium text-slate-500">
-                                        * Minimum withdrawal is{' '}
+                                        * {t('Minimum withdrawal is')}{' '}
                                         {formatCurrency(minWithdrawal)}
                                     </span>
                                 ) : null}
@@ -309,24 +319,22 @@ export default function Earnings({
                             onClick={() => setActiveTab('sales')}
                             className={`flex items-center gap-2 border-b-2 px-4 pb-4 text-sm font-bold transition-colors ${activeTab === 'sales' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                         >
-                            <Receipt size={18} />
-                            Recent Sales
+                            <Receipt size={18} /> {t('Recent Sales')}
                         </button>
                         <button
                             onClick={() => setActiveTab('withdrawals')}
                             className={`flex items-center gap-2 border-b-2 px-4 pb-4 text-sm font-bold transition-colors ${activeTab === 'withdrawals' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                         >
-                            <ArrowRightLeft size={18} />
-                            Withdrawal History
+                            <ArrowRightLeft size={18} />{' '}
+                            {t('Withdrawal History')}
                         </button>
                     </div>
 
-                    {/* TAB CONTENT: SALES */}
                     {activeTab === 'sales' && (
                         <div>
                             {!recentSales || recentSales.length === 0 ? (
                                 <div className="py-20 text-center text-slate-500">
-                                    No successful transactions yet.
+                                    {t('No successful transactions yet.')}
                                 </div>
                             ) : (
                                 <>
@@ -341,11 +349,6 @@ export default function Earnings({
                                                         <span className="line-clamp-2 font-bold text-slate-900">
                                                             {sale.title}
                                                         </span>
-                                                        {sale.is_archived && (
-                                                            <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
-                                                                Removed
-                                                            </span>
-                                                        )}
                                                     </div>
                                                     <div className="shrink-0 text-right">
                                                         <span className="text-[11px] font-medium text-slate-400">
@@ -356,13 +359,13 @@ export default function Earnings({
                                                 <div className="flex items-end justify-between rounded-xl bg-slate-50 p-3">
                                                     <div className="flex flex-col gap-1 text-xs">
                                                         <span className="text-slate-500">
-                                                            Gross:{' '}
+                                                            {t('Gross:')}{' '}
                                                             {formatCurrency(
                                                                 sale.gross,
                                                             )}
                                                         </span>
                                                         <span className="text-rose-500">
-                                                            Fee: -
+                                                            {t('Fee:')} -
                                                             {formatCurrency(
                                                                 sale.fee,
                                                             )}
@@ -370,7 +373,7 @@ export default function Earnings({
                                                     </div>
                                                     <div className="flex flex-col items-end">
                                                         <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                                            Net Cut
+                                                            {t('Net Cut')}
                                                         </span>
                                                         <span className="font-black text-emerald-600">
                                                             +
@@ -383,25 +386,24 @@ export default function Earnings({
                                             </div>
                                         ))}
                                     </div>
-
                                     <div className="hidden overflow-x-auto sm:block">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-white text-slate-500">
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Date
+                                                        {t('Date')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Product
+                                                        {t('Product')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider uppercase">
-                                                        Gross
+                                                        {t('Gross')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider text-rose-500 uppercase">
-                                                        Fee
+                                                        {t('Fee')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider text-emerald-600 uppercase">
-                                                        Net Cut
+                                                        {t('Net Earnings')}
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -415,19 +417,8 @@ export default function Earnings({
                                                             <td className="px-8 py-5 text-slate-500">
                                                                 {sale.date}
                                                             </td>
-                                                            <td className="px-8 py-5">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-bold text-slate-900">
-                                                                        {
-                                                                            sale.title
-                                                                        }
-                                                                    </span>
-                                                                    {sale.is_archived && (
-                                                                        <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
-                                                                            Removed
-                                                                        </span>
-                                                                    )}
-                                                                </div>
+                                                            <td className="px-8 py-5 font-bold text-slate-900">
+                                                                {sale.title}
                                                             </td>
                                                             <td className="px-8 py-5 text-right font-medium text-slate-600">
                                                                 {formatCurrency(
@@ -457,12 +448,13 @@ export default function Earnings({
                         </div>
                     )}
 
-                    {/* TAB CONTENT: WITHDRAWALS */}
                     {activeTab === 'withdrawals' && (
                         <div>
                             {!withdrawals || withdrawals.length === 0 ? (
                                 <div className="py-20 text-center text-slate-500">
-                                    You haven't requested any withdrawals yet.
+                                    {t(
+                                        "You haven't requested any withdrawals yet.",
+                                    )}
                                 </div>
                             ) : (
                                 <>
@@ -497,17 +489,16 @@ export default function Earnings({
                                                         </div>
                                                     </div>
                                                 </div>
-
                                                 <div className="flex items-end justify-between rounded-xl bg-slate-50 p-3">
                                                     <div className="flex flex-col gap-1 text-xs">
                                                         <span className="text-slate-500">
-                                                            Gross:{' '}
+                                                            {t('Gross:')}{' '}
                                                             {formatCurrency(
                                                                 wd.amount,
                                                             )}
                                                         </span>
                                                         <span className="text-rose-500">
-                                                            Fee: -{' '}
+                                                            {t('Fee:')} -
                                                             {formatCurrency(
                                                                 wd.fee,
                                                             )}
@@ -515,7 +506,7 @@ export default function Earnings({
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1">
                                                         <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                                            Net Received
+                                                            {t('Net Received')}
                                                         </span>
                                                         <span className="text-base font-black text-emerald-600">
                                                             {formatCurrency(
@@ -524,38 +515,36 @@ export default function Earnings({
                                                         </span>
                                                     </div>
                                                 </div>
-
                                                 <div className="pt-1">
                                                     {getStatusBadge(wd.status)}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-
                                     <div className="hidden overflow-x-auto sm:block">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-white text-slate-500">
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Date
+                                                        {t('Date')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Ref ID
+                                                        {t('Ref ID')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Destination
+                                                        {t('Destination')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Status
+                                                        {t('Status')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider uppercase">
-                                                        Gross
+                                                        {t('Amount')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider text-rose-500 uppercase">
-                                                        Fee
+                                                        {t('Fee')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider text-emerald-600 uppercase">
-                                                        Net Received
+                                                        {t('Received')}
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -621,7 +610,7 @@ export default function Earnings({
                 </div>
             </main>
 
-            {/* --- WITHDRAWAL MODAL (HYBRID FEE MODEL) --- */}
+            {/* --- WITHDRAWAL MODAL --- */}
             {isWithdrawModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
                     <div
@@ -630,7 +619,6 @@ export default function Earnings({
                             !processing && setIsWithdrawModalOpen(false)
                         }
                     ></div>
-
                     <div className="relative w-full max-w-md transform overflow-hidden rounded-3xl bg-white text-left align-middle shadow-xl transition-all">
                         <div className="border-b border-slate-100 px-6 py-5">
                             <div className="flex items-center justify-between">
@@ -639,7 +627,7 @@ export default function Earnings({
                                         <Building2 size={20} />
                                     </div>
                                     <h3 className="text-xl font-black text-slate-900">
-                                        Request Withdrawal
+                                        {t('Request Withdrawal')}
                                     </h3>
                                 </div>
                                 <button
@@ -653,33 +641,30 @@ export default function Earnings({
                                 </button>
                             </div>
                         </div>
-
                         <form
                             onSubmit={handleWithdrawalRequest}
                             className="p-6"
                         >
-                            {/* --- DYNAMIC THRESHOLD INFO BANNER --- */}
                             <div className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
                                 <p className="text-sm font-medium text-indigo-800">
-                                    💡 Withdrawals over{' '}
+                                    💡 {t('Withdrawals over')}{' '}
                                     <strong className="font-black">
                                         {formatCurrency(freeThreshold)}
                                     </strong>{' '}
-                                    are completely{' '}
-                                    <strong className="font-black">FREE</strong>
-                                    ! A flat bank transfer fee of Rp 2.500
-                                    applies to amounts below the threshold.
+                                    {t('are completely')}{' '}
+                                    <strong className="font-black">
+                                        {t('FREE')}
+                                    </strong>
                                 </p>
                             </div>
-
                             <div className="space-y-5">
                                 <div>
                                     <div className="mb-1.5 flex justify-between">
                                         <label className="text-sm font-bold text-slate-700">
-                                            Withdrawal Amount (Rp)
+                                            {t('Withdrawal Amount (Rp)')}
                                         </label>
                                         <span className="text-xs font-bold text-slate-400">
-                                            Max:{' '}
+                                            {t('Max:')}{' '}
                                             {formatCurrency(
                                                 stats?.availablePayout || 0,
                                             )}
@@ -689,7 +674,6 @@ export default function Earnings({
                                         type="text"
                                         inputMode="numeric"
                                         required
-                                        // Format the raw string number into an IDR string with dots
                                         value={
                                             data.amount
                                                 ? new Intl.NumberFormat(
@@ -698,7 +682,6 @@ export default function Earnings({
                                                 : ''
                                         }
                                         onChange={(e) => {
-                                            // Strip out all non-numeric characters (like dots) before saving to state
                                             const rawValue =
                                                 e.target.value.replace(
                                                     /[^0-9]/g,
@@ -706,40 +689,30 @@ export default function Earnings({
                                                 );
                                             setData('amount', rawValue);
                                         }}
-                                        className={`w-full rounded-xl border px-4 py-3 text-sm font-medium transition-all outline-none focus:ring-1 ${
-                                            data.amount &&
-                                            Number(data.amount) < minWithdrawal
-                                                ? 'border-rose-300 bg-rose-50 text-rose-900 focus:border-rose-500 focus:ring-rose-500'
-                                                : 'border-slate-200 bg-white text-slate-900 focus:border-emerald-500 focus:ring-emerald-500'
-                                        }`}
-                                        placeholder={`Min. ${formatCurrency(minWithdrawal)}`}
+                                        className={`w-full rounded-xl border px-4 py-3 text-sm font-medium transition-all outline-none focus:ring-1 ${data.amount && Number(data.amount) < minWithdrawal ? 'border-rose-300 bg-rose-50 text-rose-900 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 bg-white text-slate-900 focus:border-emerald-500 focus:ring-emerald-500'}`}
+                                        placeholder={`${t('Min.')} ${formatCurrency(minWithdrawal)}`}
                                     />
-
-                                    {/* --- NEW: Dynamic Minimum Warning --- */}
                                     {data.amount &&
                                         Number(data.amount) < minWithdrawal &&
                                         !errors.amount && (
                                             <p className="mt-1.5 text-xs font-bold text-rose-500">
-                                                ⚠️ Minimum withdrawal is{' '}
+                                                ⚠️ {t('Minimum withdrawal is')}{' '}
                                                 {formatCurrency(minWithdrawal)}.
                                             </p>
                                         )}
-
                                     {errors.amount && (
                                         <p className="mt-1.5 text-xs font-bold text-rose-500">
                                             {errors.amount}
                                         </p>
                                     )}
                                 </div>
-
-                                {/* --- DYNAMIC FEE CALCULATOR --- */}
                                 {data.amount &&
                                     Number(data.amount) >= minWithdrawal &&
                                     data.method_id && (
                                         <div className="space-y-2 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100 ring-inset">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-slate-500">
-                                                    Requested Amount
+                                                    {t('Requested Amount')}
                                                 </span>
                                                 <span className="font-medium text-slate-700">
                                                     {formatCurrency(
@@ -749,21 +722,21 @@ export default function Earnings({
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-slate-500">
-                                                    Transfer Fee
+                                                    {t('Transfer Fee')}
                                                 </span>
                                                 <span
                                                     className={`font-medium ${Number(data.amount) >= freeThreshold || currentFee === 0 ? 'text-emerald-600' : 'text-rose-500'}`}
                                                 >
                                                     {Number(data.amount) >=
-                                                        freeThreshold || // <-- DYNAMIC CHECK
+                                                        freeThreshold ||
                                                     currentFee === 0
-                                                        ? 'FREE'
+                                                        ? t('FREE')
                                                         : `- ${formatCurrency(currentFee)}`}
                                                 </span>
                                             </div>
                                             <div className="mt-2 flex justify-between border-t border-slate-200 pt-2">
                                                 <span className="text-sm font-bold text-slate-900">
-                                                    You will receive
+                                                    {t('You will receive')}
                                                 </span>
                                                 <span className="text-lg font-black text-emerald-600">
                                                     {formatCurrency(
@@ -781,11 +754,9 @@ export default function Earnings({
                                             </div>
                                         </div>
                                     )}
-
-                                {/* --- DROPDOWN SELECTOR --- */}
                                 <div>
                                     <label className="mb-1.5 block text-sm font-bold text-slate-700">
-                                        Withdrawal Method
+                                        {t('Withdrawal Method')}
                                     </label>
                                     <div className="relative">
                                         <select
@@ -800,7 +771,9 @@ export default function Earnings({
                                             className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         >
                                             <option value="" disabled>
-                                                Select a transfer method...
+                                                {t(
+                                                    'Select a transfer method...',
+                                                )}
                                             </option>
                                             {withdrawalMethods?.map(
                                                 (method: any) => (
@@ -816,24 +789,11 @@ export default function Earnings({
                                                 ),
                                             )}
                                         </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                                            <svg
-                                                className="h-4 w-4 fill-current"
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path
-                                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                    clipRule="evenodd"
-                                                    fillRule="evenodd"
-                                                ></path>
-                                            </svg>
-                                        </div>
                                     </div>
                                 </div>
-
                                 <div>
                                     <label className="mb-1.5 block text-sm font-bold text-slate-700">
-                                        Account Number
+                                        {t('Account Number')}
                                     </label>
                                     <input
                                         type="text"
@@ -846,11 +806,12 @@ export default function Earnings({
                                             )
                                         }
                                         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                                        placeholder="Enter your account/phone number"
+                                        placeholder={t(
+                                            'Enter your account/phone number',
+                                        )}
                                     />
                                 </div>
                             </div>
-
                             <div className="mt-8 flex gap-3">
                                 <button
                                     type="button"
@@ -860,22 +821,22 @@ export default function Earnings({
                                     className="flex-1 rounded-xl bg-slate-100 py-3.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200"
                                     disabled={processing}
                                 >
-                                    Cancel
+                                    {t('Cancel')}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={
                                         processing ||
                                         !data.amount ||
-                                        Number(data.amount) < minWithdrawal || // <-- ADDED: Locks the button if below minimum
+                                        Number(data.amount) < minWithdrawal ||
                                         !data.method_id ||
                                         !data.account_number
                                     }
                                     className="flex flex-2 items-center justify-center rounded-xl bg-emerald-500 py-3.5 text-sm font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/25 disabled:opacity-50 disabled:hover:translate-y-0"
                                 >
                                     {processing
-                                        ? 'Processing...'
-                                        : 'Confirm Withdrawal'}
+                                        ? t('Processing...')
+                                        : t('Confirm Withdrawal')}
                                 </button>
                             </div>
                         </form>

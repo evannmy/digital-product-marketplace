@@ -2,13 +2,15 @@ import { Head, useForm } from '@inertiajs/react';
 import { Shield, Wallet, Sparkles, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import SimpleNavbar from '@/components/simple-navbar';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Onboarding({ settings = {} }: any) {
+    const { t } = useTranslation(); // Inject translator here
     const { post, processing } = useForm();
     const [agreed, setAgreed] = useState(false);
 
     // --- DYNAMIC SETTINGS ---
-    // Extract settings with safe fallbacks just in case
     const platformFee = Number(settings.platform_fee_percentage || 5);
     const creatorKeep = 100 - platformFee;
     const withdrawalMin = settings.withdrawal_minimum || 20000;
@@ -32,10 +34,9 @@ export default function Onboarding({ settings = {} }: any) {
 
     return (
         <>
-            <Head title="Become a Creator - Soko" />
+            <Head title={t('Become a Creator - Soko')} />
 
             <div className="relative flex min-h-screen flex-col bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
-                {/* Distraction-free header */}
                 <SimpleNavbar />
 
                 <main className="relative z-10 flex-1 px-4 pt-32 pb-24 sm:px-6 lg:px-8">
@@ -46,12 +47,12 @@ export default function Onboarding({ settings = {} }: any) {
                                 <Sparkles className="h-10 w-10 text-purple-600" />
                             </div>
                             <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
-                                Turn your passion into profit
+                                {t('Turn your passion into profit')}
                             </h1>
                             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-500">
-                                Join hundreds of creators selling premium
-                                digital assets, templates, and tools to a global
-                                audience.
+                                {t(
+                                    'Join hundreds of creators selling premium digital assets, templates, and tools to a global audience.',
+                                )}
                             </p>
                         </div>
 
@@ -60,37 +61,41 @@ export default function Onboarding({ settings = {} }: any) {
                             <div className="rounded-3xl border border-slate-200/60 bg-white/95 p-6 shadow-xl shadow-purple-900/5 backdrop-blur-sm">
                                 <CheckCircle className="mb-4 h-8 w-8 text-indigo-500" />
                                 <h3 className="mb-2 font-bold text-slate-900">
-                                    Low {platformFee}% Fee
+                                    {t('Low')} {platformFee}% {t('Fee')}
                                 </h3>
                                 <p className="text-sm text-slate-500">
-                                    Keep {creatorKeep}% of every sale you make.
-                                    We only take a minimal {platformFee}%
-                                    platform cut to keep the servers running
-                                    smoothly.
+                                    {t('Keep')} {creatorKeep}
+                                    {t(
+                                        '% of every sale you make. We only take a minimal',
+                                    )}{' '}
+                                    {platformFee}
+                                    {t(
+                                        '% platform cut to keep the servers running smoothly.',
+                                    )}
                                 </p>
                             </div>
                             <div className="rounded-3xl border border-slate-200/60 bg-white/95 p-6 shadow-xl shadow-purple-900/5 backdrop-blur-sm">
                                 <Wallet className="mb-4 h-8 w-8 text-emerald-500" />
                                 <h3 className="mb-2 font-bold text-slate-900">
-                                    Flexible Payouts
+                                    {t('Flexible Payouts')}
                                 </h3>
                                 <p className="text-sm text-slate-500">
-                                    Withdraw anytime starting at{' '}
-                                    {formatCurrency(withdrawalMin)}. Plus, all
-                                    payouts over{' '}
-                                    {formatCurrency(withdrawalFree)} are
-                                    completely free of transfer fees!
+                                    {t('Withdraw anytime starting at')}{' '}
+                                    {formatCurrency(withdrawalMin)}
+                                    {t('. Plus, all payouts over')}{' '}
+                                    {formatCurrency(withdrawalFree)}{' '}
+                                    {t('are completely free of transfer fees!')}
                                 </p>
                             </div>
                             <div className="rounded-3xl border border-slate-200/60 bg-white/95 p-6 shadow-xl shadow-purple-900/5 backdrop-blur-sm">
                                 <Shield className="mb-4 h-8 w-8 text-amber-500" />
                                 <h3 className="mb-2 font-bold text-slate-900">
-                                    Secure Hosting
+                                    {t('Secure Hosting')}
                                 </h3>
                                 <p className="text-sm text-slate-500">
-                                    We securely host your deliverables (up to
-                                    50MB) and automatically manage secure
-                                    downloads for your buyers.
+                                    {t(
+                                        'We securely host your deliverables (up to 50MB) and automatically manage secure downloads for your buyers.',
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -99,7 +104,7 @@ export default function Onboarding({ settings = {} }: any) {
                         <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 shadow-xl shadow-purple-900/5 backdrop-blur-sm">
                             <div className="border-b border-slate-100 bg-slate-50/50 px-8 py-6">
                                 <h2 className="text-xl font-black text-slate-900">
-                                    Creator Terms & Conditions
+                                    {t('Creator Terms & Conditions')}
                                 </h2>
                             </div>
 
@@ -108,30 +113,30 @@ export default function Onboarding({ settings = {} }: any) {
                                     <li className="flex gap-3">
                                         <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
                                         <p>
-                                            You guarantee that you own the
-                                            rights to all intellectual property
-                                            you upload to the Soko platform.
+                                            {t(
+                                                'You guarantee that you own the rights to all intellectual property you upload to the Soko platform.',
+                                            )}
                                         </p>
                                     </li>
                                     <li className="flex gap-3">
                                         <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
                                         <p>
-                                            Products must not contain malicious
-                                            code, viruses, or explicit material.
+                                            {t(
+                                                'Products must not contain malicious code, viruses, or explicit material.',
+                                            )}
                                         </p>
                                     </li>
                                     <li className="flex gap-3">
                                         <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
                                         <p>
-                                            You agree to provide basic support
-                                            to customers who purchase your
-                                            products.
+                                            {t(
+                                                'You agree to provide basic support to customers who purchase your products.',
+                                            )}
                                         </p>
                                     </li>
                                 </ul>
 
                                 <form onSubmit={submit}>
-                                    {/* --- REDESIGNED CHECKBOX --- */}
                                     <label className="group mb-8 flex cursor-pointer items-start gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-colors hover:border-slate-300">
                                         <div className="relative flex h-6 items-center">
                                             <input
@@ -160,11 +165,15 @@ export default function Onboarding({ settings = {} }: any) {
                                         </div>
 
                                         <p className="text-sm leading-relaxed text-slate-700">
-                                            I have read and agree to the{' '}
+                                            {t('I have read and agree to the')}{' '}
                                             <strong className="font-bold text-slate-900">
-                                                Creator Terms & Conditions
+                                                {t(
+                                                    'Creator Terms & Conditions',
+                                                )}
                                             </strong>
-                                            , and I am ready to start selling.
+                                            {t(
+                                                ', and I am ready to start selling.',
+                                            )}
                                         </p>
                                     </label>
 
@@ -174,8 +183,10 @@ export default function Onboarding({ settings = {} }: any) {
                                         className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-8 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                                     >
                                         {processing
-                                            ? 'Setting up your Creator Hub...'
-                                            : 'Accept & Become a Creator'}
+                                            ? t(
+                                                  'Setting up your Creator Hub...',
+                                              )
+                                            : t('Accept & Become a Creator')}
                                     </button>
                                 </form>
                             </div>

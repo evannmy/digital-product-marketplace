@@ -25,7 +25,7 @@ class UserController extends Controller
     {
         // Safety check: Prevent admins from deleting themselves
         if (Auth::id() === $user->id) {
-            return back()->with('error', 'You cannot delete your own admin account.');
+            return back()->with('error', __('You cannot delete your own admin account.'));
         }
 
         // 1. CAPTURE DETAILS AND SEND NOTIFICATION EMAIL (HANYA JIKA TERVERIFIKASI)
@@ -83,8 +83,8 @@ class UserController extends Controller
 
         // Tampilkan pesan sukses yang dinamis
         $message = $isVerified
-            ? 'User deleted successfully and termination email sent.'
-            : 'Unverified user deleted successfully (no email sent).';
+            ? __('User deleted successfully and termination email sent.')
+            : __('Unverified user deleted successfully (no email sent).');
 
         return back()->with('success', $message);
     }
@@ -92,14 +92,14 @@ class UserController extends Controller
     public function toggleStatus(User $user)
     {
         if (Auth::id() === $user->id) {
-            return back()->with('error', 'You cannot disable your own admin account.');
+            return back()->with('error', __('You cannot disable your own admin account.'));
         }
 
         $user->update([
             'is_active' => !$user->is_active,
         ]);
 
-        return back()->with('success', 'User status updated successfully.');
+        return back()->with('success', __('User status updated successfully.'));
     }
 
     // =========================================================================
@@ -116,6 +116,6 @@ class UserController extends Controller
             ]);
         }
 
-        return back()->with('success', 'User has been manually verified and OTP cleared.');
+        return back()->with('success', __('User has been manually verified and OTP cleared.'));
     }
 }

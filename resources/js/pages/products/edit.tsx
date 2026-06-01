@@ -19,6 +19,8 @@ import React, { useState } from 'react';
 import SimpleNavbar from '@/components/simple-navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- UPDATED: Isolated Thumbnail Component for Existing Media ---
 function ExistingMediaThumbnail({
@@ -30,6 +32,7 @@ function ExistingMediaThumbnail({
     index: number;
     onRemove: (id: number) => void;
 }) {
+    const { t } = useTranslation();
     const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(
         'loading',
     );
@@ -52,7 +55,7 @@ function ExistingMediaThumbnail({
                         <ImageIcon size={20} className="mb-1 opacity-50" />
                     )}
                     <span className="text-[8px] font-bold tracking-widest uppercase opacity-70">
-                        Error
+                        {t('Error')}
                     </span>
                 </div>
             )}
@@ -82,14 +85,14 @@ function ExistingMediaThumbnail({
                 type="button"
                 onClick={() => onRemove(media.id)}
                 className="absolute top-1 right-1 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-rose-500/90 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-rose-600"
-                title="Delete this file permanently"
+                title={t('Delete this file permanently')}
             >
                 <X size={14} strokeWidth={3} />
             </button>
 
             {index === 0 && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 rounded-b-lg bg-slate-900/60 py-1 text-center text-[10px] font-bold text-white backdrop-blur-sm">
-                    COVER
+                    {t('COVER')}
                 </div>
             )}
         </div>
@@ -97,6 +100,8 @@ function ExistingMediaThumbnail({
 }
 
 export default function Edit({ product, categories }: any) {
+    const { t } = useTranslation();
+
     // --- FORM STATE ---
     const { data, setData, post, processing, errors } = useForm({
         title: product.title || '',
@@ -125,8 +130,6 @@ export default function Edit({ product, categories }: any) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Uses POST because Laravel requires method spoofing (_method: PUT) for file uploads,
-        // which Inertia handles automatically if we just use a post route.
         post(`/seller/products/${product.id}/update`);
     };
 
@@ -159,7 +162,7 @@ export default function Edit({ product, categories }: any) {
 
         if (file) {
             if (file.size > 50 * 1024 * 1024) {
-                toast('Source file must be under 50MB.', 'error');
+                toast(t('Source file must be under 50MB.'), 'error');
                 e.target.value = '';
 
                 return;
@@ -176,15 +179,13 @@ export default function Edit({ product, categories }: any) {
         const validFiles: File[] = [];
         const newPreviews: { url: string; type: string }[] = [];
 
-        // Note: If you are in Create.tsx, just use `data.media.length`.
-        // If in Edit.tsx, use `existingMedia.length + data.media.length`.
         const currentLength =
             typeof existingMedia !== 'undefined'
                 ? existingMedia.length + data.media.length
                 : data.media.length;
 
         if (currentLength + newFiles.length > 10) {
-            toast('You can only have up to 10 media files.', 'error');
+            toast(t('You can only have up to 10 media files.'), 'error');
 
             return;
         }
@@ -195,14 +196,20 @@ export default function Edit({ product, categories }: any) {
 
             // --- VIDEO LIMIT: 20MB ---
             if (isVideo && file.size > 20 * 1024 * 1024) {
-                toast(`${file.name} is too large. Videos max 20MB.`, 'error');
+                toast(
+                    `${file.name} ${t('is too large. Videos max 20MB.')}`,
+                    'error',
+                );
 
                 return;
             }
 
             // --- IMAGE LIMIT: 5MB ---
             if (isImage && file.size > 5 * 1024 * 1024) {
-                toast(`${file.name} is too large. Images max 5MB.`, 'error');
+                toast(
+                    `${file.name} ${t('is too large. Images max 5MB.')}`,
+                    'error',
+                );
 
                 return;
             }
@@ -231,15 +238,13 @@ export default function Edit({ product, categories }: any) {
     };
 
     const removeExistingMedia = (idToRemove: number) => {
-        // Hide it from the UI immediately
         setExistingMedia(existingMedia.filter((m) => m.id !== idToRemove));
-        // Tell the backend to delete it on submit
         setData('remove_media', [...data.remove_media, idToRemove]);
     };
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
-            <Head title={`Edit ${product.title} - Soko`} />
+            <Head title={`${t('Edit')} ${product.title} - Soko`} />
             <SimpleNavbar />
 
             <main className="relative z-10 flex-1 pt-32 pb-24">
@@ -247,18 +252,19 @@ export default function Edit({ product, categories }: any) {
                     <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
                         <div>
                             <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                                Edit Product
+                                {t('Edit Product')}
                             </h1>
                             <p className="mt-2 text-lg text-slate-500">
-                                Update your product details or replace source
-                                files.
+                                {t(
+                                    'Update your product details or replace source files.',
+                                )}
                             </p>
                         </div>
                         <Link
                             href="/seller/products/mine"
                             className="text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
                         >
-                            Cancel Editing
+                            {t('Cancel Editing')}
                         </Link>
                     </div>
 
@@ -271,7 +277,7 @@ export default function Edit({ product, categories }: any) {
                                         size={16}
                                         className="text-slate-400"
                                     />
-                                    Product Title
+                                    {t('Product Title')}
                                 </label>
                                 <input
                                     type="text"
@@ -296,7 +302,7 @@ export default function Edit({ product, categories }: any) {
                                             size={16}
                                             className="text-slate-400"
                                         />
-                                        Category
+                                        {t('Category')}
                                     </label>
                                     <div className="relative">
                                         <select
@@ -311,7 +317,7 @@ export default function Edit({ product, categories }: any) {
                                             required
                                         >
                                             <option value="" disabled>
-                                                Select a category
+                                                {t('Select a category')}
                                             </option>
                                             {categories?.map(
                                                 (category: any) => (
@@ -345,7 +351,7 @@ export default function Edit({ product, categories }: any) {
                                             size={16}
                                             className="text-slate-400"
                                         />
-                                        Price (IDR)
+                                        {t('Price (IDR)')}
                                     </label>
                                     <div
                                         className={`flex w-full items-stretch overflow-hidden rounded-xl border bg-white/50 shadow-sm transition-colors focus-within:bg-white ${errors.price ? 'border-rose-300 focus-within:border-rose-500 focus-within:ring-1 focus-within:ring-rose-500' : 'border-slate-200 focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500'}`}
@@ -400,7 +406,7 @@ export default function Edit({ product, categories }: any) {
                             <div>
                                 <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                                     <Tag size={16} className="text-slate-400" />
-                                    Description
+                                    {t('Description')}
                                 </label>
                                 <textarea
                                     rows={5}
@@ -425,10 +431,10 @@ export default function Edit({ product, categories }: any) {
                                 <div>
                                     <div className="mb-2 flex items-start gap-2">
                                         <label className="text-sm font-bold text-slate-700">
-                                            Update Source File
+                                            {t('Update Source File')}
                                         </label>
                                         <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-700 uppercase">
-                                            Optional
+                                            {t('Optional')}
                                         </span>
                                     </div>
                                     <div
@@ -438,24 +444,28 @@ export default function Edit({ product, categories }: any) {
                                             <>
                                                 <UploadCloud className="mb-2 h-8 w-8 text-emerald-500" />
                                                 <span className="line-clamp-1 text-sm font-semibold text-emerald-700">
-                                                    Ready to upload:
+                                                    {t('Ready to upload:')}
                                                     <br />
                                                     {data.product_file.name}
                                                 </span>
                                                 <span className="mt-1 text-xs text-emerald-600">
-                                                    This will overwrite the old
-                                                    file
+                                                    {t(
+                                                        'This will overwrite the old file',
+                                                    )}
                                                 </span>
                                             </>
                                         ) : (
                                             <>
                                                 <AlertTriangle className="mb-2 h-8 w-8 text-amber-400" />
                                                 <span className="text-sm font-semibold text-amber-700">
-                                                    Current file is active
+                                                    {t(
+                                                        'Current file is active',
+                                                    )}
                                                 </span>
                                                 <span className="mt-1 text-xs text-amber-600/80">
-                                                    Upload a new .zip/.pdf to
-                                                    replace it
+                                                    {t(
+                                                        'Upload a new .zip/.pdf to replace it',
+                                                    )}
                                                 </span>
                                             </>
                                         )}
@@ -478,10 +488,10 @@ export default function Edit({ product, categories }: any) {
                                     <div className="mb-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <label className="text-sm font-bold text-slate-700">
-                                                Add to Gallery
+                                                {t('Add to Gallery')}
                                             </label>
                                             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-700 uppercase">
-                                                Optional
+                                                {t('Optional')}
                                             </span>
                                         </div>
                                         <span className="text-[10px] font-bold text-slate-400 uppercase">
@@ -494,10 +504,12 @@ export default function Edit({ product, categories }: any) {
                                     <div className="relative flex h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center transition-colors hover:border-purple-400 hover:bg-purple-50">
                                         <ImageIcon className="mb-2 h-8 w-8 text-purple-500" />
                                         <span className="text-sm font-semibold text-slate-700">
-                                            Upload More Images & Videos
+                                            {t('Upload More Images & Videos')}
                                         </span>
                                         <span className="mt-1 text-xs text-slate-400">
-                                            Images max 5MB • Videos max 20MB
+                                            {t(
+                                                'Images max 5MB • Videos max 20MB',
+                                            )}
                                         </span>
                                         <input
                                             type="file"
@@ -521,7 +533,7 @@ export default function Edit({ product, categories }: any) {
                                 previews.length > 0) && (
                                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                                     <p className="mb-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                        Current Gallery
+                                        {t('Current Gallery')}
                                     </p>
                                     <div className="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                         {/* 1. Show Existing Media (Using our new component) */}
@@ -547,7 +559,6 @@ export default function Edit({ product, categories }: any) {
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    /* --- FIXED: Show actual video frame for new uploads! --- */
                                                     <video
                                                         src={preview.url}
                                                         className="h-full w-full object-cover"
@@ -571,7 +582,7 @@ export default function Edit({ product, categories }: any) {
                                                 </button>
 
                                                 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 rounded-b-lg bg-emerald-500/90 py-1 text-center text-[10px] font-bold text-white backdrop-blur-sm">
-                                                    NEW
+                                                    {t('NEW')}
                                                 </div>
                                             </div>
                                         ))}
@@ -587,11 +598,11 @@ export default function Edit({ product, categories }: any) {
                                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
                                 >
                                     {processing ? (
-                                        'Saving Changes...'
+                                        t('Saving Changes...')
                                     ) : (
                                         <>
                                             <Save size={20} />
-                                            Update Product
+                                            {t('Update Product')}
                                         </>
                                     )}
                                 </button>

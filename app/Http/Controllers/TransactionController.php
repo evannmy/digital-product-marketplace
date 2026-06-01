@@ -139,7 +139,7 @@ class TransactionController extends Controller
         $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
 
         if (!$cart || $cart->items->isEmpty()) {
-            return redirect()->back()->with('error', 'Your cart is empty.');
+            return redirect()->back()->with('error', __('Your cart is empty.'));
         }
 
         $platformCutPercentage = Setting::getPlatformCut();
@@ -154,11 +154,11 @@ class TransactionController extends Controller
                 $product = $item->product;
 
                 if (!$product || !$product->is_active) {
-                    throw new \Exception("Product '{$product->title}' is unavailable.");
+                    throw new \Exception(__("Product ':title' is unavailable.", ['title' => $product->title]));
                 }
 
                 if ($user->id === $product->seller_id) {
-                    throw new \Exception("You cannot purchase your own product: '{$product->title}'.");
+                    throw new \Exception(__("You cannot purchase your own product: ':title'.", ['title' => $product->title]));
                 }
 
                 // SECURITY: Already owned?
@@ -167,7 +167,7 @@ class TransactionController extends Controller
                 })->where('product_id', $product->id)->exists();
 
                 if ($alreadyBought) {
-                    throw new \Exception("You already own '{$product->title}'.");
+                    throw new \Exception(__("You already own ':title'.", ['title' => $product->title]));
                 }
 
                 // SECURITY: Pending order?
@@ -176,7 +176,7 @@ class TransactionController extends Controller
                 })->where('product_id', $product->id)->exists();
 
                 if ($hasPendingOrder) {
-                    throw new \Exception("You have a pending order for '{$product->title}'. Please complete or cancel it first.");
+                    throw new \Exception(__("You have a pending order for ':title'. Please complete or cancel it first.", ['title' => $product->title]));
                 }
 
                 $finalPrice = $product->is_discount_active ? $product->discount_price : $product->price;
@@ -216,10 +216,10 @@ class TransactionController extends Controller
             DB::commit();
 
             return redirect()->route('orders.pay', $order->id)
-                ->with('success', 'Order placed! Proceeding to secure checkout...');
+                ->with('success', __('Order placed! Proceeding to secure checkout...'));
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('cart.index')->with('error', 'Checkout failed: ' . $e->getMessage());
+            return redirect()->route('cart.index')->with('error', __('Checkout failed: :message', ['message' => $e->getMessage()]));
         }
     }
 
@@ -231,11 +231,11 @@ class TransactionController extends Controller
         $user = $request->user();
 
         if (!$product->is_active) {
-            return back()->with('error', 'This product is currently unavailable.');
+            return back()->with('error', __('This product is currently unavailable.'));
         }
 
         if ($user->id === $product->seller_id) {
-            return back()->with('error', 'You cannot purchase your own product.');
+            return back()->with('error', __('You cannot purchase your own product.'));
         }
 
         // SECURITY: Already owned? 
@@ -244,7 +244,7 @@ class TransactionController extends Controller
         })->where('product_id', $product->id)->exists();
 
         if ($alreadyBought) {
-            return back()->with('error', 'You already own this product.');
+            return back()->with('error', __('You already own this product.'));
         }
 
         // SECURITY: Pending order? 
@@ -253,7 +253,7 @@ class TransactionController extends Controller
         })->where('product_id', $product->id)->exists();
 
         if ($hasPendingOrder) {
-            return back()->with('error', 'You already have a pending order for this product. Please complete or cancel it first.');
+            return back()->with('error', __('You already have a pending order for this product. Please complete or cancel it first.'));
         }
 
         $finalPrice = $product->is_discount_active ? $product->discount_price : $product->price;
@@ -284,10 +284,10 @@ class TransactionController extends Controller
             DB::commit();
 
             return redirect()->route('orders.pay', $order->id)
-                ->with('success', 'Order placed! Proceeding to secure checkout...');
+                ->with('success', __('Order placed! Proceeding to secure checkout...'));
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Purchase failed. Please try again.');
+            return back()->with('error', __('Purchase failed. Please try again.'));
         }
     }
 
@@ -301,15 +301,15 @@ class TransactionController extends Controller
     public function showPaymentPage(Request $request, Order $order)
     {
         if ($request->user()->id !== $order->buyer_id) {
-            abort(403, 'Unauthorized action.');
+            abort(403, __('Unauthorized action.'));
         }
 
         if ($order->status === 'success') {
-            return redirect()->route('purchases.index')->with('info', 'This order is already paid.');
+            return redirect()->route('purchases.index')->with('info', __('This order is already paid.'));
         }
 
         if ($order->status === 'cancelled') {
-            return redirect()->route('purchases.index')->with('error', 'This order has been cancelled. Please start a new checkout.');
+            return redirect()->route('purchases.index')->with('error', __('This order has been cancelled. Please start a new checkout.'));
         }
 
         // =====================================================================
@@ -335,7 +335,7 @@ class TransactionController extends Controller
             ]);
 
             return redirect()->route('purchases.index')
-                ->with('error', 'Payment time limit (24 hours) has expired. The order has been cancelled.');
+                ->with('error', __('Payment time limit (24 hours) has expired. The order has been cancelled.'));
         }
 
         Config::$serverKey = env('MIDTRANS_SERVER_KEY');
@@ -378,7 +378,7 @@ class TransactionController extends Controller
                     'midtrans_order_id' => $midtransOrderId
                 ]);
             } catch (\Exception $e) {
-                return back()->with('error', 'Failed to generate payment token: ' . $e->getMessage());
+                return back()->with('error', __('Failed to generate payment token: :message', ['message' => $e->getMessage()]));
             }
         }
 
@@ -435,15 +435,15 @@ class TransactionController extends Controller
     public function cancel(Request $request, Order $order)
     {
         if ($request->user()->id !== $order->buyer_id) {
-            abort(403, 'Unauthorized action.');
+            abort(403, __('Unauthorized action.'));
         }
 
         if ($order->status === 'success') {
-            return back()->with('error', 'Completed orders cannot be cancelled.');
+            return back()->with('error', __('Completed orders cannot be cancelled.'));
         }
 
         if ($order->status === 'cancelled') {
-            return redirect()->route('purchases.index')->with('error', 'This order has been cancelled. Please create a new checkout from your cart.');
+            return redirect()->route('purchases.index')->with('error', __('This order has been cancelled. Please create a new checkout from your cart.'));
         }
 
         // --- FIX 3: Tembak API Midtrans untuk membatalkan transaksi di Dashboard mereka ---
@@ -465,6 +465,6 @@ class TransactionController extends Controller
             'snap_token' => null
         ]);
 
-        return redirect()->route('purchases.index')->with('success', 'Order cancelled. You can now add the items to your cart and try again.');
+        return redirect()->route('purchases.index')->with('success', __('Order cancelled. You can now add the items to your cart and try again.'));
     }
 }

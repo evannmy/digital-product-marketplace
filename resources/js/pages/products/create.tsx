@@ -15,8 +15,12 @@ import {
 import React, { useState } from 'react';
 import SimpleNavbar from '@/components/simple-navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Create({ categories }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
     // --- 1. UPDATED FORM STATE ---
     const { data, setData, post, processing, errors } = useForm({
         title: '',
@@ -24,10 +28,9 @@ export default function Create({ categories }: any) {
         price: '',
         category_id: '',
         product_file: null as File | null,
-        media: [] as File[], // Now an array for the gallery
+        media: [] as File[],
     });
 
-    // Helper for previewing images in the browser
     const [previews, setPreviews] = useState<{ url: string; type: string }[]>(
         [],
     );
@@ -60,7 +63,7 @@ export default function Create({ categories }: any) {
 
         if (file) {
             if (file.size > 50 * 1024 * 1024) {
-                toast('Source file must be under 50MB.', 'error');
+                toast(t('Source file must be under 50MB.'), 'error');
                 e.target.value = '';
 
                 return;
@@ -77,12 +80,10 @@ export default function Create({ categories }: any) {
         const validFiles: File[] = [];
         const newPreviews: { url: string; type: string }[] = [];
 
-        // Note: If you are in Create.tsx, just use `data.media.length`.
-        // If in Edit.tsx, use `existingMedia.length + data.media.length`.
         const currentLength = data.media.length;
 
         if (currentLength + newFiles.length > 10) {
-            toast('You can only have up to 10 media files.', 'error');
+            toast(t('You can only have up to 10 media files.'), 'error');
 
             return;
         }
@@ -93,14 +94,20 @@ export default function Create({ categories }: any) {
 
             // --- VIDEO LIMIT: 20MB ---
             if (isVideo && file.size > 20 * 1024 * 1024) {
-                toast(`${file.name} is too large. Videos max 20MB.`, 'error');
+                toast(
+                    `${file.name} ${t('is too large. Videos max 20MB.')}`,
+                    'error',
+                );
 
                 return;
             }
 
             // --- IMAGE LIMIT: 5MB ---
             if (isImage && file.size > 5 * 1024 * 1024) {
-                toast(`${file.name} is too large. Images max 5MB.`, 'error');
+                toast(
+                    `${file.name} ${t('is too large. Images max 5MB.')}`,
+                    'error',
+                );
 
                 return;
             }
@@ -119,7 +126,6 @@ export default function Create({ categories }: any) {
     };
 
     const removeMedia = (indexToRemove: number) => {
-        // Clean up the object URL to avoid memory leaks
         URL.revokeObjectURL(previews[indexToRemove].url);
 
         setData(
@@ -134,23 +140,28 @@ export default function Create({ categories }: any) {
         post(route('products.store'), {
             forceFormData: true,
             onError: () =>
-                toast('Failed to upload product. Check for errors.', 'error'),
+                toast(
+                    t('Failed to upload product. Check for errors.'),
+                    'error',
+                ),
         });
     };
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
-            <Head title="Create Product - Soko" />
+            <Head title={t('Create Product - Soko')} />
 
             <SimpleNavbar />
 
             <main className="relative z-10 mx-auto max-w-3xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
                 <div className="mb-8 text-center sm:text-left">
                     <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                        Upload Digital Product
+                        {t('Upload Digital Product')}
                     </h1>
                     <p className="mt-2 text-lg text-slate-500">
-                        Package your expertise and share it with the world.
+                        {t(
+                            'Package your expertise and share it with the world.',
+                        )}
                     </p>
                 </div>
 
@@ -163,11 +174,11 @@ export default function Create({ categories }: any) {
                                     size={16}
                                     className="text-slate-400"
                                 />
-                                Product Title
+                                {t('Product Title')}
                             </label>
                             <input
                                 type="text"
-                                placeholder="e.g., My E-Book"
+                                placeholder={t('e.g., My E-Book')}
                                 className={`w-full rounded-xl border bg-white/50 px-4 py-3 text-sm shadow-sm transition-colors focus:bg-white focus:ring-1 focus:outline-none ${errors.title ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-500'}`}
                                 value={data.title}
                                 onChange={(e) =>
@@ -190,7 +201,7 @@ export default function Create({ categories }: any) {
                                         size={16}
                                         className="text-slate-400"
                                     />
-                                    Category
+                                    {t('Category')}
                                 </label>
                                 <div className="relative">
                                     <select
@@ -205,7 +216,7 @@ export default function Create({ categories }: any) {
                                         required
                                     >
                                         <option value="" disabled>
-                                            Select a category
+                                            {t('Select a category')}
                                         </option>
                                         {categories?.map((category: any) => (
                                             <option
@@ -238,7 +249,7 @@ export default function Create({ categories }: any) {
                                         size={16}
                                         className="text-slate-400"
                                     />
-                                    Price (IDR)
+                                    {t('Price (IDR)')}
                                 </label>
                                 <div
                                     className={`flex w-full items-stretch overflow-hidden rounded-xl border bg-white/50 shadow-sm transition-colors focus-within:bg-white ${errors.price ? 'border-rose-300 focus-within:border-rose-500 focus-within:ring-1 focus-within:ring-rose-500' : 'border-slate-200 focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500'}`}
@@ -287,11 +298,13 @@ export default function Create({ categories }: any) {
                         <div>
                             <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                                 <Tag size={16} className="text-slate-400" />
-                                Description
+                                {t('Description')}
                             </label>
                             <textarea
                                 rows={5}
-                                placeholder="Describe what makes your product valuable..."
+                                placeholder={t(
+                                    'Describe what makes your product valuable...',
+                                )}
                                 className={`w-full resize-y rounded-xl border bg-white/50 px-4 py-3 text-sm shadow-sm transition-colors focus:bg-white focus:ring-1 focus:outline-none ${errors.description ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:border-purple-500 focus:ring-purple-500'}`}
                                 value={data.description}
                                 onChange={(e) =>
@@ -312,17 +325,17 @@ export default function Create({ categories }: any) {
                             {/* The Digital File (Unchanged) */}
                             <div>
                                 <label className="mb-2 block text-sm font-bold text-slate-700">
-                                    Source File (Required)
+                                    {t('Source File (Required)')}
                                 </label>
                                 <div className="relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50">
                                     <UploadCloud className="mb-2 h-8 w-8 text-emerald-500" />
                                     <span className="line-clamp-1 text-sm font-semibold text-slate-700">
                                         {data.product_file
                                             ? data.product_file.name
-                                            : 'Upload .zip or .pdf'}
+                                            : t('Upload .zip or .pdf')}
                                     </span>
                                     <span className="mt-1 text-xs text-slate-400">
-                                        Max size 50MB
+                                        {t('Max size 50MB')}
                                     </span>
                                     <input
                                         type="file"
@@ -343,7 +356,7 @@ export default function Create({ categories }: any) {
                             <div>
                                 <div className="mb-2 flex items-center justify-between">
                                     <label className="block text-sm font-bold text-slate-700">
-                                        Media Gallery (Optional)
+                                        {t('Media Gallery (Optional)')}
                                     </label>
                                     <span className="text-[10px] font-bold text-slate-400 uppercase">
                                         {data.media.length} / 10
@@ -353,10 +366,10 @@ export default function Create({ categories }: any) {
                                 <div className="relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-center transition-colors hover:border-purple-400 hover:bg-purple-50">
                                     <ImageIcon className="mb-2 h-8 w-8 text-purple-500" />
                                     <span className="text-sm font-semibold text-slate-700">
-                                        Add Images & Videos
+                                        {t('Add Images & Videos')}
                                     </span>
                                     <span className="mt-1 text-xs text-slate-400">
-                                        Images max 5MB • Videos max 20MB
+                                        {t('Images max 5MB • Videos max 20MB')}
                                     </span>
                                     <input
                                         type="file"
@@ -378,7 +391,7 @@ export default function Create({ categories }: any) {
                         {previews.length > 0 && (
                             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                                 <p className="mb-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                    Gallery Preview
+                                    {t('Gallery Preview')}
                                 </p>
                                 <div className="flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                     {previews.map((preview, index) => (
@@ -393,7 +406,6 @@ export default function Create({ categories }: any) {
                                                     className="h-full w-full object-cover"
                                                 />
                                             ) : (
-                                                /* --- FIXED: Show actual video frame for new uploads! --- */
                                                 <video
                                                     src={preview.url}
                                                     className="h-full w-full object-cover"
@@ -417,7 +429,7 @@ export default function Create({ categories }: any) {
                                             {/* Primary Label for the first image */}
                                             {index === 0 && (
                                                 <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 rounded-b-lg bg-slate-900/60 py-1 text-center text-[10px] font-bold text-white backdrop-blur-sm">
-                                                    COVER
+                                                    {t('COVER')}
                                                 </div>
                                             )}
                                         </div>
@@ -433,11 +445,11 @@ export default function Create({ categories }: any) {
                                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
                             >
                                 {processing ? (
-                                    'Uploading files...'
+                                    t('Uploading files...')
                                 ) : (
                                     <>
                                         <UploadCloud size={20} />
-                                        Publish Product
+                                        {t('Publish Product')}
                                     </>
                                 )}
                             </button>

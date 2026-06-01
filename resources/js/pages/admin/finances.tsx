@@ -1,4 +1,4 @@
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, router, Link, usePage } from '@inertiajs/react';
 import {
     Landmark,
     CheckCircle,
@@ -13,8 +13,26 @@ import {
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function AdminFinances({ stats, withdrawals }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
+    // 1. Grab the flash messages from Inertia's page props
+    const { flash } = usePage().props as any;
+
+    // 2. Listen for changes to the flash object and trigger the toast
+    useEffect(() => {
+        if (flash?.success) {
+            toast(flash.success, 'success');
+        }
+
+        if (flash?.error) {
+            toast(flash.error, 'error');
+        }
+    }, [flash]);
+
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         type: 'approve' | 'reject' | null;
@@ -46,13 +64,11 @@ export default function AdminFinances({ stats, withdrawals }: any) {
         setModalConfig({ isOpen: true, type: 'reject', withdrawal: wd });
     };
 
-    // --- WRAPPED IN useCallback ---
     const executeAction = useCallback(() => {
         if (!modalConfig.withdrawal?.id || !modalConfig.type) return;
 
         setIsProcessing(true);
 
-        const isApprove = modalConfig.type === 'approve';
         const route = `/admin/withdrawals/${modalConfig.withdrawal.id}/${modalConfig.type}`;
 
         router.patch(
@@ -61,17 +77,14 @@ export default function AdminFinances({ stats, withdrawals }: any) {
             {
                 preserveScroll: true,
                 onSuccess: () => {
+                    // Cukup tutup modal.
+                    // Pesan toast SUDAH terjemahkan oleh backend dan akan muncul otomatis
+                    // melalui global flash message handler Anda.
                     setModalConfig({
                         isOpen: false,
                         type: null,
                         withdrawal: null,
                     });
-                    toast(
-                        isApprove
-                            ? 'Withdrawal marked as completed!'
-                            : 'Withdrawal rejected successfully.',
-                        isApprove ? 'success' : 'info',
-                    );
                 },
                 onError: () => {
                     setModalConfig({
@@ -79,17 +92,13 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                         type: null,
                         withdrawal: null,
                     });
-                    toast(
-                        isApprove
-                            ? 'Failed to approve withdrawal.'
-                            : 'Failed to reject withdrawal.',
-                        'error',
-                    );
+                    // Fallback jika terjadi error server 500 yang tidak tertangkap controller
+                    toast(t('Failed to process withdrawal.'), 'error');
                 },
                 onFinish: () => setIsProcessing(false),
             },
         );
-    }, [modalConfig]); // <-- Function only updates if modalConfig changes
+    }, [modalConfig, t]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -116,13 +125,13 @@ export default function AdminFinances({ stats, withdrawals }: any) {
             document.body.style.overflow = 'unset';
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [modalConfig, isProcessing, executeAction]); // <-- Added executeAction to clear the ESLint warning safely!
+    }, [modalConfig, isProcessing, executeAction]);
 
     const getStatusBadge = (status: string) => {
         if (status === 'completed') {
             return (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-500/20 ring-inset">
-                    <CheckCircle size={12} /> Paid
+                    <CheckCircle size={12} /> {t('Paid')}
                 </span>
             );
         }
@@ -130,30 +139,32 @@ export default function AdminFinances({ stats, withdrawals }: any) {
         if (status === 'failed' || status === 'rejected') {
             return (
                 <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 ring-1 ring-rose-500/20 ring-inset">
-                    <XCircle size={12} /> Rejected
+                    <XCircle size={12} /> {t('Rejected')}
                 </span>
             );
         }
 
         return (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-500/20 ring-inset">
-                <Clock size={12} /> Pending
+                <Clock size={12} /> {t('Pending')}
             </span>
         );
     };
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="Platform Finances - Soko Admin" />
+            <Head title={t('Platform Finances - Soko Admin')} />
             <Navbar />
 
             <main className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
                 <div className="mb-10">
                     <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                        Platform Finances
+                        {t('Platform Finances')}
                     </h1>
                     <p className="mt-2 text-lg text-slate-500">
-                        Monitor platform revenue and manage seller payouts.
+                        {t(
+                            'Monitor platform revenue and manage seller payouts.',
+                        )}
                     </p>
                 </div>
 
@@ -163,13 +174,13 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                             <Wallet size={24} />
                         </div>
                         <p className="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                            Total Gross Volume
+                            {t('Total Transaction Value')}
                         </p>
                         <h3 className="text-2xl font-black text-slate-900 lg:text-3xl">
                             {formatCurrency(stats?.totalSalesVolume || 0)}
                         </h3>
                         <p className="mt-2 text-xs font-medium text-slate-500">
-                            All funds processed (Platform + Creators).
+                            {t('Total funds processed across the platform.')}
                         </p>
                     </div>
 
@@ -178,13 +189,13 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                             <Users size={24} />
                         </div>
                         <p className="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                            Total Creator Earnings
+                            {t('Total Creator Earnings')}
                         </p>
                         <h3 className="text-2xl font-black text-slate-900 lg:text-3xl">
                             {formatCurrency(totalCreatorEarnings)}
                         </h3>
                         <p className="mt-2 text-xs font-medium text-slate-500">
-                            Net funds belonging to all sellers combined.
+                            {t('Total net income earned by creators.')}
                         </p>
                     </div>
 
@@ -193,13 +204,13 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                             <Landmark size={24} />
                         </div>
                         <p className="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                            Total Platform Revenue
+                            {t('Total Platform Revenue')}
                         </p>
                         <h3 className="text-2xl font-black text-slate-900 lg:text-3xl">
                             {formatCurrency(stats?.totalPlatformRevenue || 0)}
                         </h3>
                         <p className="mt-2 text-xs font-medium text-slate-500">
-                            Soko's cut from the total gross volume.
+                            {t("Soko's total earnings from transactions.")}
                         </p>
                     </div>
 
@@ -208,14 +219,14 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                             <Clock size={24} />
                         </div>
                         <p className="mb-1 text-xs font-bold tracking-wider text-amber-600/70 uppercase">
-                            Pending Net Transfers
+                            {t('Pending Transfers')}
                         </p>
                         <h3 className="text-2xl font-black text-amber-700 lg:text-3xl">
                             {formatCurrency(stats?.pendingPayoutsAmount || 0)}
                         </h3>
                         <p className="mt-2 text-xs font-medium text-amber-600/80">
-                            Across {stats?.pendingPayoutsCount || 0} pending
-                            request(s).
+                            {t('Across ')} {stats?.pendingPayoutsCount || 0}{' '}
+                            {t(' pending withdrawal request(s).')}
                         </p>
                     </div>
                 </div>
@@ -223,13 +234,13 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                 <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl ring-1 shadow-slate-900/5">
                     <div className="border-b border-slate-100 bg-slate-50/80 px-6 py-5 sm:px-8">
                         <h2 className="text-xl font-black text-slate-900">
-                            Withdrawal Requests
+                            {t('Withdrawal Requests')}
                         </h2>
                     </div>
 
                     {withdrawals?.data?.length === 0 ? (
                         <div className="py-20 text-center text-slate-500">
-                            No withdrawal requests found.
+                            {t('No withdrawal requests.')}
                         </div>
                     ) : (
                         <>
@@ -269,7 +280,7 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                         <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4">
                                             <div className="flex flex-col gap-1 text-sm">
                                                 <span className="text-xs text-slate-500">
-                                                    Destination Bank
+                                                    {t('Destination Bank')}
                                                 </span>
                                                 <span className="font-semibold text-slate-700">
                                                     {wd.bank_details}
@@ -279,19 +290,19 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                             <div className="flex items-end justify-between border-t border-slate-200/60 pt-3">
                                                 <div className="flex flex-col gap-1 text-xs">
                                                     <span className="text-slate-500">
-                                                        Gross:{' '}
+                                                        {t('Amount:')}{' '}
                                                         {formatCurrency(
                                                             wd.gross_amount,
                                                         )}
                                                     </span>
                                                     <span className="text-rose-500">
-                                                        Fee: -{' '}
+                                                        {t('Fee: -')}{' '}
                                                         {formatCurrency(wd.fee)}
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1">
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                                        Net Transfer
+                                                        {t('Transfer')}
                                                     </span>
                                                     <span className="text-base font-black text-emerald-600">
                                                         {formatCurrency(
@@ -315,7 +326,7 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                                             }
                                                             className="inline-flex items-center rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 shadow-sm transition-colors hover:bg-rose-100"
                                                         >
-                                                            Reject
+                                                            {t('Reject')}
                                                         </button>
                                                         <button
                                                             onClick={() =>
@@ -325,12 +336,12 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                                             }
                                                             className="inline-flex items-center rounded-lg bg-indigo-500 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-600"
                                                         >
-                                                            Mark Paid
+                                                            {t('Paid')}
                                                         </button>
                                                     </div>
                                                 ) : (
                                                     <span className="text-xs font-medium text-slate-400">
-                                                        Processed
+                                                        {t('Processed')}
                                                     </span>
                                                 )}
                                             </div>
@@ -344,28 +355,28 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-white text-slate-500">
                                             <th className="px-6 py-5 font-bold tracking-wider uppercase">
-                                                Date / Ref
+                                                {t('Date / Ref')}
                                             </th>
                                             <th className="px-6 py-5 font-bold tracking-wider uppercase">
-                                                Seller
+                                                {t('Seller')}
                                             </th>
                                             <th className="px-6 py-5 font-bold tracking-wider uppercase">
-                                                Destination
+                                                {t('Destination')}
                                             </th>
                                             <th className="px-6 py-5 text-right font-bold tracking-wider uppercase">
-                                                Gross
+                                                {t('Amount')}
                                             </th>
                                             <th className="px-6 py-5 text-right font-bold tracking-wider text-rose-500 uppercase">
-                                                Fee
+                                                {t('Fee')}
                                             </th>
                                             <th className="px-6 py-5 text-right font-bold tracking-wider text-emerald-600 uppercase">
-                                                Net Transfer
+                                                {t('Transfer')}
                                             </th>
                                             <th className="px-6 py-5 text-center font-bold tracking-wider uppercase">
-                                                Status
+                                                {t('Status')}
                                             </th>
                                             <th className="px-6 py-5 text-right font-bold tracking-wider uppercase">
-                                                Action
+                                                {t('Action')}
                                             </th>
                                         </tr>
                                     </thead>
@@ -433,7 +444,7 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                                                 }
                                                                 className="inline-flex items-center rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 shadow-sm transition-colors hover:bg-rose-100"
                                                             >
-                                                                Reject
+                                                                {t('Reject')}
                                                             </button>
                                                             <button
                                                                 onClick={() =>
@@ -443,12 +454,12 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                                                 }
                                                                 className="inline-flex items-center rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-indigo-600"
                                                             >
-                                                                Paid
+                                                                {t('Paid')}
                                                             </button>
                                                         </div>
                                                     ) : (
                                                         <span className="text-xs font-medium text-slate-400">
-                                                            Processed
+                                                            {t('Processed')}
                                                         </span>
                                                     )}
                                                 </td>
@@ -530,35 +541,38 @@ export default function AdminFinances({ stats, withdrawals }: any) {
 
                         <h3 className="mb-2 text-xl font-bold text-slate-900">
                             {modalConfig.type === 'approve'
-                                ? 'Approve Withdrawal'
-                                : 'Reject Withdrawal'}
+                                ? t('Approve Withdrawal')
+                                : t('Reject Withdrawal')}
                         </h3>
 
                         <p className="mb-8 text-sm leading-relaxed text-slate-500">
                             {modalConfig.type === 'approve' ? (
                                 <>
-                                    Are you sure you have transferred{' '}
+                                    {t('Are you sure you have transferred ')}
                                     <strong className="font-black text-slate-900">
                                         {formatCurrency(
                                             modalConfig.withdrawal
                                                 ?.net_amount || 0,
                                         )}
                                     </strong>{' '}
-                                    to the seller's bank account? This will mark
-                                    the payout as completed.
+                                    {t(
+                                        " to the seller's bank account? This will mark the payout as completed.",
+                                    )}
                                 </>
                             ) : (
                                 <>
-                                    Are you sure you want to reject this
-                                    withdrawal of{' '}
+                                    {t(
+                                        'Are you sure you want to reject this withdrawal of ',
+                                    )}
                                     <strong className="font-black text-slate-900">
                                         {formatCurrency(
                                             modalConfig.withdrawal
                                                 ?.gross_amount || 0,
                                         )}
                                     </strong>
-                                    ? The locked funds will be returned to the
-                                    seller's available balance.
+                                    {t(
+                                        "? The locked funds will be returned to the seller's available balance.",
+                                    )}
                                 </>
                             )}
                         </p>
@@ -575,7 +589,7 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                 disabled={isProcessing}
                                 className="flex-1 rounded-xl bg-slate-50 py-3.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Cancel
+                                {t('Cancel')}
                             </button>
                             <button
                                 onClick={executeAction}
@@ -598,12 +612,12 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                                             size={16}
                                             className="animate-spin"
                                         />
-                                        Processing...
+                                        {t('Processing...')}
                                     </>
                                 ) : modalConfig.type === 'approve' ? (
-                                    'Yes, mark as paid'
+                                    t('Yes, mark as paid')
                                 ) : (
-                                    'Yes, reject request'
+                                    t('Yes, reject request')
                                 )}
                             </button>
                         </div>

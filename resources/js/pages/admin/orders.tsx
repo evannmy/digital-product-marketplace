@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ClipboardList,
     CheckCircle,
@@ -17,9 +17,13 @@ import React, { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- FIXED: Real-time Countdown Timer for Admins ---
 function AdminOrderCountdown({ createdAt }: { createdAt: string }) {
+    const { t } = useTranslation(); // Inject translator here
+
     // 1. Initialize the state correctly on the first render to avoid the sync setState warning
     const [timeInfo, setTimeInfo] = useState(() => {
         const createdTime = new Date(createdAt).getTime();
@@ -27,7 +31,7 @@ function AdminOrderCountdown({ createdAt }: { createdAt: string }) {
         const now = new Date().getTime();
         const difference = expirationTime - now;
 
-        if (difference <= 0) return { text: 'Expired', isExpired: true };
+        if (difference <= 0) return { text: t('Expired'), isExpired: true };
 
         const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
         const minutes = Math.floor((difference / 1000 / 60) % 60);
@@ -50,7 +54,7 @@ function AdminOrderCountdown({ createdAt }: { createdAt: string }) {
             const difference = expirationTime - now;
 
             if (difference <= 0) {
-                setTimeInfo({ text: 'Expired', isExpired: true });
+                setTimeInfo({ text: t('Expired'), isExpired: true });
                 clearInterval(timer);
 
                 return;
@@ -67,16 +71,37 @@ function AdminOrderCountdown({ createdAt }: { createdAt: string }) {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [createdAt, timeInfo.isExpired]);
+    }, [createdAt, timeInfo.isExpired, t]);
 
     if (timeInfo.isExpired) {
-        return <span className="text-rose-600">Expired</span>;
+        return <span className="text-rose-600">{t('Expired')}</span>;
     }
 
-    return <span>Expires: {timeInfo.text}</span>;
+    return (
+        <span>
+            {t('Expires: ')}
+            {timeInfo.text}
+        </span>
+    );
 }
 
 export default function AdminOrders({ orders, stats, filters }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
+    // --- 1. AMBIL DATA FLASH DARI INERTIA ---
+    const { flash } = usePage().props as any;
+
+    // --- 2. PASANG LISTENER UNTUK MEMUNCULKAN TOAST OTOMATIS ---
+    useEffect(() => {
+        if (flash?.success) {
+            toast(flash.success, 'success');
+        }
+
+        if (flash?.error) {
+            toast(flash.error, 'error');
+        }
+    }, [flash]);
+
     const [search, setSearch] = useState(filters?.search || '');
     const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
 
@@ -131,11 +156,13 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                 preserveScroll: true,
                 onSuccess: () => {
                     setCancelModalConfig({ isOpen: false, orderId: null });
-                    toast('Order cancelled successfully.', 'info');
+                    // toast() dihapus karena pesan sukses sudah dibawa dari controller
+                    // dan ditangkap oleh useEffect di atas.
                 },
                 onError: () => {
                     setCancelModalConfig({ isOpen: false, orderId: null });
-                    toast('Failed to cancel order.', 'error');
+                    // Tetap pertahankan toast ini sebagai fallback jika server error (500)
+                    toast(t('Failed to cancel order.'), 'error');
                 },
                 onFinish: () => setIsProcessing(false),
             },
@@ -155,19 +182,19 @@ export default function AdminOrders({ orders, stats, filters }: any) {
             case 'success':
                 return (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-500/20">
-                        <CheckCircle size={12} /> Completed
+                        <CheckCircle size={12} /> {t('Completed')}
                     </span>
                 );
             case 'pending':
                 return (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-500/20">
-                        <Clock size={12} /> Awaiting Payment
+                        <Clock size={12} /> {t('Awaiting Payment')}
                     </span>
                 );
             case 'cancelled':
                 return (
                     <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 ring-1 ring-rose-500/20">
-                        <XCircle size={12} /> Cancelled
+                        <XCircle size={12} /> {t('Cancelled')}
                     </span>
                 );
             default:
@@ -181,7 +208,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="Order Management - Soko" />
+            <Head title={t('Order Management - Soko')} />
             <Navbar />
 
             <main className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
@@ -189,10 +216,12 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                 <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
                     <div>
                         <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                            Order Management
+                            {t('Order Management')}
                         </h1>
                         <p className="mt-2 text-lg text-slate-500">
-                            Monitor automated transactions from Midtrans.
+                            {t(
+                                'Track and manage all automated payments seamlessly.',
+                            )}
                         </p>
                     </div>
                 </div>
@@ -204,7 +233,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                             <Clock size={20} />
                         </div>
                         <p className="text-sm font-bold tracking-wider text-amber-600/70 uppercase">
-                            Pending Payments
+                            {t('Pending Payments')}
                         </p>
                         <h3 className="text-3xl font-black text-amber-700">
                             {stats?.pending || 0}
@@ -215,7 +244,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                             <CheckCircle size={20} />
                         </div>
                         <p className="text-sm font-bold tracking-wider text-emerald-600/70 uppercase">
-                            Completed Orders
+                            {t('Completed Orders')}
                         </p>
                         <h3 className="text-3xl font-black text-emerald-700">
                             {stats?.completed || 0}
@@ -226,7 +255,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                             <TrendingUp size={20} />
                         </div>
                         <p className="text-sm font-bold tracking-wider text-slate-400 uppercase">
-                            Total Orders
+                            {t('Total Orders')}
                         </p>
                         <h3 className="text-3xl font-black text-slate-900">
                             {stats?.total || 0}
@@ -244,7 +273,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                 size={24}
                             />
                             <h2 className="text-xl font-black text-slate-900">
-                                Transaction Log
+                                {t('Transaction Log')}
                             </h2>
                         </div>
 
@@ -256,7 +285,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search Order ID or Buyer..."
+                                    placeholder={t(
+                                        'Search Order ID or Buyer...',
+                                    )}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="h-10 w-full rounded-xl border border-slate-200 bg-white pr-4 pl-9 text-sm transition-all outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
@@ -268,10 +299,18 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                     onChange={handleFilterChange}
                                     className="h-10 w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-9 text-sm font-medium text-slate-600 transition-all outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                 >
-                                    <option value="all">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="success">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
+                                    <option value="all">
+                                        {t('All Status')}
+                                    </option>
+                                    <option value="pending">
+                                        {t('Pending')}
+                                    </option>
+                                    <option value="success">
+                                        {t('Completed')}
+                                    </option>
+                                    <option value="cancelled">
+                                        {t('Cancelled')}
+                                    </option>
                                 </select>
                                 <Filter className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             </div>
@@ -285,10 +324,10 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                 <ClipboardList className="h-8 w-8 text-slate-300" />
                             </div>
                             <h3 className="text-lg font-bold text-slate-900">
-                                No orders found
+                                {t('No orders found')}
                             </h3>
                             <p className="mt-1 text-sm text-slate-500">
-                                Try adjusting your search or filters.
+                                {t('Try adjusting your search or filters.')}
                             </p>
                         </div>
                     ) : (
@@ -320,7 +359,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                             {order.buyer
                                                                 ? order.buyer
                                                                       .name
-                                                                : 'Guest'}
+                                                                : t('Guest')}
                                                         </span>
                                                         {order.buyer
                                                             ?.username && (
@@ -361,7 +400,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-base font-black text-emerald-600">
-                                                        Rp{' '}
                                                         {formatCurrency(
                                                             order.total_amount,
                                                         )}
@@ -378,7 +416,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                             <div className="mt-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100 ring-inset">
                                                 <div className="mb-2 flex items-center justify-between">
                                                     <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                                                        Purchased Items
+                                                        {t('Purchased Items')}
                                                     </p>
                                                     {hasMultipleItems && (
                                                         <button
@@ -390,8 +428,8 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                             className="flex items-center gap-1 text-[11px] font-bold text-purple-600 transition-colors hover:text-purple-800"
                                                         >
                                                             {isExpanded
-                                                                ? 'Hide'
-                                                                : 'View All'}
+                                                                ? t('Hide')
+                                                                : t('View All')}
                                                             <ChevronRight
                                                                 size={12}
                                                                 className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
@@ -427,26 +465,34 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                         item
                                                                                             .product
                                                                                             ?.title ||
-                                                                                        'Archived Product'}
+                                                                                        t(
+                                                                                            'Archived Product',
+                                                                                        )}
                                                                                 </span>
                                                                                 {(item
                                                                                     .product
                                                                                     ?.deleted_at ||
                                                                                     !item.product) && (
                                                                                     <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
-                                                                                        Removed
+                                                                                        {t(
+                                                                                            'Removed',
+                                                                                        )}
                                                                                     </span>
                                                                                 )}
                                                                             </div>
 
                                                                             <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-slate-400">
                                                                                 <span>
-                                                                                    Seller:{' '}
+                                                                                    {t(
+                                                                                        'Seller: ',
+                                                                                    )}{' '}
                                                                                     {item
                                                                                         .product
                                                                                         ?.seller
                                                                                         ?.name ||
-                                                                                        'Unknown'}
+                                                                                        t(
+                                                                                            'Unknown',
+                                                                                        )}
                                                                                 </span>
                                                                                 {item
                                                                                     .product
@@ -468,7 +514,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                         </div>
                                                                     </div>
                                                                     <span className="shrink-0 text-xs font-bold text-slate-900">
-                                                                        Rp{' '}
                                                                         {formatCurrency(
                                                                             item.price,
                                                                         )}
@@ -492,7 +537,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                             .items[0]
                                                                             .product
                                                                             ?.title ||
-                                                                        'Archived Product'}
+                                                                        t(
+                                                                            'Archived Product',
+                                                                        )}
                                                                 </span>
 
                                                                 {archivedItemsCount >
@@ -502,8 +549,10 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                             .items
                                                                             .length ===
                                                                         1
-                                                                            ? 'Removed'
-                                                                            : `${archivedItemsCount} Removed`}
+                                                                            ? t(
+                                                                                  'Removed',
+                                                                              )
+                                                                            : `${archivedItemsCount} ${t('Removed')}`}
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -515,7 +564,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                 {order.items
                                                                     .length -
                                                                     1}{' '}
-                                                                more items
+                                                                {t(
+                                                                    'more items',
+                                                                )}
                                                             </span>
                                                         </div>
                                                     )}
@@ -532,15 +583,15 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                         }
                                                         className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-100"
                                                     >
-                                                        <X size={14} /> Force
-                                                        Cancel
+                                                        <X size={14} />{' '}
+                                                        {t('Force Cancel')}
                                                     </button>
                                                 ) : (
                                                     <span className="text-xs font-medium text-slate-400">
                                                         {order.status ===
                                                         'success'
-                                                            ? 'Automated'
-                                                            : 'Closed'}
+                                                            ? t('Automated')
+                                                            : t('Closed')}
                                                     </span>
                                                 )}
                                             </div>
@@ -556,25 +607,25 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                         <tr className="border-b border-slate-100 bg-white text-slate-500">
                                             <th className="w-12 px-5 py-5"></th>
                                             <th className="px-5 py-5 font-bold tracking-wider uppercase">
-                                                Order ID / Date
+                                                {t('Order ID / Date')}
                                             </th>
                                             <th className="px-5 py-5 font-bold tracking-wider uppercase">
-                                                Buyer
+                                                {t('Buyer')}
                                             </th>
                                             <th className="px-5 py-5 font-bold tracking-wider uppercase">
-                                                Products
+                                                {t('Products')}
                                             </th>
                                             <th className="px-5 py-5 font-bold tracking-wider uppercase">
-                                                Seller
+                                                {t('Seller')}
                                             </th>
                                             <th className="px-5 py-5 font-bold tracking-wider uppercase">
-                                                Total Amount
+                                                {t('Total Price')}
                                             </th>
                                             <th className="px-5 py-5 font-bold tracking-wider uppercase">
-                                                Status
+                                                {t('Status')}
                                             </th>
                                             <th className="px-5 py-5 text-right font-bold tracking-wider uppercase">
-                                                Action
+                                                {t('Action')}
                                             </th>
                                         </tr>
                                     </thead>
@@ -585,8 +636,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                             const hasMultipleItems =
                                                 order.items &&
                                                 order.items.length > 1;
-
-                                            // FIXED: We deleted `archivedItemsCount` here since the desktop view expands to show each item individually.
 
                                             return (
                                                 <React.Fragment key={order.id}>
@@ -604,8 +653,12 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                     }
                                                                     title={
                                                                         isExpanded
-                                                                            ? 'Hide details'
-                                                                            : 'Show details'
+                                                                            ? t(
+                                                                                  'Hide details',
+                                                                              )
+                                                                            : t(
+                                                                                  'Show details',
+                                                                              )
                                                                     }
                                                                     className={`flex h-7 w-7 items-center justify-center rounded-full ring-1 ring-slate-200 transition-all ${isExpanded ? 'rotate-90 bg-purple-100 shadow-sm ring-purple-300' : 'bg-white hover:bg-slate-100'}`}
                                                                 >
@@ -639,7 +692,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                         ? order
                                                                               .buyer
                                                                               .name
-                                                                        : 'Guest'}
+                                                                        : t(
+                                                                              'Guest',
+                                                                          )}
                                                                 </div>
                                                                 {order.buyer
                                                                     ?.username && (
@@ -688,7 +743,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                         .items[0]
                                                                                         .product
                                                                                         ?.title ||
-                                                                                    'Archived Product'}
+                                                                                    t(
+                                                                                        'Archived Product',
+                                                                                    )}
                                                                             </span>
 
                                                                             {(order
@@ -699,7 +756,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                     .items[0]
                                                                                     .product) && (
                                                                                 <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
-                                                                                    Removed
+                                                                                    {t(
+                                                                                        'Removed',
+                                                                                    )}
                                                                                 </span>
                                                                             )}
                                                                         </div>
@@ -722,7 +781,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                         .product
                                                                         ?.seller
                                                                         ?.name ||
-                                                                        'Unknown'}
+                                                                        t(
+                                                                            'Unknown',
+                                                                        )}
                                                                 </span>
                                                                 {order.items[0]
                                                                     .product
@@ -743,7 +804,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                         </td>
 
                                                         <td className="px-5 py-5 align-top text-base font-black text-emerald-600">
-                                                            Rp{' '}
                                                             {formatCurrency(
                                                                 order.total_amount,
                                                             )}
@@ -792,14 +852,20 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                             14
                                                                         }
                                                                     />{' '}
-                                                                    Force Cancel
+                                                                    {t(
+                                                                        'Force Cancel',
+                                                                    )}
                                                                 </button>
                                                             ) : (
                                                                 <span className="text-xs font-medium text-slate-400">
                                                                     {order.status ===
                                                                     'success'
-                                                                        ? 'Automated'
-                                                                        : 'Closed'}
+                                                                        ? t(
+                                                                              'Automated',
+                                                                          )
+                                                                        : t(
+                                                                              'Closed',
+                                                                          )}
                                                                 </span>
                                                             )}
                                                         </td>
@@ -820,18 +886,24 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                 <thead className="bg-slate-50/80">
                                                                                     <tr className="border-b border-slate-100 text-slate-500">
                                                                                         <th className="px-6 py-3.5 font-bold tracking-wider uppercase">
-                                                                                            Item
-                                                                                            Ref
+                                                                                            {t(
+                                                                                                'Item Ref',
+                                                                                            )}
                                                                                         </th>
                                                                                         <th className="px-6 py-3.5 font-bold tracking-wider uppercase">
-                                                                                            Product
-                                                                                            Title
+                                                                                            {t(
+                                                                                                'Product Title',
+                                                                                            )}
                                                                                         </th>
                                                                                         <th className="px-6 py-3.5 font-bold tracking-wider uppercase">
-                                                                                            Seller
+                                                                                            {t(
+                                                                                                'Seller',
+                                                                                            )}
                                                                                         </th>
                                                                                         <th className="px-6 py-3.5 text-right font-bold tracking-wider uppercase">
-                                                                                            Price
+                                                                                            {t(
+                                                                                                'Price',
+                                                                                            )}
                                                                                         </th>
                                                                                     </tr>
                                                                                 </thead>
@@ -867,14 +939,18 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                                                 item
                                                                                                                     .product
                                                                                                                     ?.title ||
-                                                                                                                'Archived Product'}
+                                                                                                                t(
+                                                                                                                    'Archived Product',
+                                                                                                                )}
                                                                                                         </span>
                                                                                                         {(item
                                                                                                             .product
                                                                                                             ?.deleted_at ||
                                                                                                             !item.product) && (
                                                                                                             <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
-                                                                                                                Removed
+                                                                                                                {t(
+                                                                                                                    'Removed',
+                                                                                                                )}
                                                                                                             </span>
                                                                                                         )}
                                                                                                     </div>
@@ -886,7 +962,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                                                 .product
                                                                                                                 ?.seller
                                                                                                                 ?.name ||
-                                                                                                                'Unknown'}
+                                                                                                                t(
+                                                                                                                    'Unknown',
+                                                                                                                )}
                                                                                                         </span>
                                                                                                         {item
                                                                                                             .product
@@ -905,7 +983,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                                     </div>
                                                                                                 </td>
                                                                                                 <td className="px-6 py-3.5 text-right font-bold text-slate-900">
-                                                                                                    Rp{' '}
                                                                                                     {formatCurrency(
                                                                                                         item.price,
                                                                                                     )}
@@ -939,6 +1016,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                             key={index}
                                             href={link.url || '#'}
                                             preserveScroll
+                                            preserveState
                                             className={`flex h-10 min-w-10 items-center justify-center rounded-xl px-4 text-sm font-bold transition-all ${link.active ? 'bg-slate-900 text-white' : !link.url ? 'opacity-50' : 'bg-white text-slate-600 ring-1 ring-slate-200/60 hover:bg-slate-50'}`}
                                             dangerouslySetInnerHTML={{
                                                 __html: link.label,
@@ -959,9 +1037,11 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                     setCancelModalConfig({ isOpen: false, orderId: null })
                 }
                 onConfirm={executeCancel}
-                title="Force Cancel Order"
-                message="Are you sure you want to forcefully cancel this order? This will cancel the transaction in Midtrans and permanently close the order for the buyer."
-                confirmText="Yes, cancel order"
+                title={t('Cancel Order')}
+                message={t(
+                    'Are you sure you want to forcefully cancel this order? This will cancel the transaction in Midtrans and permanently close the order for the buyer.',
+                )}
+                confirmText={t('Yes, cancel order')}
                 variant="danger"
                 isProcessing={isProcessing}
             />

@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
     User,
@@ -18,9 +18,22 @@ import {
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function ProfileEdit({ auth, user_data }: any) {
+    const { t } = useTranslation(); // Inject translator here
     const activeUser = user_data || auth.user;
+
+    // --- ADDED: Ambil flash dari Inertia ---
+    const { flash } = usePage().props as any;
+
+    // --- ADDED: Listener otomatis untuk Toast ---
+    useEffect(() => {
+        if (flash?.success) toast(flash.success, 'success');
+
+        if (flash?.error) toast(flash.error, 'error');
+    }, [flash]);
 
     const { data, setData, post, processing, errors, clearErrors } = useForm({
         _method: 'patch',
@@ -87,7 +100,7 @@ export default function ProfileEdit({ auth, user_data }: any) {
 
         if (usernameStatus === 'taken') {
             toast(
-                'Please choose an available username before saving.',
+                t('Please choose an available username before saving.'),
                 'error',
             );
 
@@ -97,8 +110,8 @@ export default function ProfileEdit({ auth, user_data }: any) {
         post(route('profile.update'), {
             preserveScroll: true,
             forceFormData: true,
-            onSuccess: () => toast('Profile updated successfully!', 'success'),
-            onError: () => toast('Failed to update profile.', 'error'),
+            onSuccess: () => {},
+            onError: () => toast(t('Failed to update profile.'), 'error'),
         });
     };
 
@@ -113,7 +126,9 @@ export default function ProfileEdit({ auth, user_data }: any) {
 
             if (file.size > maxSize) {
                 toast(
-                    `Whoops! That image is too large. Please select a file under 5MB.`,
+                    t(
+                        'Whoops! That image is too large. Please select a file under 5MB.',
+                    ),
                     'error',
                 );
                 e.target.value = '';
@@ -128,7 +143,6 @@ export default function ProfileEdit({ auth, user_data }: any) {
             [`remove_${field}`]: false,
         }));
 
-        // --- ADDED: Update the status directly during the file selection event! ---
         if (field === 'cover_photo') setCoverStatus('loading');
 
         if (field === 'avatar') setAvatarStatus('loading');
@@ -168,7 +182,6 @@ export default function ProfileEdit({ auth, user_data }: any) {
         setAvatarStatus('loading');
     };
 
-    // --- FIXED: Async Image Handlers to prevent synchronous state updates ---
     const handleCoverLoad = () => {
         setTimeout(() => setCoverStatus('loaded'), 0);
     };
@@ -187,17 +200,19 @@ export default function ProfileEdit({ auth, user_data }: any) {
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="My Profile - Soko" />
+            <Head title={t('My Profile - Soko')} />
             <Navbar />
 
             <main className="relative z-10 flex-1 pt-32 pb-24">
                 <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-10">
                         <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                            My Profile
+                            {t('My Profile')}
                         </h1>
                         <p className="mt-2 text-lg text-slate-500">
-                            Manage your public identity and creator presence.
+                            {t(
+                                'Customize your profile and build your creator brand.',
+                            )}
                         </p>
                     </div>
 
@@ -207,8 +222,8 @@ export default function ProfileEdit({ auth, user_data }: any) {
                             <div className="mb-10">
                                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                                     <h4 className="flex items-center gap-2 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                        <ImageIcon size={16} /> Storefront
-                                        Banner
+                                        <ImageIcon size={16} />{' '}
+                                        {t('Storefront Banner')}
                                     </h4>
                                     {displayCover && (
                                         <button
@@ -216,7 +231,8 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                             onClick={removeCover}
                                             className="flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-rose-600"
                                         >
-                                            <Trash2 size={14} /> Remove Banner
+                                            <Trash2 size={14} />{' '}
+                                            {t('Remove Banner')}
                                         </button>
                                     )}
                                 </div>
@@ -238,7 +254,7 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                                 <div className="flex flex-col items-center justify-center text-slate-400">
                                                     <PackageX className="mb-2 h-8 w-8 opacity-50" />
                                                     <span className="text-[10px] font-bold tracking-widest uppercase opacity-70">
-                                                        Banner Missing
+                                                        {t('Banner Missing')}
                                                     </span>
                                                 </div>
                                             ) : (
@@ -246,7 +262,6 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                                     src={displayCover}
                                                     alt="Cover Preview"
                                                     className={`h-full w-full object-cover transition-opacity duration-300 ${coverStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-                                                    // --- APPLIED FIX HERE ---
                                                     onLoad={handleCoverLoad}
                                                     onError={handleCoverError}
                                                 />
@@ -259,10 +274,14 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                         <div className="flex flex-col items-center text-slate-500">
                                             <ImageIcon className="mb-2 h-8 w-8 text-slate-400" />
                                             <p className="text-sm font-bold text-slate-700">
-                                                Click to upload cover photo
+                                                {t(
+                                                    'Click to upload cover photo',
+                                                )}
                                             </p>
                                             <p className="text-xs">
-                                                PNG, JPG, or WEBP (Max 5MB)
+                                                {t(
+                                                    'PNG, JPG, or WEBP (Max 5MB)',
+                                                )}
                                             </p>
                                         </div>
                                     )}
@@ -301,7 +320,6 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                                 src={displayAvatar}
                                                 alt="Avatar Preview"
                                                 className={`h-full w-full object-cover transition-opacity duration-300 ${avatarStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-                                                // --- APPLIED FIX HERE ---
                                                 onLoad={handleAvatarLoad}
                                                 onError={handleAvatarError}
                                             />
@@ -323,11 +341,12 @@ export default function ProfileEdit({ auth, user_data }: any) {
 
                                 <div className="flex flex-col items-start">
                                     <h3 className="text-lg font-bold text-slate-900">
-                                        Profile Picture
+                                        {t('Profile Picture')}
                                     </h3>
                                     <p className="mb-2 text-sm text-slate-500">
-                                        Click the circle to upload a JPG, GIF or
-                                        PNG. Max size 5MB.
+                                        {t(
+                                            'Click the circle to upload a JPG, GIF or PNG. Max size 5MB.',
+                                        )}
                                     </p>
                                     {displayAvatar && (
                                         <button
@@ -335,7 +354,8 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                             onClick={removeAvatar}
                                             className="relative z-30 flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-rose-600"
                                         >
-                                            <Trash2 size={14} /> Remove Picture
+                                            <Trash2 size={14} />{' '}
+                                            {t('Remove Picture')}
                                         </button>
                                     )}
                                     {errors.avatar && (
@@ -350,14 +370,14 @@ export default function ProfileEdit({ auth, user_data }: any) {
                             <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                                 <div className="space-y-5 md:col-span-2">
                                     <h4 className="flex items-center gap-2 border-b border-slate-100 pb-2 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                        <User size={16} /> Basic Info
+                                        <User size={16} /> {t('Basic Info')}
                                     </h4>
 
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                                         <div>
                                             <div className="mb-1 flex items-end justify-between">
                                                 <label className="block text-sm font-bold text-slate-700">
-                                                    Display Name
+                                                    {t('Profile Name')}
                                                 </label>
                                                 <span
                                                     className={`text-xs font-bold ${data.name.length >= 50 ? 'text-rose-500' : 'text-slate-400'}`}
@@ -386,7 +406,7 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                         <div>
                                             <div className="mb-1 flex items-end justify-between">
                                                 <label className="block text-sm font-bold text-slate-700">
-                                                    Username
+                                                    {t('Username')}
                                                 </label>
                                                 <span
                                                     className={`text-xs font-bold ${data.username.length >= 30 ? 'text-rose-500' : 'text-slate-400'}`}
@@ -457,15 +477,17 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                             {usernameStatus === 'available' &&
                                                 !errors.username && (
                                                     <p className="mt-1.5 text-xs font-bold text-emerald-600">
-                                                        Looks good! This
-                                                        username is available.
+                                                        {t(
+                                                            'Looks good! This username is available.',
+                                                        )}
                                                     </p>
                                                 )}
                                             {usernameStatus === 'taken' &&
                                                 !errors.username && (
                                                     <p className="mt-1.5 text-xs font-bold text-rose-600">
-                                                        This username is already
-                                                        taken.
+                                                        {t(
+                                                            'This username is already taken.',
+                                                        )}
                                                     </p>
                                                 )}
                                             {errors.username && (
@@ -478,7 +500,7 @@ export default function ProfileEdit({ auth, user_data }: any) {
 
                                     <div>
                                         <label className="mb-1 block text-sm font-bold text-slate-700">
-                                            Short Bio
+                                            {t('Bio')}
                                         </label>
                                         <textarea
                                             rows={4}
@@ -486,7 +508,9 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                             onChange={(e) =>
                                                 setData('bio', e.target.value)
                                             }
-                                            placeholder="Tell the world what you create..."
+                                            placeholder={t(
+                                                'Tell the world what you create...',
+                                            )}
                                             className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm transition-colors outline-none focus:border-purple-500 focus:bg-white focus:ring-1 focus:ring-purple-500"
                                         />
                                     </div>
@@ -495,7 +519,8 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                 {/* --- SOCIAL LINKS SECTION --- */}
                                 <div className="space-y-5 md:col-span-2">
                                     <h4 className="mt-4 flex items-center gap-2 border-b border-slate-100 pb-2 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                        <LinkIcon size={16} /> Social Links
+                                        <LinkIcon size={16} />{' '}
+                                        {t('Social Links')}
                                     </h4>
 
                                     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -564,7 +589,7 @@ export default function ProfileEdit({ auth, user_data }: any) {
                                     }
                                     className="flex items-center gap-2 rounded-xl bg-purple-600 px-8 py-3 text-sm font-bold text-white shadow-purple-500/25 transition-all hover:-translate-y-0.5 hover:bg-purple-700 hover:shadow-lg disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                                 >
-                                    <Save size={18} /> Save Profile
+                                    <Save size={18} /> {t('Save Profile')}
                                 </button>
                             </div>
                         </form>

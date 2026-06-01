@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     CreditCard,
     Package,
@@ -14,16 +14,37 @@ import ConfirmModal from '@/components/confirm-modal';
 import SimpleNavbar from '@/components/simple-navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
-// --- FIXED 1: Real-time Countdown Timer Component (Lazy Initialization) ---
+declare global {
+    interface Window {
+        snap: any;
+    }
+}
+
 function OrderCountdown({ createdAt }: { createdAt: string }) {
+    const { t } = useTranslation();
+
+    // --- ADDED: Ambil flash dari Inertia ---
+    const { flash } = usePage().props as any;
+
+    // --- ADDED: Listener otomatis untuk Toast ---
+    useEffect(() => {
+        if (flash?.success) toast(flash.success, 'success');
+
+        if (flash?.error) toast(flash.error, 'error');
+
+        if (flash?.info) toast(flash.info, 'info');
+    }, [flash]);
+
     const [timeInfo, setTimeInfo] = useState(() => {
         const createdTime = new Date(createdAt).getTime();
         const expirationTime = createdTime + 24 * 60 * 60 * 1000;
         const now = new Date().getTime();
         const difference = expirationTime - now;
 
-        if (difference <= 0) return { text: 'Expired', isExpired: true };
+        if (difference <= 0) return { text: t('Expired'), isExpired: true };
 
         const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
         const minutes = Math.floor((difference / 1000 / 60) % 60);
@@ -45,7 +66,7 @@ function OrderCountdown({ createdAt }: { createdAt: string }) {
             const difference = expirationTime - now;
 
             if (difference <= 0) {
-                setTimeInfo({ text: 'Expired', isExpired: true });
+                setTimeInfo({ text: t('Expired'), isExpired: true });
                 clearInterval(timer);
 
                 return;
@@ -62,7 +83,7 @@ function OrderCountdown({ createdAt }: { createdAt: string }) {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [createdAt, timeInfo.isExpired]);
+    }, [createdAt, timeInfo.isExpired, t]);
 
     if (!timeInfo.text) return null;
 
@@ -76,15 +97,13 @@ function OrderCountdown({ createdAt }: { createdAt: string }) {
         >
             <Timer size={18} />
             {timeInfo.isExpired
-                ? 'Payment Time Expired'
-                : `Complete payment in ${timeInfo.text}`}
+                ? t('Payment Time Expired')
+                : `${t('Complete payment in')} ${timeInfo.text}`}
         </div>
     );
 }
 
-// --- Isolated Thumbnail Component for Order Items ---
 function OrderItemThumbnail({ product }: { product: any }) {
-    // --- FIXED 2: Moved hooks to the absolute top to satisfy the Rules of Hooks ---
     const hasMedia = product?.media && product.media.length > 0;
     const fallbackImage = product?.image_path;
 
@@ -92,7 +111,6 @@ function OrderItemThumbnail({ product }: { product: any }) {
         hasMedia || fallbackImage ? 'loading' : 'loaded',
     );
 
-    // Now the early return happens safely AFTER the hook is registered
     if (!product) {
         return (
             <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 text-slate-400">
@@ -152,6 +170,8 @@ function OrderItemThumbnail({ product }: { product: any }) {
 }
 
 export default function PayOrder({ order, clientKey }: any) {
+    const { t } = useTranslation();
+
     const [paymentStatus, setPaymentStatus] = useState<'idle' | 'success'>(
         'idle',
     );
@@ -167,8 +187,8 @@ export default function PayOrder({ order, clientKey }: any) {
 
     const productNames =
         order.items
-            ?.map((item: any) => item.product?.title || 'Archived Product')
-            .join(', ') || 'your digital product';
+            ?.map((item: any) => item.product?.title || t('Archived Product'))
+            .join(', ') || t('your digital product');
 
     useEffect(() => {
         const scriptUrl = 'https://app.sandbox.midtrans.com/snap/snap.js';
@@ -206,9 +226,7 @@ export default function PayOrder({ order, clientKey }: any) {
             only: ['order'],
             onSuccess: (page: any) => {
                 if (page.props.order && page.props.order.status === 'pending') {
-                    // @ts-expect-error: Midtrans snap object is injected globally via external script
                     if (window.snap) {
-                        // @ts-expect-error: Midtrans snap object is injected globally via external script
                         window.snap.pay(page.props.order.snap_token, {
                             onSuccess: function () {
                                 setPaymentStatus('success');
@@ -218,7 +236,7 @@ export default function PayOrder({ order, clientKey }: any) {
                             },
                             onError: function () {
                                 toast(
-                                    'Payment failed. Please try again.',
+                                    t('Payment failed. Please try again.'),
                                     'error',
                                 );
                             },
@@ -247,7 +265,7 @@ export default function PayOrder({ order, clientKey }: any) {
 
     return (
         <div className="relative min-h-screen bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title={`Pay Order #${order.id} - Soko`} />
+            <Head title={`${t('Pay Order')} #${order.id} - Soko`} />
             <SimpleNavbar backUrl="/purchases" />
 
             <main className="mx-auto max-w-3xl px-4 pt-32 pb-24 sm:px-6">
@@ -255,10 +273,10 @@ export default function PayOrder({ order, clientKey }: any) {
                     <div className="animate-in duration-500 fade-in slide-in-from-bottom-4">
                         <div className="mb-8 text-center">
                             <h1 className="text-3xl font-black text-slate-900">
-                                Complete Your Checkout
+                                {t('Complete Your Checkout')}
                             </h1>
                             <p className="mt-2 text-slate-500">
-                                Order #{order.id}
+                                {t('Order')} #{order.id}
                             </p>
                         </div>
 
@@ -266,7 +284,7 @@ export default function PayOrder({ order, clientKey }: any) {
                             {/* --- ORDER SUMMARY --- */}
                             <div className="border-b border-slate-100 bg-slate-50/30 p-6 sm:p-8">
                                 <h2 className="mb-6 text-lg font-black text-slate-900">
-                                    Order Summary
+                                    {t('Order Summary')}
                                 </h2>
 
                                 <div className="flex flex-col gap-4">
@@ -285,22 +303,25 @@ export default function PayOrder({ order, clientKey }: any) {
                                                 <div className="flex items-center gap-2">
                                                     <h3 className="line-clamp-1 font-bold text-slate-900">
                                                         {item.product?.title ||
-                                                            'Archived Product'}
+                                                            t(
+                                                                'Archived Product',
+                                                            )}
                                                     </h3>
                                                     {(!item.product ||
                                                         item.product
                                                             .deleted_at) && (
                                                         <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
-                                                            Removed
+                                                            {t('Removed')}
                                                         </span>
                                                     )}
                                                 </div>
 
                                                 <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-slate-500">
                                                     <span>
-                                                        by{' '}
+                                                        {t('by')}{' '}
                                                         {item.product?.seller
-                                                            ?.name || 'Unknown'}
+                                                            ?.name ||
+                                                            t('Unknown')}
                                                     </span>
                                                     {item.product?.seller
                                                         ?.username && (
@@ -333,7 +354,7 @@ export default function PayOrder({ order, clientKey }: any) {
                             {/* --- PAYMENT ACTION --- */}
                             <div className="bg-white p-6 text-center sm:p-8">
                                 <p className="mb-2 text-sm font-bold tracking-widest text-slate-500 uppercase">
-                                    Total Due
+                                    {t('Total Due')}
                                 </p>
                                 <p className="mb-8 text-4xl font-black text-slate-900">
                                     {formatCurrency(order.total_amount)}
@@ -345,7 +366,7 @@ export default function PayOrder({ order, clientKey }: any) {
                                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-4 text-base font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25"
                                     >
                                         <CreditCard size={20} />
-                                        Continue to Payment
+                                        {t('Continue to Payment')}
                                     </button>
 
                                     <div className="mt-2 grid grid-cols-2 gap-3">
@@ -359,7 +380,7 @@ export default function PayOrder({ order, clientKey }: any) {
                                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900"
                                         >
                                             <RefreshCcw size={16} />
-                                            Change Method
+                                            {t('Change Payment Method')}
                                         </button>
                                         <button
                                             onClick={() =>
@@ -371,7 +392,7 @@ export default function PayOrder({ order, clientKey }: any) {
                                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-100 hover:text-rose-700"
                                         >
                                             <XCircle size={16} />
-                                            Cancel Order
+                                            {t('Cancel Order')}
                                         </button>
                                     </div>
                                 </div>
@@ -391,20 +412,24 @@ export default function PayOrder({ order, clientKey }: any) {
                             </div>
 
                             <h1 className="mb-4 text-3xl font-black text-slate-900">
-                                Payment Successful!
+                                {t('Payment Successful!')}
                             </h1>
 
                             <p className="mb-8 text-lg leading-relaxed font-medium text-slate-600">
-                                Fantastic! Your order for{' '}
+                                {t('Fantastic! Your order for')}{' '}
                                 <span className="font-bold text-slate-900">
                                     "{productNames}"
                                 </span>{' '}
-                                is complete and is now ready to be downloaded.
+                                {t(
+                                    'is complete and is now ready to be downloaded.',
+                                )}
                             </p>
 
                             <div className="mx-auto mb-8 max-w-sm rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-100 ring-inset">
                                 <div className="mb-3 flex justify-between text-sm font-bold text-slate-500">
-                                    <span>Redirecting to Library...</span>
+                                    <span>
+                                        {t('Redirecting to Library...')}
+                                    </span>
                                     <span className="text-emerald-600">
                                         {countdown}s
                                     </span>
@@ -423,7 +448,7 @@ export default function PayOrder({ order, clientKey }: any) {
                                 onClick={() => router.visit('/purchases')}
                                 className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-4 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/25"
                             >
-                                Go to Purchases Now
+                                {t('Go to Purchases Now')}
                                 <ArrowRight size={18} />
                             </button>
                         </div>
@@ -443,18 +468,22 @@ export default function PayOrder({ order, clientKey }: any) {
                 onConfirm={executeCancel}
                 title={
                     cancelModalConfig.intent === 'change'
-                        ? 'Change Payment Method'
-                        : 'Cancel Order'
+                        ? t('Change Payment Method')
+                        : t('Cancel Order')
                 }
                 message={
                     cancelModalConfig.intent === 'change'
-                        ? 'To change your payment method, we need to cancel this current transaction to release the locked virtual account. You can then re-add the item to your cart and check out again. Do you want to proceed?'
-                        : 'Are you sure you want to cancel this order? This action will void the payment transaction and cannot be undone.'
+                        ? t(
+                              'To change your payment method, we need to cancel this current transaction to release the locked virtual account. You can then re-add the item to your cart and check out again. Do you want to proceed?',
+                          )
+                        : t(
+                              'Are you sure you want to cancel this order? This action will void the payment transaction and cannot be undone.',
+                          )
                 }
                 confirmText={
                     cancelModalConfig.intent === 'change'
-                        ? 'Yes, cancel & start over'
-                        : 'Yes, cancel it'
+                        ? t('Yes, cancel & start over')
+                        : t('Yes, cancel it')
                 }
                 variant="danger"
             />

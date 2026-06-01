@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     EyeOff,
     Eye,
@@ -9,25 +9,37 @@ import {
     Lock,
     UserX,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Products({ products }: any) {
+    const { t } = useTranslation();
+
+    // --- 1. AMBIL FLASH DARI INERTIA ---
+    const { flash } = usePage().props as any;
+
+    // --- 2. PASANG LISTENER UNTUK TOAST OTOMATIS ---
+    useEffect(() => {
+        if (flash?.success) {
+            toast(flash.success, 'success');
+        }
+
+        if (flash?.error) {
+            toast(flash.error, 'error');
+        }
+    }, [flash]);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-
-    // --- NEW: Manual Processing State ---
     const [isProcessing, setIsProcessing] = useState(false);
 
     const productList = products?.data || products || [];
 
-    // --- CLIENT-SIDE FILTERING ---
     const filteredProducts = productList.filter((product: any) => {
         const query = searchQuery.toLowerCase();
-
-        // --- UPDATED: Now searches by product title, seller name, AND username ---
         const matchesSearch =
             product.title.toLowerCase().includes(query) ||
             (product.seller?.name &&
@@ -37,22 +49,21 @@ export default function Products({ products }: any) {
 
         let matchesStatus = true;
 
-        if (statusFilter === 'active') {
+        if (statusFilter === 'active')
             matchesStatus =
                 product.is_active &&
                 product.seller?.is_active &&
                 !product.is_locked;
-        } else if (statusFilter === 'hidden') {
+        else if (statusFilter === 'hidden')
             matchesStatus =
                 !product.is_active &&
                 product.seller?.is_active &&
                 !product.is_locked;
-        } else if (statusFilter === 'product_locked') {
+        else if (statusFilter === 'product_locked')
             matchesStatus =
                 product.is_locked === true && product.seller?.is_active;
-        } else if (statusFilter === 'seller_suspended') {
+        else if (statusFilter === 'seller_suspended')
             matchesStatus = !product.seller?.is_active;
-        }
 
         return matchesSearch && matchesStatus;
     });
@@ -61,26 +72,18 @@ export default function Products({ products }: any) {
         isOpen: boolean;
         action: 'delete' | 'toggle' | null;
         product: any | null;
-    }>({
-        isOpen: false,
-        action: null,
-        product: null,
-    });
+    }>({ isOpen: false, action: null, product: null });
 
-    const promptDelete = (product: any) => {
+    const promptDelete = (product: any) =>
         setModalConfig({ isOpen: true, action: 'delete', product });
-    };
-
-    const promptToggle = (product: any) => {
+    const promptToggle = (product: any) =>
         setModalConfig({ isOpen: true, action: 'toggle', product });
-    };
 
     const executeAction = () => {
         const { action, product } = modalConfig;
 
         if (!product) return;
 
-        // Start the loading spinner
         setIsProcessing(true);
 
         if (action === 'delete') {
@@ -92,15 +95,12 @@ export default function Products({ products }: any) {
                         action: null,
                         product: null,
                     });
-                    toast(`"${product.title}" permanently deleted.`, 'delete');
+                    // Hapus toast sukses manual dari sini
                 },
-                onError: () => toast('Failed to delete product.', 'error'),
-                onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+                onError: () => toast(t('Failed to delete product.'), 'error'),
+                onFinish: () => setIsProcessing(false),
             });
         } else if (action === 'toggle') {
-            // Determine if we are currently locking or unlocking it
-            const isLocking = !product.is_locked;
-
             router.patch(
                 `/admin/products/${product.id}/toggle`,
                 {},
@@ -112,24 +112,11 @@ export default function Products({ products }: any) {
                             action: null,
                             product: null,
                         });
-
-                        // --- THE FIX: Dynamic message AND dynamic toast type! ---
-                        const statusMessage = isLocking
-                            ? 'locked and hidden'
-                            : 'unlocked and published';
-
-                        // If locking, use the 'info' or 'warning' toast styling.
-                        // If unlocking, use the green 'success' styling.
-                        const toastType = isLocking ? 'info' : 'success';
-
-                        toast(
-                            `"${product.title}" has been ${statusMessage}.`,
-                            toastType,
-                        );
+                        // Hapus toast sukses manual dari sini
                     },
                     onError: () =>
-                        toast('Failed to update product status.', 'error'),
-                    onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+                        toast(t('Failed to update product status.'), 'error'),
+                    onFinish: () => setIsProcessing(false),
                 },
             );
         }
@@ -138,9 +125,9 @@ export default function Products({ products }: any) {
     const getModalText = () => {
         if (modalConfig.action === 'delete') {
             return {
-                title: 'Delete Product',
-                message: `Are you sure you want to permanently delete "${modalConfig.product?.title}"? This action cannot be undone and will remove it from the platform entirely.`,
-                confirmText: 'Yes, delete it',
+                title: t('Delete Product'),
+                message: `${t('Are you sure you want to permanently delete')} "${modalConfig.product?.title}"${t('? This action cannot be undone and will remove it from the platform entirely.')}`,
+                confirmText: t('Yes, delete it'),
                 variant: 'danger' as const,
             };
         }
@@ -150,12 +137,14 @@ export default function Products({ products }: any) {
 
             return {
                 title: isLocking
-                    ? 'Lock & Hide Product'
-                    : 'Unlock & Publish Product',
+                    ? t('Lock & Hide Product')
+                    : t('Unlock & Publish Product'),
                 message: isLocking
-                    ? `Are you sure you want to lock "${modalConfig.product?.title}"? It will be hidden from the marketplace and the creator will not be able to republish it until you unlock it.`
-                    : `Are you sure you want to unlock "${modalConfig.product?.title}"? This will instantly republish it to the marketplace.`,
-                confirmText: isLocking ? 'Yes, lock it' : 'Yes, unlock it',
+                    ? `${t('Are you sure you want to lock')} "${modalConfig.product?.title}"${t('? It will be hidden from the marketplace and the creator will not be able to republish it until you unlock it.')}`
+                    : `${t('Are you sure you want to unlock')} "${modalConfig.product?.title}"${t('? This will instantly republish it to the marketplace.')}`,
+                confirmText: isLocking
+                    ? t('Yes, lock it')
+                    : t('Yes, unlock it'),
                 variant: isLocking ? ('warning' as const) : ('info' as const),
             };
         }
@@ -179,7 +168,7 @@ export default function Products({ products }: any) {
         if (!product.seller?.is_active) {
             return (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-700 ring-1 ring-rose-500/20 ring-inset">
-                    <UserX size={12} /> Seller Suspended
+                    <UserX size={12} /> {t('Inactive Seller')}
                 </span>
             );
         }
@@ -187,7 +176,7 @@ export default function Products({ products }: any) {
         if (product.is_locked) {
             return (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 ring-1 ring-amber-500/20 ring-inset">
-                    <Lock size={12} /> Product Locked
+                    <Lock size={12} /> {t('Product Locked')}
                 </span>
             );
         }
@@ -196,46 +185,46 @@ export default function Products({ products }: any) {
             return (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-500/20 ring-inset">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{' '}
-                    Active
+                    {t('Active')}
                 </span>
             );
         }
 
         return (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600 ring-1 ring-slate-500/20 ring-inset">
-                <EyeOff size={12} /> Hidden
+                <EyeOff size={12} /> {t('Hidden')}
             </span>
         );
     };
 
     return (
         <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="Manage Products - Soko Admin" />
+            <Head title={t('Manage Products - Soko Admin')} />
             <Navbar />
-
             <main className="relative z-10 flex-1 pt-32 pb-24">
                 <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-10">
                         <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                            Manage Products
+                            {t('Manage Products')}
                         </h1>
                         <p className="mt-2 text-slate-500">
-                            Moderate all creator listings across the
-                            marketplace.
+                            {t(
+                                'Review and manage every product published by your creators.',
+                            )}
                         </p>
                     </div>
-
                     <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl ring-1 shadow-slate-900/5 ring-white">
-                        {/* --- FILTER BAR --- */}
                         <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="relative w-full lg:max-w-md">
+                            <div className="relative w-full lg:max-w-xs">
                                 <Search
                                     size={18}
                                     className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
                                 />
                                 <input
                                     type="text"
-                                    placeholder="Search by title, seller or username..."
+                                    placeholder={t(
+                                        'Search by title, seller or username...',
+                                    )}
                                     value={searchQuery}
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
@@ -243,7 +232,6 @@ export default function Products({ products }: any) {
                                     className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-4 pl-10 text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
                                 />
                             </div>
-
                             <div className="flex flex-wrap items-center gap-3">
                                 <div className="flex items-center gap-2">
                                     <Filter
@@ -258,33 +246,33 @@ export default function Products({ products }: any) {
                                         className="rounded-xl border border-slate-200 bg-white py-2 pr-8 pl-4 text-sm font-medium text-slate-700 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
                                     >
                                         <option value="all">
-                                            All Statuses
+                                            {t('All Statuses')}
                                         </option>
                                         <option value="active">
-                                            Available (Active)
+                                            {t('Available (Active)')}
                                         </option>
                                         <option value="hidden">
-                                            Hidden by Creator
+                                            {t('Hidden by Creator')}
                                         </option>
                                         <option value="product_locked">
-                                            Product Locked
+                                            {t('Product Locked')}
                                         </option>
                                         <option value="seller_suspended">
-                                            Seller Suspended
+                                            {t('Inactive Seller')}
                                         </option>
                                     </select>
                                 </div>
                             </div>
                         </div>
-
                         <div className="w-full">
                             {filteredProducts.length === 0 ? (
                                 <div className="py-10 text-center text-slate-500">
-                                    No products found matching your filters.
+                                    {t(
+                                        'No products found matching your filters.',
+                                    )}
                                 </div>
                             ) : (
                                 <>
-                                    {/* === MOBILE CARD VIEW === */}
                                     <div className="grid grid-cols-1 gap-4 p-4 md:hidden">
                                         {filteredProducts.map(
                                             (product: any) => (
@@ -299,24 +287,16 @@ export default function Products({ products }: any) {
                                                             </span>
                                                             <span className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-slate-400">
                                                                 <span>
-                                                                    Seller:{' '}
+                                                                    {t(
+                                                                        'Seller:',
+                                                                    )}{' '}
                                                                     {product
                                                                         .seller
                                                                         ?.name ||
-                                                                        'Unknown'}
+                                                                        t(
+                                                                            'Unknown',
+                                                                        )}
                                                                 </span>
-                                                                {product.seller
-                                                                    ?.username && (
-                                                                    <span className="font-medium text-slate-400">
-                                                                        (@
-                                                                        {
-                                                                            product
-                                                                                .seller
-                                                                                .username
-                                                                        }
-                                                                        )
-                                                                    </span>
-                                                                )}
                                                             </span>
                                                         </div>
                                                         {getStatusBadge(
@@ -386,23 +366,21 @@ export default function Products({ products }: any) {
                                             ),
                                         )}
                                     </div>
-
-                                    {/* === DESKTOP TABLE VIEW === */}
                                     <div className="hidden overflow-x-auto md:block">
                                         <table className="w-full text-left text-sm whitespace-nowrap">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-white text-slate-500">
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Product
+                                                        {t('Product')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Seller
+                                                        {t('Seller')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Status
+                                                        {t('Status')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider uppercase">
-                                                        Actions
+                                                        {t('Actions')}
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -429,25 +407,13 @@ export default function Products({ products }: any) {
                                                                 </div>
                                                             </td>
                                                             <td className="px-8 py-5">
-                                                                <div className="flex flex-col">
-                                                                    <span className="font-medium text-slate-700">
-                                                                        {product
-                                                                            .seller
-                                                                            ?.name ||
-                                                                            'Unknown'}
-                                                                    </span>
+                                                                <div className="font-medium text-slate-700">
                                                                     {product
                                                                         .seller
-                                                                        ?.username && (
-                                                                        <span className="mt-0.5 text-[11px] text-slate-400">
-                                                                            @
-                                                                            {
-                                                                                product
-                                                                                    .seller
-                                                                                    .username
-                                                                            }
-                                                                        </span>
-                                                                    )}
+                                                                        ?.name ||
+                                                                        t(
+                                                                            'Unknown',
+                                                                        )}
                                                                 </div>
                                                             </td>
                                                             <td className="px-8 py-5">
@@ -473,15 +439,15 @@ export default function Products({ products }: any) {
                                                                                 .seller
                                                                                 ?.is_active
                                                                         }
-                                                                        className={`flex items-center justify-center rounded-lg p-2 transition-colors ${!product.seller?.is_active ? 'cursor-not-allowed bg-slate-50 text-slate-300' : product.is_locked ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600' : 'bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'}`}
+                                                                        className={`rounded-lg p-2 transition-colors ${!product.seller?.is_active ? 'cursor-not-allowed bg-slate-50 text-slate-300' : product.is_locked ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600' : 'bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600'}`}
                                                                         title={
-                                                                            !product
-                                                                                .seller
-                                                                                ?.is_active
-                                                                                ? 'Locked: Seller is suspended'
-                                                                                : product.is_locked
-                                                                                  ? 'Unlock Product'
-                                                                                  : 'Lock Product'
+                                                                            product.is_locked
+                                                                                ? t(
+                                                                                      'Unlock Product',
+                                                                                  )
+                                                                                : t(
+                                                                                      'Lock Product',
+                                                                                  )
                                                                         }
                                                                     >
                                                                         {product.is_locked ? (
@@ -503,7 +469,9 @@ export default function Products({ products }: any) {
                                                                         target="_blank"
                                                                         rel="noreferrer"
                                                                         className="rounded-lg bg-slate-100 p-2 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"
-                                                                        title="View Listing"
+                                                                        title={t(
+                                                                            'View Listing',
+                                                                        )}
                                                                     >
                                                                         <ExternalLink
                                                                             size={
@@ -518,7 +486,9 @@ export default function Products({ products }: any) {
                                                                             )
                                                                         }
                                                                         className="rounded-lg bg-slate-100 p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-                                                                        title="Delete Product"
+                                                                        title={t(
+                                                                            'Delete Product',
+                                                                        )}
                                                                     >
                                                                         <Trash2
                                                                             size={
@@ -540,7 +510,6 @@ export default function Products({ products }: any) {
                     </div>
                 </div>
             </main>
-
             <ConfirmModal
                 isOpen={modalConfig.isOpen}
                 onClose={() =>

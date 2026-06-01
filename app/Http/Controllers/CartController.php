@@ -65,7 +65,7 @@ class CartController extends Controller
 
         // 1. Prevent buying their own product
         if ($product->seller_id === $userId) {
-            return back()->with('error', 'You cannot add your own product to the cart.');
+            return back()->with('error', __('You cannot add your own product to the cart.'));
         }
 
         // 2. Prevent adding if already owned or currently pending checkout
@@ -74,7 +74,7 @@ class CartController extends Controller
         })->where('product_id', $productId)->exists();
 
         if ($hasOrdered) {
-            return back()->with('error', 'You already have a pending order for this product. Please complete or cancel it first.');
+            return back()->with('error', __('You already have a pending order for this product. Please complete or cancel it first.'));
         }
 
         // --- STANDARD CART LOGIC ---
@@ -89,7 +89,7 @@ class CartController extends Controller
 
         // 5. If it is already there, stop execution and return the Info message
         if ($alreadyInCart) {
-            return back()->with('info', 'This digital product is already in your cart.');
+            return back()->with('info', __('This digital product is already in your cart.'));
         }
 
         // 6. If it is NOT there, create it explicitly
@@ -99,7 +99,7 @@ class CartController extends Controller
         ]);
 
         // 7. Return the Success message
-        return back()->with('success', 'Product added to cart!');
+        return back()->with('success', __('Product added to cart!'));
     }
 
     /**
@@ -114,6 +114,6 @@ class CartController extends Controller
 
         $cartItem->delete();
 
-        return redirect()->back()->with('success', 'Product removed from cart.');
+        return redirect()->back()->with('success', __('Product removed from cart.'));
     }
 }

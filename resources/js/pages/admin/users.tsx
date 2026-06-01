@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Shield,
     Trash2,
@@ -9,12 +9,30 @@ import {
     Activity,
     MailCheck,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Users({ users }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
+    // --- 1. AMBIL FLASH DARI INERTIA ---
+    const { flash } = usePage().props as any;
+
+    // --- 2. PASANG LISTENER UNTUK TOAST OTOMATIS ---
+    useEffect(() => {
+        if (flash?.success) {
+            toast(flash.success, 'success');
+        }
+
+        if (flash?.error) {
+            toast(flash.error, 'error');
+        }
+    }, [flash]);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -79,9 +97,9 @@ export default function Users({ users }: any) {
                 preserveScroll: true,
                 onSuccess: () => {
                     setModalConfig({ isOpen: false, action: null, user: null });
-                    toast(`"${user.name}" permanently deleted.`, 'delete');
+                    // Hapus toast sukses manual
                 },
-                onError: () => toast('Failed to delete user.', 'error'),
+                onError: () => toast(t('Failed to delete user.'), 'error'),
                 onFinish: () => setIsProcessing(false),
             });
         } else if (action === 'toggle') {
@@ -96,17 +114,10 @@ export default function Users({ users }: any) {
                             action: null,
                             user: null,
                         });
-                        const statusText = user.is_active
-                            ? 'suspended'
-                            : 'reactivated';
-                        const toastType = user.is_active ? 'info' : 'success';
-                        toast(
-                            `"${user.name}" is now ${statusText}.`,
-                            toastType,
-                        );
+                        // Hapus toast sukses manual
                     },
                     onError: () =>
-                        toast('Failed to update user status.', 'error'),
+                        toast(t('Failed to update user status.'), 'error'),
                     onFinish: () => setIsProcessing(false),
                 },
             );
@@ -122,12 +133,9 @@ export default function Users({ users }: any) {
                             action: null,
                             user: null,
                         });
-                        toast(
-                            `"${user.name}" has been manually verified.`,
-                            'success',
-                        );
+                        // Hapus toast sukses manual
                     },
-                    onError: () => toast('Failed to verify user.', 'error'),
+                    onError: () => toast(t('Failed to verify user.'), 'error'),
                     onFinish: () => setIsProcessing(false),
                 },
             );
@@ -137,9 +145,9 @@ export default function Users({ users }: any) {
     const getModalText = () => {
         if (modalConfig.action === 'delete') {
             return {
-                title: 'Delete User',
-                message: `Are you sure you want to permanently delete "${modalConfig.user?.name}"? This action cannot be undone, and all their products and purchases will be lost.`,
-                confirmText: 'Yes, delete it',
+                title: t('Delete User'),
+                message: `${t('Are you sure you want to permanently delete')} "${modalConfig.user?.name}"${t('? This action cannot be undone, and all their products and purchases will be lost.')}`,
+                confirmText: t('Yes, delete it'),
                 variant: 'danger' as const,
             };
         }
@@ -148,13 +156,15 @@ export default function Users({ users }: any) {
             const isSuspending = modalConfig.user?.is_active;
 
             return {
-                title: isSuspending ? 'Suspend User' : 'Reactivate User',
+                title: isSuspending
+                    ? t('Deactivate User')
+                    : t('Reactivate User'),
                 message: isSuspending
-                    ? `Are you sure you want to suspend "${modalConfig.user?.name}"? They will not be able to log in or sell products.`
-                    : `Are you sure you want to reactivate "${modalConfig.user?.name}"? Their access to the platform will be restored.`,
+                    ? `${t('Are you sure you want to deactivate')} "${modalConfig.user?.name}"${t('? They will not be able to log in or sell products.')}`
+                    : `${t('Are you sure you want to reactivate')} "${modalConfig.user?.name}"${t('? Their access to the platform will be restored.')}`,
                 confirmText: isSuspending
-                    ? 'Yes, suspend it'
-                    : 'Yes, reactivate it',
+                    ? t('Yes, deactivate it')
+                    : t('Yes, reactivate it'),
                 variant: isSuspending
                     ? ('suspend' as const)
                     : ('reactivate' as const),
@@ -163,9 +173,9 @@ export default function Users({ users }: any) {
 
         if (modalConfig.action === 'verify') {
             return {
-                title: 'Manually Verify User',
-                message: `Are you sure you want to manually verify "${modalConfig.user?.name}"? This will bypass the OTP email requirement and grant them immediate access to the platform.`,
-                confirmText: 'Yes, verify user',
+                title: t('Manually Verify User'),
+                message: `${t('Are you sure you want to manually verify')} "${modalConfig.user?.name}"${t('? This will bypass the OTP email requirement and grant them immediate access to the platform.')}`,
+                confirmText: t('Yes, verify user'),
                 variant: 'reactivate' as const,
             };
         }
@@ -187,7 +197,7 @@ export default function Users({ users }: any) {
 
     return (
         <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="Manage Users - Soko Admin" />
+            <Head title={t('Manage Users - Soko Admin')} />
             <Navbar />
 
             <main className="relative z-10 flex-1 pt-32 pb-24">
@@ -195,11 +205,12 @@ export default function Users({ users }: any) {
                     <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
                         <div>
                             <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                                Manage Users
+                                {t('Manage Users')}
                             </h1>
                             <p className="mt-2 text-slate-500">
-                                View, filter, and manage all registered accounts
-                                on the platform.
+                                {t(
+                                    'View, filter, and manage all registered accounts on the platform.',
+                                )}
                             </p>
                         </div>
                     </div>
@@ -215,7 +226,9 @@ export default function Users({ users }: any) {
                                 />
                                 <input
                                     type="text"
-                                    placeholder="Search by name, email, or username..."
+                                    placeholder={t(
+                                        'Search by name, email, or username...',
+                                    )}
                                     value={searchQuery}
                                     onChange={(e) =>
                                         setSearchQuery(e.target.value)
@@ -239,10 +252,18 @@ export default function Users({ users }: any) {
                                         }
                                         className="rounded-xl border border-slate-200 bg-white py-2 pr-8 pl-4 text-sm font-medium text-slate-700 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
                                     >
-                                        <option value="all">All Roles</option>
-                                        <option value="buyer">Buyers</option>
-                                        <option value="seller">Sellers</option>
-                                        <option value="admin">Admins</option>
+                                        <option value="all">
+                                            {t('All Roles')}
+                                        </option>
+                                        <option value="buyer">
+                                            {t('Buyers')}
+                                        </option>
+                                        <option value="seller">
+                                            {t('Sellers')}
+                                        </option>
+                                        <option value="admin">
+                                            {t('Admins')}
+                                        </option>
                                     </select>
                                 </div>
 
@@ -260,13 +281,13 @@ export default function Users({ users }: any) {
                                         className="rounded-xl border border-slate-200 bg-white py-2 pr-8 pl-4 text-sm font-medium text-slate-700 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
                                     >
                                         <option value="all">
-                                            All Statuses
+                                            {t('All Statuses')}
                                         </option>
                                         <option value="active">
-                                            Active Only
+                                            {t('Active Users')}
                                         </option>
                                         <option value="suspended">
-                                            Suspended Only
+                                            {t('Inactive Users')}
                                         </option>
                                     </select>
                                 </div>
@@ -276,7 +297,7 @@ export default function Users({ users }: any) {
                         <div className="w-full">
                             {filteredUsers.length === 0 ? (
                                 <div className="py-10 text-center text-slate-500">
-                                    No users found matching your filters.
+                                    {t('No users found matching your filters.')}
                                 </div>
                             ) : (
                                 <>
@@ -331,34 +352,35 @@ export default function Users({ users }: any) {
                                                         {user.role.toUpperCase()}
                                                     </span>
 
-                                                    {/* --- LOGIKA BARU UNTUK BADGE (MOBILE) --- */}
                                                     {user.email_verified_at ? (
                                                         <span
                                                             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
                                                         >
                                                             {user.is_active
-                                                                ? 'Active'
-                                                                : 'Suspended'}
+                                                                ? t('Active')
+                                                                : t(
+                                                                      'Not Active',
+                                                                  )}
                                                         </span>
                                                     ) : (
                                                         <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">
-                                                            Unverified
+                                                            {t('Unverified')}
                                                         </span>
                                                     )}
                                                 </div>
 
                                                 {user.role !== 'admin' && (
                                                     <div className="flex justify-end gap-2 border-t border-slate-200/60 pt-4">
-                                                        {/* --- LOGIKA BARU UNTUK TOMBOL (MOBILE) --- */}
                                                         {!user.email_verified_at ? (
-                                                            // Jika Belum Terverifikasi, Tampilkan Tombol Verify Saja
                                                             <button
                                                                 onClick={() =>
                                                                     promptVerify(
                                                                         user,
                                                                     )
                                                                 }
-                                                                title="Manually Verify User"
+                                                                title={t(
+                                                                    'Manually Verify User',
+                                                                )}
                                                                 className="flex flex-1 items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-all hover:bg-blue-50 hover:text-blue-600"
                                                             >
                                                                 <MailCheck
@@ -366,7 +388,6 @@ export default function Users({ users }: any) {
                                                                 />
                                                             </button>
                                                         ) : (
-                                                            // Jika Sudah Terverifikasi, Tampilkan Tombol Suspend
                                                             <button
                                                                 onClick={() =>
                                                                     promptToggle(
@@ -380,8 +401,12 @@ export default function Users({ users }: any) {
                                                                 }`}
                                                                 title={
                                                                     user.is_active
-                                                                        ? 'Suspend User'
-                                                                        : 'Reactivate User'
+                                                                        ? t(
+                                                                              'Suspend User',
+                                                                          )
+                                                                        : t(
+                                                                              'Reactivate User',
+                                                                          )
                                                                 }
                                                             >
                                                                 {user.is_active ? (
@@ -407,7 +432,9 @@ export default function Users({ users }: any) {
                                                                 )
                                                             }
                                                             className="flex flex-1 items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-all hover:bg-rose-50 hover:text-rose-600"
-                                                            title="Delete User"
+                                                            title={t(
+                                                                'Delete User',
+                                                            )}
                                                         >
                                                             <Trash2 size={16} />
                                                         </button>
@@ -423,16 +450,16 @@ export default function Users({ users }: any) {
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-white text-slate-500">
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        User
+                                                        {t('User')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Role
+                                                        {t('Role')}
                                                     </th>
                                                     <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                        Status
+                                                        {t('Status')}
                                                     </th>
                                                     <th className="px-8 py-5 text-right font-bold tracking-wider uppercase">
-                                                        Actions
+                                                        {t('Actions')}
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -498,18 +525,23 @@ export default function Users({ users }: any) {
                                                             </td>
                                                             <td className="px-8 py-5">
                                                                 <div className="flex items-center gap-2">
-                                                                    {/* --- LOGIKA BARU UNTUK BADGE (DESKTOP) --- */}
                                                                     {user.email_verified_at ? (
                                                                         <span
                                                                             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}
                                                                         >
                                                                             {user.is_active
-                                                                                ? 'Active'
-                                                                                : 'Suspended'}
+                                                                                ? t(
+                                                                                      'Active',
+                                                                                  )
+                                                                                : t(
+                                                                                      'Not Active',
+                                                                                  )}
                                                                         </span>
                                                                     ) : (
                                                                         <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">
-                                                                            Unverified
+                                                                            {t(
+                                                                                'Unverified',
+                                                                            )}
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -518,7 +550,6 @@ export default function Users({ users }: any) {
                                                                 {user.role !==
                                                                     'admin' && (
                                                                     <div className="flex items-center justify-end gap-2">
-                                                                        {/* --- LOGIKA BARU UNTUK TOMBOL (DESKTOP) --- */}
                                                                         {!user.email_verified_at ? (
                                                                             <button
                                                                                 onClick={() =>
@@ -526,7 +557,9 @@ export default function Users({ users }: any) {
                                                                                         user,
                                                                                     )
                                                                                 }
-                                                                                title="Manually Verify User"
+                                                                                title={t(
+                                                                                    'Manually Verify User',
+                                                                                )}
                                                                                 className="rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
                                                                             >
                                                                                 <MailCheck
@@ -544,8 +577,12 @@ export default function Users({ users }: any) {
                                                                                 }
                                                                                 title={
                                                                                     user.is_active
-                                                                                        ? 'Suspend User'
-                                                                                        : 'Reactivate User'
+                                                                                        ? t(
+                                                                                              'Deactivate User',
+                                                                                          )
+                                                                                        : t(
+                                                                                              'Reactivate User',
+                                                                                          )
                                                                                 }
                                                                                 className={`rounded-lg p-2 transition-colors ${user.is_active ? 'bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-600' : 'bg-rose-50 text-rose-600 hover:bg-emerald-50 hover:text-emerald-600'}`}
                                                                             >
@@ -571,7 +608,9 @@ export default function Users({ users }: any) {
                                                                                     user,
                                                                                 )
                                                                             }
-                                                                            title="Delete Permanently"
+                                                                            title={t(
+                                                                                'Delete Permanently',
+                                                                            )}
                                                                             className="rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
                                                                         >
                                                                             <Trash2

@@ -8,14 +8,16 @@ import {
     CheckCircle,
     AlertTriangle,
     PlayCircle,
-    CreditCard, // <-- ADDED: For the Continue Payment button
-    XCircle, // <-- ADDED: For the Cancel button
+    CreditCard,
+    XCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import SimpleNavbar from '@/components/simple-navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- Isolated Thumbnail Component for Product Gallery ---
 function ProductThumbnail({
@@ -27,6 +29,7 @@ function ProductThumbnail({
     isActive: boolean;
     onClick: () => void;
 }) {
+    const { t } = useTranslation();
     const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(
         'loading',
     );
@@ -53,7 +56,7 @@ function ProductThumbnail({
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-100 text-slate-400">
                     <AlertTriangle size={16} className="mb-1 opacity-50" />
                     <span className="text-[8px] font-bold tracking-widest uppercase opacity-70">
-                        Error
+                        {t('Error')}
                     </span>
                 </div>
             )}
@@ -89,13 +92,13 @@ function ProductThumbnail({
     );
 }
 
-// --- UPDATED: Added pendingOrderId to the props ---
 export default function Show({
     product,
     hasPurchased,
     isInCart,
     pendingOrderId,
 }: any) {
+    const { t } = useTranslation();
     const { auth, flash } = usePage().props as any;
 
     const existingReview = product.reviews?.find(
@@ -174,9 +177,8 @@ export default function Show({
                 preserveScroll: true,
                 onSuccess: () => {
                     setIsCancelOrderModalOpen(false);
-                    toast('Order cancelled successfully.', 'info');
                 },
-                onError: () => toast('Failed to cancel order.', 'error'),
+                onError: () => toast(t('Failed to cancel order.'), 'error'),
                 onFinish: () => setIsCancellingOrder(false),
             },
         );
@@ -232,7 +234,7 @@ export default function Show({
                                 <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-6 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                                     <div className="mb-4 inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold tracking-wider text-indigo-600 uppercase ring-1 ring-indigo-500/10 ring-inset">
                                         {product.category?.name ||
-                                            'Digital Product'}
+                                            t('Digital Product')}
                                     </div>
 
                                     <h1 className="mb-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
@@ -281,7 +283,9 @@ export default function Show({
                                                             <path d="m2 2 20 20" />
                                                         </svg>
                                                         <span className="text-xs font-bold tracking-widest uppercase opacity-70">
-                                                            Media Unavailable
+                                                            {t(
+                                                                'Media Unavailable',
+                                                            )}
                                                         </span>
                                                     </div>
                                                 )}
@@ -363,7 +367,7 @@ export default function Show({
                                 {/* Reviews Bento Card */}
                                 <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 p-6 shadow-xl ring-1 shadow-purple-900/5 ring-white backdrop-blur-sm sm:p-10">
                                     <h2 className="mb-8 text-2xl font-black tracking-tight text-slate-900">
-                                        Customer Reviews
+                                        {t('Customer Reviews')}
                                     </h2>
 
                                     {!isGuest &&
@@ -383,14 +387,18 @@ export default function Show({
                                                 <div className="mb-5 flex items-center justify-between">
                                                     <h3 className="text-lg font-bold text-slate-900">
                                                         {existingReview
-                                                            ? 'Update your review'
-                                                            : 'Leave your feedback'}
+                                                            ? t(
+                                                                  'Update your review',
+                                                              )
+                                                            : t(
+                                                                  'Leave your feedback',
+                                                              )}
                                                     </h3>
                                                 </div>
 
                                                 <div className="mb-6">
                                                     <label className="mb-3 block text-sm font-bold text-slate-700">
-                                                        Rating
+                                                        {t('Rating')}
                                                     </label>
 
                                                     <div className="flex items-center gap-1">
@@ -437,7 +445,9 @@ export default function Show({
 
                                                 <div className="mb-5">
                                                     <label className="mb-2 block text-sm font-bold text-slate-700">
-                                                        Comment (Optional)
+                                                        {t(
+                                                            'Comment (Optional)',
+                                                        )}
                                                     </label>
                                                     <textarea
                                                         value={data.comment}
@@ -453,7 +463,9 @@ export default function Show({
                                                                 ? 'border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400'
                                                                 : 'border-slate-200 focus:border-purple-400 focus:ring-purple-400'
                                                         }`}
-                                                        placeholder="What did you think of this product?"
+                                                        placeholder={t(
+                                                            'What did you think of this product?',
+                                                        )}
                                                     />
                                                 </div>
 
@@ -468,8 +480,10 @@ export default function Show({
                                                         }`}
                                                     >
                                                         {existingReview
-                                                            ? 'Update Review'
-                                                            : 'Submit Review'}
+                                                            ? t('Update Review')
+                                                            : t(
+                                                                  'Submit Review',
+                                                              )}
                                                     </button>
 
                                                     {existingReview && (
@@ -485,7 +499,7 @@ export default function Show({
                                                             }
                                                             className="rounded-xl bg-slate-200 px-6 py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:bg-slate-300 disabled:opacity-50"
                                                         >
-                                                            Cancel
+                                                            {t('Cancel')}
                                                         </button>
                                                     )}
                                                 </div>
@@ -498,10 +512,12 @@ export default function Show({
                                             <div className="rounded-xl border border-slate-100 bg-slate-50 py-10 text-center text-slate-500">
                                                 <Star className="mx-auto mb-3 h-10 w-10 fill-slate-200 text-slate-200" />
                                                 <p className="font-medium text-slate-600">
-                                                    No reviews yet.
+                                                    {t('No reviews yet.')}
                                                 </p>
                                                 <p className="text-sm">
-                                                    Be the first to review!
+                                                    {t(
+                                                        'Be the first to review!',
+                                                    )}
                                                 </p>
                                             </div>
                                         ) : (
@@ -534,7 +550,9 @@ export default function Show({
                                                                             }
                                                                             {isMyReview && (
                                                                                 <span className="shrink-0 rounded-md bg-purple-100 px-1.5 py-0.5 text-[9px] font-black tracking-wider text-purple-700 uppercase ring-1 ring-purple-500/20 ring-inset">
-                                                                                    You
+                                                                                    {t(
+                                                                                        'You',
+                                                                                    )}
                                                                                 </span>
                                                                             )}
                                                                         </div>
@@ -582,7 +600,9 @@ export default function Show({
                                                                                 14
                                                                             }
                                                                         />
-                                                                        Edit
+                                                                        {t(
+                                                                            'Edit',
+                                                                        )}
                                                                     </button>
                                                                 )}
                                                             </div>
@@ -608,14 +628,12 @@ export default function Show({
                                     <div className="mb-6 overflow-hidden rounded-[20px] border border-rose-200 bg-rose-50 p-5 shadow-sm">
                                         <div className="mb-2 flex items-center gap-2 font-black text-rose-700">
                                             <AlertTriangle size={20} />
-                                            Suspended by Administrator
+                                            {t('Disabled by Administrator')}
                                         </div>
                                         <p className="text-sm leading-relaxed font-medium text-rose-600">
-                                            This product has been locked and
-                                            removed from the public marketplace
-                                            due to a policy violation or review.
-                                            You can edit the product to fix
-                                            issues, or delete it entirely.
+                                            {t(
+                                                'This product has been locked and removed from the public marketplace due to a policy violation or review. You can edit the product to fix issues, or delete it entirely.',
+                                            )}
                                         </p>
                                     </div>
                                 )}
@@ -634,7 +652,7 @@ export default function Show({
                                                         )}
                                                     </span>
                                                     <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-600">
-                                                        SALE
+                                                        {t('SALE')}
                                                     </span>
                                                 </div>
                                                 <div className="text-4xl font-black text-rose-600">
@@ -657,7 +675,7 @@ export default function Show({
                                     <div className="mb-8 space-y-3 text-sm">
                                         <div className="flex items-start justify-between gap-4 text-slate-600">
                                             <span className="shrink-0 font-semibold">
-                                                Creator:
+                                                {t('Creator:')}
                                             </span>
                                             <div className="flex min-w-0 flex-col items-end">
                                                 <div className="flex max-w-full items-center gap-2">
@@ -669,12 +687,12 @@ export default function Show({
                                                         }
                                                     >
                                                         {product.seller?.name ||
-                                                            'Unknown'}
+                                                            t('Unknown')}
                                                     </Link>
 
                                                     {isOwner && (
                                                         <span className="shrink-0 rounded-md bg-purple-100 px-1.5 py-0.5 text-[9px] font-black tracking-wider text-purple-700 uppercase ring-1 ring-purple-500/20 ring-inset">
-                                                            You
+                                                            {t('You')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -693,7 +711,7 @@ export default function Show({
 
                                         <div className="flex justify-between pt-1 text-slate-600">
                                             <span className="font-semibold">
-                                                Status:
+                                                {t('Status:')}
                                             </span>
                                             <span
                                                 className={
@@ -705,10 +723,10 @@ export default function Show({
                                                 }
                                             >
                                                 {product.is_locked
-                                                    ? 'Suspended'
+                                                    ? t('Suspended')
                                                     : product.is_active
-                                                      ? 'Available'
-                                                      : 'Hidden'}
+                                                      ? t('Available')
+                                                      : t('Hidden')}
                                             </span>
                                         </div>
                                     </div>
@@ -716,19 +734,19 @@ export default function Show({
                                     <div className="flex flex-col gap-3">
                                         {isAdmin ? (
                                             <div className="flex h-14 items-center justify-center rounded-xl bg-slate-100 px-4 font-bold text-slate-500 shadow-inner">
-                                                Viewing as Administrator
+                                                {t('Viewing as Administrator')}
                                             </div>
                                         ) : isOwner ? (
                                             <>
                                                 <div className="flex h-12 items-center justify-center rounded-xl bg-slate-100 font-bold text-slate-500 shadow-inner">
-                                                    You own this product
+                                                    {t('You own this product')}
                                                 </div>
                                                 <a
                                                     href={`/products/${product.id}/download`}
                                                     className="flex h-14 items-center justify-center gap-2 rounded-xl bg-emerald-500 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/25"
                                                 >
                                                     <Download size={20} />
-                                                    Download Source File
+                                                    {t('Download Source File')}
                                                 </a>
                                             </>
                                         ) : hasPurchased ? (
@@ -737,18 +755,17 @@ export default function Show({
                                                 className="flex h-14 items-center justify-center gap-2 rounded-xl bg-emerald-500 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/25"
                                             >
                                                 <Download size={20} />
-                                                Download File
+                                                {t('Download File')}
                                             </a>
                                         ) : isGuest ? (
                                             <Link
                                                 href={route('login')}
                                                 className="flex h-14 items-center justify-center rounded-xl bg-slate-900 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25"
                                             >
-                                                Log in to Purchase
+                                                {t('Log in to Purchase')}
                                             </Link>
                                         ) : product.is_active &&
                                           !product.is_locked ? (
-                                            // --- NEW: Pending Order Button Replacements ---
                                             pendingOrderId ? (
                                                 <div className="flex flex-col gap-3">
                                                     <div className="flex items-start gap-2 rounded-xl bg-amber-50 p-4 text-sm font-bold text-amber-700 ring-1 ring-amber-500/20 ring-inset">
@@ -757,9 +774,9 @@ export default function Show({
                                                             className="mt-0.5 shrink-0"
                                                         />
                                                         <p className="leading-relaxed">
-                                                            You have an unpaid
-                                                            order pending for
-                                                            this item.
+                                                            {t(
+                                                                'Looks like you have an unpaid order for this product.',
+                                                            )}
                                                         </p>
                                                     </div>
 
@@ -768,7 +785,7 @@ export default function Show({
                                                         className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25"
                                                     >
                                                         <CreditCard size={18} />
-                                                        Continue Payment
+                                                        {t('Continue Payment')}
                                                     </Link>
 
                                                     <button
@@ -780,11 +797,12 @@ export default function Show({
                                                         className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-100 font-bold text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
                                                     >
                                                         <XCircle size={18} />
-                                                        Cancel / Change Method
+                                                        {t(
+                                                            'Cancel / Change Method',
+                                                        )}
                                                     </button>
                                                 </div>
                                             ) : (
-                                                // --- STANDARD CART / BUY BUTTONS ---
                                                 <>
                                                     {isInCart ? (
                                                         <Link
@@ -792,8 +810,9 @@ export default function Show({
                                                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 px-8 py-4 font-bold text-emerald-600 ring-1 ring-emerald-200 transition-all ring-inset hover:bg-emerald-100 hover:text-emerald-700 sm:w-auto"
                                                         >
                                                             <CheckCircle className="h-5 w-5" />
-                                                            Already in Cart
-                                                            (View)
+                                                            {t(
+                                                                'Already in Cart (View)',
+                                                            )}
                                                         </Link>
                                                     ) : (
                                                         <button
@@ -809,8 +828,10 @@ export default function Show({
                                                                 <ShoppingBag className="h-5 w-5" />
                                                             )}
                                                             {isAddingToCart
-                                                                ? 'Adding...'
-                                                                : 'Add to Cart'}
+                                                                ? t('Adding...')
+                                                                : t(
+                                                                      'Add to Cart',
+                                                                  )}
                                                         </button>
                                                     )}
                                                     <button
@@ -822,8 +843,8 @@ export default function Show({
                                                             <Spinner className="mr-2 h-5 w-5" />
                                                         ) : null}
                                                         {isBuying
-                                                            ? 'Processing...'
-                                                            : 'Buy It Now'}
+                                                            ? t('Processing...')
+                                                            : t('Buy It Now')}
                                                     </button>
                                                 </>
                                             )
@@ -832,7 +853,7 @@ export default function Show({
                                                 disabled
                                                 className="flex h-14 cursor-not-allowed items-center justify-center rounded-xl bg-slate-200 font-bold text-slate-400"
                                             >
-                                                Currently Unavailable
+                                                {t('Currently Unavailable')}
                                             </button>
                                         )}
                                     </div>
@@ -844,7 +865,7 @@ export default function Show({
                                                 className="flex h-12 items-center justify-center gap-2 rounded-xl bg-indigo-50 font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
                                             >
                                                 <Edit size={18} />
-                                                Edit Product
+                                                {t('Edit Product')}
                                             </Link>
 
                                             <button
@@ -854,7 +875,7 @@ export default function Show({
                                                 className="flex h-12 items-center justify-center gap-2 rounded-xl bg-rose-50 font-bold text-rose-600 transition-colors hover:bg-rose-100"
                                             >
                                                 <Trash2 size={18} />
-                                                Delete Product
+                                                {t('Delete Product')}
                                             </button>
                                         </div>
                                     )}
@@ -865,25 +886,27 @@ export default function Show({
                 </main>
             </div>
 
-            {/* Existing Delete Modal */}
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
                 onClose={() => setIsDeleteModalOpen(false)}
                 onConfirm={executeDelete}
-                title="Delete Product"
-                message={`Are you sure you want to permanently delete "${product.title}"? This action cannot be undone and the file will be removed from the server.`}
-                confirmText="Yes, delete it"
+                title={t('Delete Product')}
+                message={t(
+                    'Are you sure you want to permanently delete ":title"? This action cannot be undone and the file will be removed from the server.',
+                ).replace(':title', product.title)}
+                confirmText={t('Yes, delete it')}
                 variant="danger"
             />
 
-            {/* --- NEW: Cancel Order Modal --- */}
             <ConfirmModal
                 isOpen={isCancelOrderModalOpen}
                 onClose={() => setIsCancelOrderModalOpen(false)}
                 onConfirm={executeCancelOrder}
-                title="Cancel Pending Order"
-                message="Are you sure you want to cancel your pending order for this product? This will void the current transaction so you can check out again with a different payment method. This action cannot be undone."
-                confirmText="Yes, cancel order"
+                title={t('Cancel Pending Order')}
+                message={t(
+                    'Are you sure you want to cancel your pending order for this product? This will void the current transaction so you can check out again with a different payment method. This action cannot be undone.',
+                )}
+                confirmText={t('Yes, cancel order')}
                 variant="danger"
                 isProcessing={isCancellingOrder}
             />

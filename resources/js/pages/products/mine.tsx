@@ -18,8 +18,12 @@ import BackToTop from '@/components/back-to-top';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Mine({ products }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
     const productList = products?.data || products || [];
 
     const { flash } = usePage().props as any;
@@ -92,7 +96,6 @@ export default function Mine({ products }: any) {
 
         if (!product) return;
 
-        // Start the loading spinner
         setIsProcessing(true);
 
         if (action === 'delete') {
@@ -105,7 +108,7 @@ export default function Mine({ products }: any) {
                         product: null,
                     });
                 },
-                onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+                onFinish: () => setIsProcessing(false),
             });
         } else if (action === 'toggle') {
             router.patch(
@@ -120,7 +123,7 @@ export default function Mine({ products }: any) {
                             product: null,
                         });
                     },
-                    onFinish: () => setIsProcessing(false), // <-- Stops the spinner
+                    onFinish: () => setIsProcessing(false),
                 },
             );
         }
@@ -129,9 +132,11 @@ export default function Mine({ products }: any) {
     const getModalText = () => {
         if (modalConfig.action === 'delete') {
             return {
-                title: 'Delete Product',
-                message: `Are you sure you want to permanently delete "${modalConfig.product?.title}"? This action cannot be undone and the file will be removed from the server.`,
-                confirmText: 'Yes, delete it',
+                title: t('Delete Product'),
+                message: t(
+                    'Are you sure you want to permanently delete ":title"? This action cannot be undone and the file will be removed from the server.',
+                ).replace(':title', modalConfig.product?.title || ''),
+                confirmText: t('Yes, delete it'),
                 variant: 'danger' as const,
             };
         }
@@ -140,11 +145,17 @@ export default function Mine({ products }: any) {
             const isHiding = modalConfig.product?.is_active;
 
             return {
-                title: isHiding ? 'Hide Product' : 'Publish Product',
+                title: isHiding ? t('Hide Product?') : t('Publish Product?'),
                 message: isHiding
-                    ? `Are you sure you want to hide "${modalConfig.product?.title}"? It will no longer be visible to buyers.`
-                    : `Are you sure you want to publish "${modalConfig.product?.title}"? It will instantly become visible on your store.`,
-                confirmText: isHiding ? 'Yes, hide it' : 'Yes, publish it',
+                    ? t(
+                          'Are you sure you want to hide ":title"? It will no longer be visible to buyers.',
+                      ).replace(':title', modalConfig.product?.title || '')
+                    : t(
+                          'Are you sure you want to publish ":title"? It will instantly become visible on your store.',
+                      ).replace(':title', modalConfig.product?.title || ''),
+                confirmText: isHiding
+                    ? t('Yes, hide it')
+                    : t('Yes, publish it'),
                 variant: isHiding ? ('neutral' as const) : ('primary' as const),
             };
         }
@@ -166,7 +177,7 @@ export default function Mine({ products }: any) {
 
     return (
         <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#FAFAFC] font-sans text-slate-900 selection:bg-purple-200 selection:text-purple-900">
-            <Head title="Seller Dashboard - Soko" />
+            <Head title={t('Seller Dashboard - Soko')} />
 
             <Navbar />
 
@@ -175,10 +186,12 @@ export default function Mine({ products }: any) {
                     <div className="mb-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
                         <div>
                             <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                                Creator Hub
+                                {t('Creator Hub')}
                             </h1>
                             <p className="mt-2 text-lg text-slate-500">
-                                Manage your digital products and inventory.
+                                {t(
+                                    'Manage your digital products and inventory.',
+                                )}
                             </p>
                         </div>
 
@@ -187,7 +200,7 @@ export default function Mine({ products }: any) {
                             className="flex shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/25"
                         >
                             <Plus size={18} />
-                            New Product
+                            {t('Add Product')}
                         </Link>
                     </div>
 
@@ -196,7 +209,7 @@ export default function Mine({ products }: any) {
                         {/* --- Search & Filter Header --- */}
                         <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-5 sm:px-8 sm:py-6 lg:flex-row lg:items-center lg:justify-between">
                             <h2 className="text-xl font-black text-slate-900">
-                                My Products
+                                {t('My Products')}
                             </h2>
                             {productList.length > 0 && (
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -217,16 +230,16 @@ export default function Mine({ products }: any) {
                                                 className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-2 pr-10 pl-4 text-sm font-medium text-slate-700 shadow-sm transition-all outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                                             >
                                                 <option value="all">
-                                                    All Statuses
+                                                    {t('All Statuses')}
                                                 </option>
                                                 <option value="active">
-                                                    Active
+                                                    {t('Active')}
                                                 </option>
                                                 <option value="hidden">
-                                                    Hidden
+                                                    {t('Hidden')}
                                                 </option>
                                                 <option value="locked">
-                                                    Locked by Admin
+                                                    {t('Locked by Admin')}
                                                 </option>
                                             </select>
                                             {/* --- CUSTOM CHEVRON --- */}
@@ -242,7 +255,9 @@ export default function Mine({ products }: any) {
                                         />
                                         <input
                                             type="text"
-                                            placeholder="Search products..."
+                                            placeholder={t(
+                                                'Search products...',
+                                            )}
                                             value={searchQuery}
                                             onChange={(e) =>
                                                 setSearchQuery(e.target.value)
@@ -260,12 +275,12 @@ export default function Mine({ products }: any) {
                                     <PackageOpen className="h-10 w-10 text-slate-300" />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900">
-                                    No products yet
+                                    {t('No products yet')}
                                 </h3>
                                 <p className="mt-1 max-w-sm px-4 text-slate-500">
-                                    You haven&apos;t added any digital products
-                                    to your store. Click the &quot;New
-                                    Product&quot; button to get started.
+                                    {t(
+                                        'You haven\'t added any digital products to your store. Click the "New Product" button to get started.',
+                                    )}
                                 </p>
                             </div>
                         ) : filteredProducts.length === 0 ? (
@@ -274,11 +289,12 @@ export default function Mine({ products }: any) {
                                     <Search className="h-10 w-10 text-slate-300" />
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900">
-                                    No matching products
+                                    {t('No matching products')}
                                 </h3>
                                 <p className="mt-1 max-w-sm px-4 text-slate-500">
-                                    We couldn&apos;t find anything matching your
-                                    search or filter.
+                                    {t(
+                                        "We couldn't find anything matching your search or filter.",
+                                    )}
                                 </p>
                             </div>
                         ) : (
@@ -298,7 +314,7 @@ export default function Mine({ products }: any) {
                                                     <span className="text-xs text-slate-400">
                                                         {product.category
                                                             ?.name ||
-                                                            'Digital Asset'}
+                                                            t('Digital Asset')}
                                                     </span>
                                                 </div>
                                                 <span
@@ -311,10 +327,10 @@ export default function Mine({ products }: any) {
                                                     }`}
                                                 >
                                                     {product.is_locked
-                                                        ? 'Suspended by Admin'
+                                                        ? t('Disabled by Admin')
                                                         : product.is_active
-                                                          ? 'Active'
-                                                          : 'Hidden'}
+                                                          ? t('Active')
+                                                          : t('Hidden')}
                                                 </span>
                                             </div>
 
@@ -333,7 +349,7 @@ export default function Mine({ products }: any) {
                                                                 )}
                                                             </span>
                                                             <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black tracking-wider text-rose-600 uppercase">
-                                                                SALE
+                                                                {t('SALE')}
                                                             </span>
                                                         </div>
                                                         <span className="text-xs font-medium text-slate-400 line-through">
@@ -391,7 +407,9 @@ export default function Mine({ products }: any) {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="flex items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition-colors hover:bg-sky-100"
-                                                    title="Download Product File"
+                                                    title={t(
+                                                        'Download Product File',
+                                                    )}
                                                 >
                                                     <Download size={18} />
                                                 </a>
@@ -420,16 +438,16 @@ export default function Mine({ products }: any) {
                                         <thead>
                                             <tr className="border-b border-slate-100 bg-white text-slate-500">
                                                 <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                    Product Detail
+                                                    {t('Product Detail')}
                                                 </th>
                                                 <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                    Price
+                                                    {t('Price')}
                                                 </th>
                                                 <th className="px-8 py-5 font-bold tracking-wider uppercase">
-                                                    Status
+                                                    {t('Status')}
                                                 </th>
                                                 <th className="px-8 py-5 text-right font-bold tracking-wider uppercase">
-                                                    Actions
+                                                    {t('Actions')}
                                                 </th>
                                             </tr>
                                         </thead>
@@ -451,7 +469,9 @@ export default function Mine({ products }: any) {
                                                                     {product
                                                                         .category
                                                                         ?.name ||
-                                                                        'Digital Asset'}
+                                                                        t(
+                                                                            'Digital Asset',
+                                                                        )}
                                                                 </span>
                                                             </div>
                                                         </td>
@@ -471,7 +491,9 @@ export default function Mine({ products }: any) {
                                                                             )}
                                                                         </span>
                                                                         <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black text-rose-600">
-                                                                            SALE
+                                                                            {t(
+                                                                                'SALE',
+                                                                            )}
                                                                         </span>
                                                                     </div>
                                                                     <span className="mt-0.5 text-xs font-medium text-slate-400 line-through">
@@ -512,13 +534,16 @@ export default function Mine({ products }: any) {
                                                                                 12
                                                                             }
                                                                         />
-                                                                        Suspended
-                                                                        by Admin
+                                                                        {t(
+                                                                            'Disabled by Admin',
+                                                                        )}
                                                                     </>
                                                                 ) : product.is_active ? (
                                                                     <>
                                                                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                                                        Active
+                                                                        {t(
+                                                                            'Active',
+                                                                        )}
                                                                     </>
                                                                 ) : (
                                                                     <>
@@ -527,7 +552,9 @@ export default function Mine({ products }: any) {
                                                                                 12
                                                                             }
                                                                         />
-                                                                        Hidden
+                                                                        {t(
+                                                                            'Hidden',
+                                                                        )}
                                                                     </>
                                                                 )}
                                                             </span>
@@ -556,10 +583,16 @@ export default function Mine({ products }: any) {
                                                                     }`}
                                                                     title={
                                                                         product.is_locked
-                                                                            ? 'Suspended by Administrator'
+                                                                            ? t(
+                                                                                  'Disabled by Admin',
+                                                                              )
                                                                             : product.is_active
-                                                                              ? 'Hide Product'
-                                                                              : 'Publish Product'
+                                                                              ? t(
+                                                                                    'Hide Product',
+                                                                                )
+                                                                              : t(
+                                                                                    'Publish Product',
+                                                                                )
                                                                     }
                                                                 >
                                                                     {product.is_active ? (
@@ -580,7 +613,9 @@ export default function Mine({ products }: any) {
                                                                 <Link
                                                                     href={`/seller/products/${product.id}/edit`}
                                                                     className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
-                                                                    title="Edit Product"
+                                                                    title={t(
+                                                                        'Edit Product',
+                                                                    )}
                                                                 >
                                                                     <Edit
                                                                         size={
@@ -594,7 +629,9 @@ export default function Mine({ products }: any) {
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-600"
-                                                                    title="Download File"
+                                                                    title={t(
+                                                                        'Download Product File',
+                                                                    )}
                                                                 >
                                                                     <Download
                                                                         size={
@@ -606,7 +643,9 @@ export default function Mine({ products }: any) {
                                                                 <Link
                                                                     href={`/products/${product.slug}`}
                                                                     className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
-                                                                    title="View on Store"
+                                                                    title={t(
+                                                                        'View on Store',
+                                                                    )}
                                                                 >
                                                                     <ExternalLink
                                                                         size={
@@ -622,7 +661,9 @@ export default function Mine({ products }: any) {
                                                                         )
                                                                     }
                                                                     className="flex items-center justify-center rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                                                                    title="Delete Product"
+                                                                    title={t(
+                                                                        'Delete Product',
+                                                                    )}
                                                                 >
                                                                     <Trash2
                                                                         size={
@@ -658,7 +699,7 @@ export default function Mine({ products }: any) {
                 message={modalMessage}
                 confirmText={modalConfirmText}
                 variant={modalVariant}
-                isProcessing={isProcessing} // <-- PASSED DOWN TO THE MODAL!
+                isProcessing={isProcessing}
             />
             <BackToTop />
         </div>

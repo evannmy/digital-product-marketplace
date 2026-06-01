@@ -6,10 +6,14 @@ import {
     Landmark,
     ArrowRight,
     Clock,
-} from 'lucide-react'; // <-- Added Clock
+} from 'lucide-react';
 import Navbar from '@/components/navbar';
+// --- ADDED: Translation Hook ---
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Dashboard({ stats }: any) {
+    const { t } = useTranslation(); // Inject translator here
+
     // --- Currency Formatter ---
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -21,18 +25,19 @@ export default function Dashboard({ stats }: any) {
 
     return (
         <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#FAFAFC] font-sans text-slate-900">
-            <Head title="Admin Dashboard - Soko" />
+            <Head title={t('Admin Dashboard - Soko')} />
             <Navbar />
 
             <main className="relative z-10 flex-1 pt-32 pb-24">
                 <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-10">
                         <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                            System Overview
+                            {t('System Overview')}
                         </h1>
                         <p className="mt-2 text-lg text-slate-500">
-                            Monitor your platform's health, users, and digital
-                            inventory.
+                            {t(
+                                'Get a clear overview of your total users, active sellers, products, and platform revenue in one place.',
+                            )}
                         </p>
                     </div>
 
@@ -45,16 +50,16 @@ export default function Dashboard({ stats }: any) {
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-black text-amber-900">
-                                        Action Required:{' '}
-                                        {stats.pending_transfers_count} Pending
-                                        Payout(s)
+                                        {t('Action Required: ')}
+                                        {stats.pending_transfers_count}
+                                        {t(' Pending Payout(s)')}
                                     </h3>
                                     <p className="mt-0.5 text-sm font-medium text-amber-700">
-                                        Sellers are waiting for{' '}
+                                        {t('Sellers are waiting for ')}
                                         {formatCurrency(
                                             stats.pending_transfers_amount,
-                                        )}{' '}
-                                        in net transfers.
+                                        )}
+                                        {t(' in net transfers.')}
                                     </p>
                                 </div>
                             </div>
@@ -63,7 +68,8 @@ export default function Dashboard({ stats }: any) {
                                     href="/admin/finances"
                                     className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-6 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-amber-600 hover:shadow-lg hover:shadow-amber-500/25"
                                 >
-                                    Process Payouts <ArrowRight size={16} />
+                                    {t('Process Payouts')}{' '}
+                                    <ArrowRight size={16} />
                                 </Link>
                             </div>
                         </div>
@@ -85,7 +91,7 @@ export default function Dashboard({ stats }: any) {
                                 </div>
                             </div>
                             <p className="mb-1 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                Total Users
+                                {t('Total Users')}
                             </p>
                             <h3 className="text-3xl font-black tracking-tight text-slate-900">
                                 {stats?.total_users || 0}
@@ -106,7 +112,7 @@ export default function Dashboard({ stats }: any) {
                                 </div>
                             </div>
                             <p className="mb-1 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                Total Products
+                                {t('Total Products')}
                             </p>
                             <h3 className="text-3xl font-black tracking-tight text-slate-900">
                                 {stats?.total_products || 0}
@@ -127,7 +133,7 @@ export default function Dashboard({ stats }: any) {
                                 </div>
                             </div>
                             <p className="mb-1 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                Active Sellers
+                                {t('Active Sellers')}
                             </p>
                             <h3 className="text-3xl font-black tracking-tight text-slate-900">
                                 {stats?.active_sellers || 0}
@@ -148,7 +154,7 @@ export default function Dashboard({ stats }: any) {
                                 </div>
                             </div>
                             <p className="mb-1 text-sm font-bold tracking-wider text-slate-400 uppercase">
-                                Platform Revenue
+                                {t('Platform Revenue')}
                             </p>
                             <h3 className="text-3xl font-black tracking-tight text-slate-900">
                                 {formatCurrency(stats?.platform_revenue || 0)}

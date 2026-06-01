@@ -25,20 +25,19 @@ class ProductController extends Controller
     {
         // 1. Just toggle the Admin Lock. 
         $product->is_locked = !$product->is_locked;
-
-        // REMOVE THIS LINE ENTIRELY:
-        // $product->is_active = !$product->is_locked; <-- DELETE THIS!
-
         $product->save();
 
-        $status = $product->is_locked ? 'locked and hidden' : 'unlocked';
-        return back()->with('success', "Product has been {$status}.");
+        // --- PISAHKAN PESAN AGAR MUDAH DITERJEMAHKAN ---
+        if ($product->is_locked) {
+            return back()->with('success', __('Product has been locked and hidden.'));
+        } else {
+            return back()->with('success', __('Product has been unlocked.'));
+        }
     }
 
     public function destroy(Product $product)
     {
         // 1. Always delete public promotional media to save server space
-        // (We keep the legacy image_path check just in case older products still have it)
         if ($product->image_path) {
             Storage::disk('public')->delete($product->image_path);
         }
@@ -51,23 +50,16 @@ class ProductController extends Controller
         $hasSales = $product->orderItems()->exists();
 
         if ($hasSales) {
-            // --- SCENARIO A: Product has buyers ---
-            // Keep the private source file intact so past buyers can still download it.
-            // Soft delete the product so it vanishes from the public marketplace.
             $product->delete();
-
-            return back()->with('success', 'Product hidden from marketplace, but kept available in libraries for past buyers.');
+            // --- DIBUNGKUS DENGAN __() ---
+            return back()->with('success', __('Product hidden from marketplace, but kept available in libraries for past buyers.'));
         } else {
-            // --- SCENARIO B: Product has 0 sales ---
-            // Nobody needs this. Destroy the heavy source file to save server storage.
             if ($product->file_path) {
                 Storage::delete($product->file_path);
             }
-
-            // Permanently wipe the database row, bypassing Soft Deletes
             $product->forceDelete();
-
-            return back()->with('success', 'Product and all associated files permanently deleted.');
+            // --- DIBUNGKUS DENGAN __() ---
+            return back()->with('success', __('Product and all associated files permanently deleted.'));
         }
     }
 }
