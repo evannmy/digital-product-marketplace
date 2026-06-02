@@ -11,6 +11,7 @@ import {
     XCircle,
     X,
     Building2,
+    ChevronDown,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/navbar';
@@ -768,7 +769,7 @@ export default function Earnings({
                                                     e.target.value,
                                                 )
                                             }
-                                            className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-3 pr-10 pl-4 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         >
                                             <option value="" disabled>
                                                 {t(
@@ -789,6 +790,7 @@ export default function Earnings({
                                                 ),
                                             )}
                                         </select>
+                                        <ChevronDown className="pointer-events-none absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     </div>
                                 </div>
                                 <div>
