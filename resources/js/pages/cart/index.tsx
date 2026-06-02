@@ -1,5 +1,5 @@
 import type { PageProps } from '@inertiajs/core';
-import { Head, Link, router, usePage, useForm } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Trash2,
     ShoppingBag,
@@ -7,13 +7,13 @@ import {
     ShoppingCart,
     Package,
     AlertTriangle,
+    Check,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
-// --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface Seller {
@@ -56,7 +56,7 @@ interface CartPageProps extends PageProps {
 
 // --- Isolated Thumbnail Component for Cart Items ---
 function CartItemThumbnail({ product }: { product: Product }) {
-    const { t } = useTranslation(); // Inject translator here
+    const { t } = useTranslation();
     const hasMedia = product.media && product.media.length > 0;
     const fallbackImage = product.image_path;
 
@@ -77,14 +77,11 @@ function CartItemThumbnail({ product }: { product: Product }) {
 
     return (
         <div className="relative h-full w-full overflow-hidden bg-slate-100">
-            {/* 1. Loading State */}
             {status === 'loading' && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50/50 backdrop-blur-sm">
                     <Spinner className="h-5 w-5 animate-spin text-purple-400" />
                 </div>
             )}
-
-            {/* 2. Error State */}
             {status === 'error' && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-purple-300">
                     <Package className="mb-1 h-6 w-6 opacity-50" />
@@ -93,8 +90,6 @@ function CartItemThumbnail({ product }: { product: Product }) {
                     </span>
                 </div>
             )}
-
-            {/* 3. Actual Media */}
             {isVideo ? (
                 <div className="relative h-full w-full">
                     <video
@@ -121,19 +116,25 @@ function CartItemThumbnail({ product }: { product: Product }) {
 }
 
 export default function CartPage({ cart }: CartPageProps) {
-    const { t } = useTranslation(); // Inject translator here
+    const { t } = useTranslation();
     const { flash } = usePage<any>().props;
+
+    const items = useMemo(() => cart?.items || [], [cart?.items]);
 
     const [itemToDelete, setItemToDelete] = useState<number | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-    const { post: submitCheckout, processing: isCheckingOut } = useForm();
+    // --- ADDED: State to track selected items ---
+    // Secara default, semua item di keranjang dicentang
+    const [selectedItems, setSelectedItems] = useState<number[]>(
+        items.map((item) => item.id),
+    );
 
     useEffect(() => {
         router.reload({ only: ['cart'] });
     }, []);
 
-    // --- Global Flash Message Listener ---
     useEffect(() => {
         if (flash?.error) toast(flash.error, 'error');
 
@@ -156,12 +157,34 @@ export default function CartPage({ cart }: CartPageProps) {
         }
     }, [flash]);
 
-    const items = cart?.items || [];
+    // --- ADDED: Checkbox Toggle Handlers ---
+    const toggleItemSelection = (id: number) => {
+        setSelectedItems((prev) =>
+            prev.includes(id)
+                ? prev.filter((itemId) => itemId !== id)
+                : [...prev, id],
+        );
+    };
 
-    const hasPendingItems = items.some((item) => item.has_pending_order);
-    const hasPurchasedItems = items.some((item) => item.has_purchased_order);
+    const toggleSelectAll = () => {
+        if (selectedItems.length === items.length) {
+            setSelectedItems([]);
+        } else {
+            setSelectedItems(items.map((item) => item.id));
+        }
+    };
 
-    const isCheckoutBlocked = hasPendingItems || hasPurchasedItems;
+    // --- UPDATED: Calculations only apply to selected items ---
+    const activeItems = items.filter((item) => selectedItems.includes(item.id));
+
+    const hasPendingItems = activeItems.some((item) => item.has_pending_order);
+    const hasPurchasedItems = activeItems.some(
+        (item) => item.has_purchased_order,
+    );
+
+    // Blokir checkout jika tidak ada item yang dipilih, atau jika item yang dipilih memiliki masalah
+    const isCheckoutBlocked =
+        hasPendingItems || hasPurchasedItems || selectedItems.length === 0;
 
     const getFinalPrice = (product: Product) => {
         return product.is_discount_active &&
@@ -170,7 +193,7 @@ export default function CartPage({ cart }: CartPageProps) {
             : product.price;
     };
 
-    const subtotal = items.reduce(
+    const subtotal = activeItems.reduce(
         (total, item) => total + getFinalPrice(item.product),
         0,
     );
@@ -195,16 +218,36 @@ export default function CartPage({ cart }: CartPageProps) {
         router.delete(route('cart.destroy', itemToDelete), {
             preserveScroll: true,
             onSuccess: () => {
+                // PERBAIKAN: Bersihkan centang checkbox secara aman di sini saat sukses dihapus
+                setSelectedItems((prev) =>
+                    prev.filter((id) => id !== itemToDelete),
+                );
                 setItemToDelete(null);
             },
             onFinish: () => setIsProcessing(false),
         });
     };
 
+    // --- UPDATED: Send selected_item_ids to the backend ---
     const handleCheckout = () => {
-        submitCheckout(route('checkout.process'), {
-            preserveScroll: true,
-        });
+        if (selectedItems.length === 0) {
+            toast(t('Please select at least one item to checkout.'), 'error');
+
+            return;
+        }
+
+        setIsCheckingOut(true);
+
+        router.post(
+            route('checkout.process'),
+            {
+                selected_item_ids: selectedItems,
+            },
+            {
+                preserveScroll: true,
+                onFinish: () => setIsCheckingOut(false),
+            },
+        );
     };
 
     return (
@@ -250,12 +293,89 @@ export default function CartPage({ cart }: CartPageProps) {
                             <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
                                 {/* LEFT COLUMN: Cart Items */}
                                 <div className="flex-1 overflow-hidden rounded-3xl border border-slate-200/60 bg-white/95 shadow-xl shadow-purple-900/5 backdrop-blur-sm">
+                                    {/* --- ADDED: Select All Toolbar --- */}
+                                    <div className="flex items-center gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-4 sm:px-8">
+                                        <button
+                                            type="button"
+                                            onClick={toggleSelectAll}
+                                            className="group flex cursor-pointer items-center gap-3 outline-none"
+                                        >
+                                            <div
+                                                className={`flex h-5 w-5 items-center justify-center rounded-[6px] border-2 transition-all duration-200 ${
+                                                    selectedItems.length ===
+                                                        items.length &&
+                                                    items.length > 0
+                                                        ? 'border-purple-600 bg-purple-600 text-white'
+                                                        : 'border-slate-300 bg-white group-hover:border-purple-400'
+                                                }`}
+                                            >
+                                                <Check
+                                                    size={14}
+                                                    strokeWidth={3}
+                                                    className={
+                                                        selectedItems.length ===
+                                                            items.length &&
+                                                        items.length > 0
+                                                            ? 'scale-100 opacity-100 transition-all duration-300 ease-out'
+                                                            : 'scale-50 opacity-0 transition-all duration-200 ease-in'
+                                                    }
+                                                />
+                                            </div>
+                                            <span className="text-sm font-bold text-slate-700 transition-colors group-hover:text-purple-700">
+                                                {t('Select All')}
+                                            </span>
+                                        </button>
+                                        <span className="text-xs font-medium text-slate-400">
+                                            ({selectedItems.length} /{' '}
+                                            {items.length} {t('selected')})
+                                        </span>
+                                    </div>
+
                                     <ul className="divide-y divide-slate-100">
                                         {items.map((item) => (
                                             <li
                                                 key={item.id}
-                                                className={`group flex flex-col p-6 transition-colors sm:flex-row sm:p-8 ${item.has_pending_order ? 'bg-amber-50/30' : 'hover:bg-slate-50/50'}`}
+                                                className={`group flex flex-col p-6 transition-colors sm:flex-row sm:p-8 ${
+                                                    item.has_pending_order
+                                                        ? 'bg-amber-50/30'
+                                                        : 'hover:bg-slate-50/50'
+                                                }`}
                                             >
+                                                {/* --- ADDED: Individual Checkbox --- */}
+                                                <div className="mb-4 flex items-center sm:mb-0 sm:pr-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            toggleItemSelection(
+                                                                item.id,
+                                                            )
+                                                        }
+                                                        className="group flex h-10 w-10 items-center justify-center rounded-full transition-colors outline-none hover:bg-purple-50 sm:h-auto sm:w-auto sm:hover:bg-transparent"
+                                                    >
+                                                        <div
+                                                            className={`flex h-6 w-6 items-center justify-center rounded-[8px] border-2 transition-all duration-200 ${
+                                                                selectedItems.includes(
+                                                                    item.id,
+                                                                )
+                                                                    ? 'border-purple-600 bg-purple-600 text-white shadow-md shadow-purple-500/30'
+                                                                    : 'border-slate-300 bg-white group-hover:border-purple-400'
+                                                            }`}
+                                                        >
+                                                            <Check
+                                                                size={16}
+                                                                strokeWidth={3}
+                                                                className={
+                                                                    selectedItems.includes(
+                                                                        item.id,
+                                                                    )
+                                                                        ? 'scale-100 opacity-100 transition-all duration-300 ease-out'
+                                                                        : 'scale-50 opacity-0 transition-all duration-200 ease-in'
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </button>
+                                                </div>
+
                                                 <div className="mb-4 h-32 w-full shrink-0 overflow-hidden rounded-2xl bg-slate-100 sm:mb-0 sm:h-28 sm:w-28">
                                                     <CartItemThumbnail
                                                         product={item.product}
@@ -402,7 +522,8 @@ export default function CartPage({ cart }: CartPageProps) {
                                     <div className="space-y-4 text-slate-600">
                                         <div className="flex justify-between text-sm font-semibold">
                                             <span>
-                                                {t('Subtotal')} ({items.length}{' '}
+                                                {t('Subtotal')} (
+                                                {selectedItems.length}{' '}
                                                 {t('items')})
                                             </span>
                                             <span className="text-slate-900">
@@ -428,7 +549,7 @@ export default function CartPage({ cart }: CartPageProps) {
                                         </div>
                                     </div>
 
-                                    {/* --- UPDATED: Button dynamically blocks checkout and prompts action --- */}
+                                    {/* --- UPDATED: Checkout logic depends on selected items --- */}
                                     <button
                                         onClick={handleCheckout}
                                         disabled={
@@ -436,7 +557,9 @@ export default function CartPage({ cart }: CartPageProps) {
                                         }
                                         className={`mt-8 flex w-full items-center justify-center rounded-xl px-6 py-4 text-sm font-bold text-white transition-all disabled:cursor-not-allowed ${
                                             isCheckoutBlocked
-                                                ? 'bg-amber-500 text-white hover:bg-amber-500'
+                                                ? selectedItems.length === 0
+                                                    ? 'bg-slate-300 text-white'
+                                                    : 'bg-amber-500 text-white hover:bg-amber-500'
                                                 : 'bg-slate-900 hover:-translate-y-0.5 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50 disabled:hover:translate-y-0'
                                         }`}
                                     >
@@ -445,15 +568,17 @@ export default function CartPage({ cart }: CartPageProps) {
                                         ) : null}
                                         {isCheckingOut
                                             ? t('Processing...')
-                                            : hasPurchasedItems
-                                              ? t(
-                                                    'Remove Owned Items to Continue',
-                                                )
-                                              : hasPendingItems
+                                            : selectedItems.length === 0
+                                              ? t('Select an item to checkout')
+                                              : hasPurchasedItems
                                                 ? t(
-                                                      'Remove Pending Items to Continue',
+                                                      'Uncheck Owned Items to Continue',
                                                   )
-                                                : t('Proceed to Payment')}
+                                                : hasPendingItems
+                                                  ? t(
+                                                        'Uncheck Pending Items to Continue',
+                                                    )
+                                                  : t('Proceed to Payment')}
                                     </button>
 
                                     <div className="mt-6 text-center text-sm font-semibold text-slate-500">

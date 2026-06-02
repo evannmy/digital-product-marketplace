@@ -142,6 +142,21 @@ class TransactionController extends Controller
             return redirect()->back()->with('error', __('Your cart is empty.'));
         }
 
+        // --- DITAMBAHKAN: Validasi item yang dipilih dari frontend ---
+        $request->validate([
+            'selected_item_ids' => 'required|array|min:1',
+            'selected_item_ids.*' => 'integer|exists:cart_items,id'
+        ]);
+
+        $selectedItemIds = $request->input('selected_item_ids');
+
+        // --- DITAMBAHKAN: Filter item keranjang HANYA yang dipilih user ---
+        $itemsToCheckout = $cart->items->whereIn('id', $selectedItemIds);
+
+        if ($itemsToCheckout->isEmpty()) {
+            return redirect()->back()->with('error', __('Please select at least one valid item to checkout.'));
+        }
+
         $platformCutPercentage = Setting::getPlatformCut();
 
         DB::beginTransaction();
@@ -150,7 +165,8 @@ class TransactionController extends Controller
             $totalAmount = 0;
             $validItems = [];
 
-            foreach ($cart->items as $item) {
+            // --- DIPERBAIKI: Loop menggunakan $itemsToCheckout, bukan $cart->items ---
+            foreach ($itemsToCheckout as $item) {
                 $product = $item->product;
 
                 if (!$product || !$product->is_active) {
@@ -212,7 +228,14 @@ class TransactionController extends Controller
                 ]);
             }
 
-            $cart->delete();
+            // --- DIPERBAIKI: HANYA hapus item yang di-checkout ---
+            \App\Models\CartItem::whereIn('id', $selectedItemIds)->delete();
+
+            // Opsional: Hapus entitas Cart jika sudah tidak ada item sama sekali
+            if ($cart->items()->count() === 0) {
+                $cart->delete();
+            }
+
             DB::commit();
 
             return redirect()->route('orders.pay', $order->id)
