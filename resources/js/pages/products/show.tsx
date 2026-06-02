@@ -202,6 +202,16 @@ export default function Show({
             {
                 preserveScroll: true,
                 preserveState: true,
+                onSuccess: (page: any) => {
+                    // --- DITAMBAHKAN: Intersep respon sukses khusus dari action ini ---
+                    if (page.props.flash?.success) {
+                        // Panggil toast dengan parameter showCartLink = true
+                        toast(page.props.flash.success, 'success', true);
+
+                        // Kosongkan flash agar useEffect global di bawah tidak memunculkan toast kedua kalinya
+                        page.props.flash.success = null;
+                    }
+                },
                 onFinish: () => setIsAddingToCart(false),
             },
         );

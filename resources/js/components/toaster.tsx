@@ -1,5 +1,8 @@
+import { Link } from '@inertiajs/react';
 import { CheckCircle, Trash2, X, AlertTriangle, Info } from 'lucide-react';
-import { useState, useEffect } from 'react';
+// --- DITAMBAHKAN: useRef untuk mengontrol timer ---
+import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // --- 1. GLOBAL STATE TYPES ---
 export type ToastType = 'success' | 'delete' | 'error' | 'info';
@@ -11,7 +14,6 @@ interface ToastData {
     id: number;
 }
 
-// Global listener to let the 'toast' function communicate with the '<Toaster />' component
 let toastListener: ((data: ToastData) => void) | null = null;
 let toastIdCounter = 0;
 
@@ -28,38 +30,42 @@ export const toast = (
 
 // --- 3. THE EXPORTED TOASTER COMPONENT (The UI) ---
 export default function Toaster() {
+    const { t } = useTranslation();
     const [currentToast, setCurrentToast] = useState<ToastData | null>(null);
     const [show, setShow] = useState(false);
 
-    useEffect(() => {
-        // --- FIXED: Uses the native return type instead of NodeJS.Timeout ---
-        let timeoutId: ReturnType<typeof setTimeout>;
+    // --- DITAMBAHKAN: Ref untuk menyimpan status timer ---
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-        // Register the listener when the component mounts
+    // --- DITAMBAHKAN: Fungsi kontrol timer ---
+    const startTimer = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+
+        timerRef.current = setTimeout(() => {
+            setShow(false);
+        }, 3500);
+    };
+
+    const stopTimer = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+    };
+
+    useEffect(() => {
         toastListener = (data: ToastData) => {
             setCurrentToast(data);
             setShow(true);
-
-            // Clear any existing timer so rapid clicks don't close the toast instantly
-            clearTimeout(timeoutId);
-
-            // Auto-hide the toast after 3.5 seconds
-            timeoutId = setTimeout(() => {
-                setShow(false);
-            }, 3500);
+            // Mulai hitung mundur saat toast baru muncul
+            startTimer();
         };
 
-        // Cleanup when the component unmounts
         return () => {
             toastListener = null;
-            clearTimeout(timeoutId);
+            stopTimer(); // Bersihkan timer saat komponen dibongkar (unmount)
         };
     }, []);
 
-    // Safe fallback type for rendering
     const type = currentToast?.type || 'success';
 
-    // UI Dictionaries
     const wrapperStyles = {
         success: 'border-emerald-100 shadow-emerald-900/10',
         delete: 'border-rose-100 shadow-rose-900/10',
@@ -83,6 +89,9 @@ export default function Toaster() {
 
     return (
         <div
+            // --- DITAMBAHKAN: Mouse events untuk menahan timer saat di-hover ---
+            onMouseEnter={stopTimer}
+            onMouseLeave={startTimer}
             className={`fixed right-6 bottom-6 z-100 transition-all duration-300 ease-in-out sm:right-10 sm:bottom-10 ${
                 show
                     ? 'translate-y-0 opacity-100'
@@ -103,6 +112,16 @@ export default function Toaster() {
                     <p className="text-sm font-bold text-slate-900">
                         {currentToast?.message || ''}
                     </p>
+                    {currentToast?.showCartLink && (
+                        <Link
+                            href="/cart"
+                            onClick={() => setShow(false)}
+                            className="mt-1 inline-flex items-center text-xs font-bold text-emerald-600 transition-colors hover:text-emerald-700 hover:underline"
+                        >
+                            {/* --- SUDAH DINAMIS: Akan membaca file terjemahan Anda secara otomatis --- */}
+                            {t('View Cart')} &rarr;
+                        </Link>
+                    )}
                 </div>
 
                 <button
