@@ -12,7 +12,6 @@ import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
-// --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function AdminSettings({
@@ -20,12 +19,10 @@ export default function AdminSettings({
     withdrawalMethods = [],
     categories = [],
 }: any) {
-    const { t } = useTranslation(); // Inject translator here
+    const { t } = useTranslation();
 
-    // --- 1. AMBIL FLASH DARI INERTIA ---
     const { flash } = usePage().props as any;
 
-    // --- 2. PASANG LISTENER UNTUK TOAST OTOMATIS ---
     useEffect(() => {
         if (flash?.success) {
             toast(flash.success, 'success');
@@ -36,7 +33,6 @@ export default function AdminSettings({
         }
     }, [flash]);
 
-    // --- MODAL STATE (Updated to handle multiple types) ---
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         removeIndex: number | null;
@@ -47,7 +43,6 @@ export default function AdminSettings({
         type: null,
     });
 
-    // --- FORM STATE ---
     const { data, setData, post, processing } = useForm({
         platform_cut_percentage: settings?.platform_cut_percentage || '5',
         withdrawal_free_threshold:
@@ -60,7 +55,6 @@ export default function AdminSettings({
         e.preventDefault();
         post('/admin/settings', {
             preserveScroll: true,
-            // Hapus bagian onSuccess() karena pesan sukses sudah ditangani otomatis oleh useEffect di atas.
             onError: () =>
                 toast(
                     t('Failed to update settings. Please check your inputs.'),
@@ -69,7 +63,6 @@ export default function AdminSettings({
         });
     };
 
-    // --- CURRENCY FORMATTING HELPERS ---
     const formatCurrencyDisplay = (value: string | number) => {
         if (!value && value !== 0 && value !== '0') return '';
 
@@ -80,7 +73,6 @@ export default function AdminSettings({
 
     const handleThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\./g, '');
-        // FIX: Added 'as never' for Inertia TypeScript compatibility
         setData('withdrawal_free_threshold', rawValue as never);
     };
 
@@ -92,7 +84,6 @@ export default function AdminSettings({
         updateMethod(index, 'fee', rawValue);
     };
 
-    // --- SMART SLUG GENERATOR ---
     const generateSlug = (text: string) => {
         return text
             .toString()
@@ -104,10 +95,8 @@ export default function AdminSettings({
             .replace(/-+$/, '');
     };
 
-    // --- DYNAMIC ARRAY HANDLERS (WITHDRAWALS) ---
     const addMethod = () => {
         const newIndex = data.withdrawal_methods.length;
-        // FIX: Added 'as never'
         setData('withdrawal_methods', [
             ...data.withdrawal_methods,
             { id: null, name: '', fee: '0', is_active: true },
@@ -124,14 +113,11 @@ export default function AdminSettings({
     const updateMethod = (index: number, field: string, value: any) => {
         const newMethods = [...data.withdrawal_methods];
         newMethods[index] = { ...newMethods[index], [field]: value };
-        // FIX: Added 'as never'
         setData('withdrawal_methods', newMethods as never);
     };
 
-    // --- DYNAMIC ARRAY HANDLERS (CATEGORIES) ---
     const addCategory = () => {
         const newIndex = data.categories.length;
-        // FIX: Added 'as never'
         setData('categories', [
             ...data.categories,
             { id: null, name: '', slug: '' },
@@ -158,11 +144,9 @@ export default function AdminSettings({
             newCats[index] = { ...newCats[index], [field]: value };
         }
 
-        // FIX: Added 'as never'
         setData('categories', newCats as never);
     };
 
-    // --- REMOVAL LOGIC ---
     const promptRemove = (index: number, type: 'withdrawal' | 'category') => {
         setModalConfig({ isOpen: true, removeIndex: index, type });
     };
@@ -172,12 +156,10 @@ export default function AdminSettings({
             if (modalConfig.type === 'withdrawal') {
                 const newMethods = [...data.withdrawal_methods];
                 newMethods.splice(modalConfig.removeIndex, 1);
-                // FIX: Added 'as never'
                 setData('withdrawal_methods', newMethods as never);
             } else if (modalConfig.type === 'category') {
                 const newCats = [...data.categories];
                 newCats.splice(modalConfig.removeIndex, 1);
-                // FIX: Added 'as never'
                 setData('categories', newCats as never);
             }
         }
@@ -213,7 +195,7 @@ export default function AdminSettings({
                             </h2>
 
                             <div className="grid gap-6 sm:grid-cols-2">
-                                <div>
+                                <div className="flex flex-col">
                                     <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                                         {t('Platform Cut (Revenue Share)')}
                                     </label>
@@ -222,14 +204,13 @@ export default function AdminSettings({
                                             'The percentage taken by Soko from every successful sale.',
                                         )}
                                     </p>
-                                    <div className="relative">
+                                    <div className="relative mt-auto">
                                         <input
                                             type="number"
                                             min="0"
                                             max="100"
                                             className="w-full [appearance:textfield] rounded-xl border border-slate-200 bg-white/50 px-4 py-3 pr-10 text-sm shadow-sm transition-colors focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                             value={data.platform_cut_percentage}
-                                            // FIX: Added 'as never'
                                             onChange={(e) =>
                                                 setData(
                                                     'platform_cut_percentage',
@@ -244,7 +225,7 @@ export default function AdminSettings({
                                     </div>
                                 </div>
 
-                                <div>
+                                <div className="flex flex-col">
                                     <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                                         {t('Free Withdrawal Minimum')}
                                     </label>
@@ -253,7 +234,7 @@ export default function AdminSettings({
                                             'Withdrawals over this amount bypass the transfer fee.',
                                         )}
                                     </p>
-                                    <div className="relative">
+                                    <div className="relative mt-auto">
                                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 font-bold text-slate-400">
                                             Rp
                                         </div>
@@ -453,45 +434,57 @@ export default function AdminSettings({
                                                 />
                                             </div>
 
-                                            <div className="flex items-center gap-6 sm:mt-8">
-                                                <label className="flex cursor-pointer items-center gap-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={
-                                                            method.is_active
-                                                        }
-                                                        onChange={(e) =>
-                                                            updateMethod(
+                                            <div className="flex flex-col">
+                                                <label className="mb-1.5 hidden text-xs font-bold text-transparent sm:block">
+                                                    {t('Status')}
+                                                </label>
+                                                <div className="flex h-10 items-center gap-4">
+                                                    <label className="flex cursor-pointer items-center gap-3">
+                                                        <div className="relative inline-flex items-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={
+                                                                    method.is_active
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateMethod(
+                                                                        index,
+                                                                        'is_active',
+                                                                        e.target
+                                                                            .checked,
+                                                                    )
+                                                                }
+                                                                className="peer sr-only"
+                                                            />
+                                                            <div className="h-6 w-11 rounded-full bg-slate-200/80 transition-colors peer-checked:bg-emerald-400 peer-focus:ring-2 peer-focus:ring-emerald-400/30 peer-focus:outline-none after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-5"></div>
+                                                        </div>
+                                                        <span
+                                                            className={`w-20 text-sm font-bold transition-colors ${method.is_active ? 'text-emerald-500' : 'text-slate-400'}`}
+                                                        >
+                                                            {method.is_active
+                                                                ? t('Active')
+                                                                : t(
+                                                                      'Not Active',
+                                                                  )}
+                                                        </span>
+                                                    </label>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            promptRemove(
                                                                 index,
-                                                                'is_active',
-                                                                e.target
-                                                                    .checked,
+                                                                'withdrawal',
                                                             )
                                                         }
-                                                        className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600"
-                                                    />
-                                                    <span
-                                                        className={`text-sm font-bold ${method.is_active ? 'text-emerald-700' : 'text-slate-400'}`}
+                                                        className="flex items-center justify-center rounded-lg p-2 text-rose-400 transition-colors hover:bg-rose-100 hover:text-rose-600"
+                                                        title={t(
+                                                            'Remove Method',
+                                                        )}
                                                     >
-                                                        {method.is_active
-                                                            ? t('Active')
-                                                            : t('Disabled')}
-                                                    </span>
-                                                </label>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        promptRemove(
-                                                            index,
-                                                            'withdrawal',
-                                                        )
-                                                    }
-                                                    className="rounded-lg p-2 text-rose-400 transition-colors hover:bg-rose-100 hover:text-rose-600"
-                                                    title={t('Remove Method')}
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ),
