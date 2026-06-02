@@ -8,6 +8,7 @@ import {
     Filter,
     Lock,
     UserX,
+    ChevronDown,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
@@ -236,31 +237,36 @@ export default function Products({ products }: any) {
                                 <div className="flex items-center gap-2">
                                     <Filter
                                         size={18}
-                                        className="text-slate-400"
+                                        className="shrink-0 text-slate-400"
                                     />
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) =>
-                                            setStatusFilter(e.target.value)
-                                        }
-                                        className="rounded-xl border border-slate-200 bg-white py-2 pr-8 pl-4 text-sm font-medium text-slate-700 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
-                                    >
-                                        <option value="all">
-                                            {t('All Statuses')}
-                                        </option>
-                                        <option value="active">
-                                            {t('Available (Active)')}
-                                        </option>
-                                        <option value="hidden">
-                                            {t('Hidden by Creator')}
-                                        </option>
-                                        <option value="product_locked">
-                                            {t('Product Locked')}
-                                        </option>
-                                        <option value="seller_suspended">
-                                            {t('Inactive Seller')}
-                                        </option>
-                                    </select>
+                                    {/* DITAMBAHKAN: Wrapper relative untuk posisi panah kustom */}
+                                    <div className="relative w-full sm:w-56">
+                                        <select
+                                            value={statusFilter}
+                                            onChange={(e) =>
+                                                setStatusFilter(e.target.value)
+                                            }
+                                            className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-2 pr-10 pl-4 text-sm font-medium text-slate-700 shadow-sm transition-all outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                                        >
+                                            <option value="all">
+                                                {t('All Statuses')}
+                                            </option>
+                                            <option value="active">
+                                                {t('Available (Active)')}
+                                            </option>
+                                            <option value="hidden">
+                                                {t('Hidden by Creator')}
+                                            </option>
+                                            <option value="product_locked">
+                                                {t('Product Locked')}
+                                            </option>
+                                            <option value="seller_suspended">
+                                                {t('Inactive Seller')}
+                                            </option>
+                                        </select>
+                                        {/* PANAH KUSTOM */}
+                                        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
