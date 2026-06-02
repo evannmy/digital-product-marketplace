@@ -395,9 +395,9 @@ export default function PurchasesIndex({
                         </div>
 
                         <h1 className="mx-auto mb-6 max-w-3xl text-4xl leading-tight font-black tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
-                            {t('Your Digital')}{' '}
+                            {t('Collection of')}{' '}
                             <span className="bg-linear-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-                                {t('Purchases')}
+                                {t('Digital Products')}
                             </span>
                         </h1>
 
