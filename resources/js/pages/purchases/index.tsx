@@ -281,7 +281,7 @@ function PurchaseCard({ transaction }: { transaction: any }) {
                     {isPageUnavailable ? (
                         <button
                             disabled
-                            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-200/50 py-3 text-sm font-bold text-slate-400"
+                            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-center text-sm leading-tight font-bold text-slate-400 ring-1 ring-slate-200/50 ring-inset"
                         >
                             {isArchived
                                 ? t('Store Page Unavailable')
