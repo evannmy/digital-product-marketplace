@@ -14,16 +14,13 @@ import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
-// --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Users({ users }: any) {
-    const { t } = useTranslation(); // Inject translator here
+    const { t } = useTranslation();
 
-    // --- 1. AMBIL FLASH DARI INERTIA ---
     const { flash } = usePage().props as any;
 
-    // --- 2. PASANG LISTENER UNTUK TOAST OTOMATIS ---
     useEffect(() => {
         if (flash?.success) {
             toast(flash.success, 'success');
@@ -42,7 +39,6 @@ export default function Users({ users }: any) {
 
     const userList = users?.data || users || [];
 
-    // --- CLIENT-SIDE FILTERING ---
     const filteredUsers = userList.filter((user: any) => {
         const query = searchQuery.toLowerCase();
         const matchesSearch =
@@ -63,7 +59,6 @@ export default function Users({ users }: any) {
         return matchesSearch && matchesRole && matchesStatus;
     });
 
-    // --- MODAL STATE MANAGEMENT ---
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         action: 'delete' | 'toggle' | 'verify' | null;
@@ -98,7 +93,6 @@ export default function Users({ users }: any) {
                 preserveScroll: true,
                 onSuccess: () => {
                     setModalConfig({ isOpen: false, action: null, user: null });
-                    // Hapus toast sukses manual
                 },
                 onError: () => toast(t('Failed to delete user.'), 'error'),
                 onFinish: () => setIsProcessing(false),
@@ -115,7 +109,6 @@ export default function Users({ users }: any) {
                             action: null,
                             user: null,
                         });
-                        // Hapus toast sukses manual
                     },
                     onError: () =>
                         toast(t('Failed to update user status.'), 'error'),
@@ -134,7 +127,6 @@ export default function Users({ users }: any) {
                             action: null,
                             user: null,
                         });
-                        // Hapus toast sukses manual
                     },
                     onError: () => toast(t('Failed to verify user.'), 'error'),
                     onFinish: () => setIsProcessing(false),
@@ -196,6 +188,20 @@ export default function Users({ users }: any) {
         variant: modalVariant,
     } = getModalText();
 
+    // --- DITAMBAHKAN: Helper untuk menerjemahkan role ---
+    const getRoleName = (role: string) => {
+        switch (role) {
+            case 'admin':
+                return t('Admin');
+            case 'seller':
+                return t('Seller');
+            case 'buyer':
+                return t('Buyer');
+            default:
+                return role;
+        }
+    };
+
     return (
         <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#FAFAFC] font-sans text-slate-900">
             <Head title={t('Manage Users - Soko Admin')} />
@@ -217,9 +223,7 @@ export default function Users({ users }: any) {
                     </div>
 
                     <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl ring-1 shadow-slate-900/5 ring-white">
-                        {/* --- FILTER BAR --- */}
                         <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-                            {/* Search */}
                             <div className="relative w-full lg:max-w-xs">
                                 <Search
                                     size={18}
@@ -238,9 +242,7 @@ export default function Users({ users }: any) {
                                 />
                             </div>
 
-                            {/* Dropdown Filters */}
                             <div className="flex flex-wrap items-center gap-3">
-                                {/* Role Filter */}
                                 <div className="flex items-center gap-2">
                                     <Filter
                                         size={18}
@@ -267,12 +269,10 @@ export default function Users({ users }: any) {
                                                 {t('Admins')}
                                             </option>
                                         </select>
-                                        {/* PANAH KUSTOM */}
                                         <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     </div>
                                 </div>
 
-                                {/* Status Filter */}
                                 <div className="flex items-center gap-2">
                                     <Activity
                                         size={18}
@@ -357,7 +357,10 @@ export default function Users({ users }: any) {
                                                                 className="mr-1"
                                                             />
                                                         )}
-                                                        {user.role.toUpperCase()}
+                                                        {/* DIPERBAIKI: Gunakan helper role translation */}
+                                                        {getRoleName(
+                                                            user.role,
+                                                        ).toUpperCase()}
                                                     </span>
 
                                                     {user.email_verified_at ? (
@@ -528,7 +531,10 @@ export default function Users({ users }: any) {
                                                                             className="mr-1"
                                                                         />
                                                                     )}
-                                                                    {user.role.toUpperCase()}
+                                                                    {/* DIPERBAIKI: Gunakan helper role translation */}
+                                                                    {getRoleName(
+                                                                        user.role,
+                                                                    ).toUpperCase()}
                                                                 </span>
                                                             </td>
                                                             <td className="px-8 py-5">
