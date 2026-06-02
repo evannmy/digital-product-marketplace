@@ -721,6 +721,8 @@
     "Are you sure you want to forcefully cancel this order? This will cancel the transaction in Midtrans and permanently close the order for the buyer.": "Are you sure you want to forcefully cancel this order? This will cancel the transaction in Midtrans and permanently close the order for the buyer.",
     "Cannot cancel a completed order.": "Cannot cancel a completed order.",
     "Order cancelled.": "Order cancelled.",
+    "Previous": "Previous",
+    "Next": "Next",
 
     "___ADMIN_FINANCES_PAGE___": "==================================================",
     "Withdrawal rejected. The funds have been returned to the seller's balance.": "Withdrawal rejected. The funds have been returned to the seller's balance.",

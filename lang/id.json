@@ -1024,5 +1024,7 @@
     "You've been invited to join :teamName": "You've been invited to join :teamName",
     ":inviterName has invited you to join the :teamName team.": ":inviterName has invited you to join the :teamName team.",
     "(and :count more error)": "(dan :count kesalahan lainnya)",
-    "(and :count more errors)": "(dan :count kesalahan lainnya)|(dan :count kesalahan lainnya)|(dan :count kesalahan lainnya)"
+    "(and :count more errors)": "(dan :count kesalahan lainnya)|(dan :count kesalahan lainnya)|(dan :count kesalahan lainnya)",
+    "Previous": "Sebelumnya",
+    "Next": "Selanjutnya"
 }

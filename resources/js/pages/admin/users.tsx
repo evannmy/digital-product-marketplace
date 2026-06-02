@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     Shield,
     Trash2,
@@ -13,6 +13,7 @@ import {
 import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
+import Pagination from '@/components/pagination';
 import { toast } from '@/components/toaster';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -647,37 +648,7 @@ export default function Users({ users }: any) {
                         </div>
 
                         {/* --- PAGINATION --- */}
-                        {users?.links && users.links.length > 3 && (
-                            <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-4 sm:px-8">
-                                <div className="flex flex-wrap items-center justify-center gap-1">
-                                    {users.links.map(
-                                        (link: any, index: number) =>
-                                            link.url ? (
-                                                <Link
-                                                    key={index}
-                                                    href={link.url}
-                                                    className={`flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                                                        link.active
-                                                            ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
-                                                            : 'text-slate-600 hover:bg-slate-100'
-                                                    }`}
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: link.label,
-                                                    }}
-                                                />
-                                            ) : (
-                                                <span
-                                                    key={index}
-                                                    className="px-4 py-2 text-sm font-medium text-slate-400"
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: link.label,
-                                                    }}
-                                                />
-                                            ),
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        <Pagination links={users?.links || []} />
                     </div>
                 </div>
             </main>

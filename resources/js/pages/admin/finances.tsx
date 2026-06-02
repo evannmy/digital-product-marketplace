@@ -1,4 +1,4 @@
-import { Head, router, Link, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     Landmark,
     CheckCircle,
@@ -12,6 +12,7 @@ import {
 // --- ADDED useCallback TO THE IMPORT ---
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '@/components/navbar';
+import Pagination from '@/components/pagination';
 import { toast } from '@/components/toaster';
 // --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
@@ -471,32 +472,8 @@ export default function AdminFinances({ stats, withdrawals }: any) {
                         </>
                     )}
 
-                    {withdrawals?.links && withdrawals.links.length > 3 && (
-                        <div className="border-t border-slate-100 bg-slate-50/30 px-6 py-6 sm:px-8">
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {withdrawals.links.map(
-                                    (link: any, index: number) => (
-                                        <Link
-                                            key={index}
-                                            href={link.url || '#'}
-                                            preserveScroll
-                                            preserveState
-                                            className={`flex h-10 min-w-10 items-center justify-center rounded-xl px-4 text-sm font-bold transition-all ${
-                                                link.active
-                                                    ? 'bg-slate-900 text-white shadow-md'
-                                                    : !link.url
-                                                      ? 'cursor-not-allowed bg-slate-100 text-slate-400 opacity-50'
-                                                      : 'bg-white text-slate-600 ring-1 ring-slate-200/60 hover:bg-slate-50 hover:text-purple-600 hover:shadow-sm hover:ring-purple-200'
-                                            }`}
-                                            dangerouslySetInnerHTML={{
-                                                __html: link.label,
-                                            }}
-                                        />
-                                    ),
-                                )}
-                            </div>
-                        </div>
-                    )}
+                    {/* Pagination */}
+                    <Pagination links={withdrawals?.links || []} />
                 </div>
             </main>
 

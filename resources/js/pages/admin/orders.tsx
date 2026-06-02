@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     ClipboardList,
     CheckCircle,
@@ -16,15 +16,14 @@ import {
 import React, { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
+import Pagination from '@/components/pagination';
 import { toast } from '@/components/toaster';
-// --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
 
-// --- FIXED: Real-time Countdown Timer for Admins ---
+// --- Timer Component ---
 function AdminOrderCountdown({ createdAt }: { createdAt: string }) {
-    const { t } = useTranslation(); // Inject translator here
+    const { t } = useTranslation();
 
-    // 1. Initialize the state correctly on the first render to avoid the sync setState warning
     const [timeInfo, setTimeInfo] = useState(() => {
         const createdTime = new Date(createdAt).getTime();
         const expirationTime = createdTime + 24 * 60 * 60 * 1000;
@@ -46,7 +45,6 @@ function AdminOrderCountdown({ createdAt }: { createdAt: string }) {
     useEffect(() => {
         if (timeInfo.isExpired) return;
 
-        // 2. Only run the interval asynchronously
         const timer = setInterval(() => {
             const createdTime = new Date(createdAt).getTime();
             const expirationTime = createdTime + 24 * 60 * 60 * 1000;
@@ -85,13 +83,11 @@ function AdminOrderCountdown({ createdAt }: { createdAt: string }) {
     );
 }
 
+// --- Main Component ---
 export default function AdminOrders({ orders, stats, filters }: any) {
-    const { t } = useTranslation(); // Inject translator here
-
-    // --- 1. AMBIL DATA FLASH DARI INERTIA ---
+    const { t } = useTranslation();
     const { flash } = usePage().props as any;
 
-    // --- 2. PASANG LISTENER UNTUK MEMUNCULKAN TOAST OTOMATIS ---
     useEffect(() => {
         if (flash?.success) {
             toast(flash.success, 'success');
@@ -105,7 +101,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
     const [search, setSearch] = useState(filters?.search || '');
     const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
 
-    // --- STATES ---
     const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
     const [cancelModalConfig, setCancelModalConfig] = useState<{
         isOpen: boolean;
@@ -156,12 +151,9 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                 preserveScroll: true,
                 onSuccess: () => {
                     setCancelModalConfig({ isOpen: false, orderId: null });
-                    // toast() dihapus karena pesan sukses sudah dibawa dari controller
-                    // dan ditangkap oleh useEffect di atas.
                 },
                 onError: () => {
                     setCancelModalConfig({ isOpen: false, orderId: null });
-                    // Tetap pertahankan toast ini sebagai fallback jika server error (500)
                     toast(t('Failed to cancel order.'), 'error');
                 },
                 onFinish: () => setIsProcessing(false),
@@ -212,7 +204,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
             <Navbar />
 
             <main className="relative z-10 mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8">
-                {/* --- HEADER --- */}
                 <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
                     <div>
                         <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
@@ -226,7 +217,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                     </div>
                 </div>
 
-                {/* --- METRICS DASHBOARD --- */}
                 <div className="mb-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
                     <div className="rounded-3xl border border-amber-200/60 bg-amber-50/50 p-6 shadow-sm">
                         <div className="mb-4 inline-flex rounded-xl bg-amber-100 p-3 text-amber-600">
@@ -263,9 +253,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                     </div>
                 </div>
 
-                {/* --- MAIN DATA CONTAINER --- */}
                 <div className="overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl ring-1 shadow-slate-900/5">
-                    {/* Toolbar (Search & Filter) */}
                     <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50/80 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                         <div className="flex items-center gap-3">
                             <ClipboardList
@@ -332,14 +320,13 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                         </div>
                     ) : (
                         <>
-                            {/* --- 1. RESPONSIVE GRID/CARD VIEW (Mobile & Tablet) --- */}
+                            {/* --- MOBILE VIEW --- */}
                             <div className="grid grid-cols-1 gap-px bg-slate-100 md:grid-cols-2 md:gap-4 md:bg-white md:p-6 lg:hidden">
                                 {orders.data.map((order: any) => {
                                     const isExpanded =
                                         expandedOrderId === order.id;
                                     const hasMultipleItems =
                                         order.items && order.items.length > 1;
-
                                     const archivedItemsCount =
                                         order.items?.filter(
                                             (i: any) =>
@@ -380,7 +367,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                             'en-GB',
                                                         )}
                                                     </div>
-
                                                     {order.status ===
                                                         'pending' && (
                                                         <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-200/50 bg-amber-50 px-2 py-1 shadow-sm">
@@ -412,7 +398,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                 </div>
                                             </div>
 
-                                            {/* --- SMART EXPANDABLE PRODUCT LIST FOR MOBILE --- */}
                                             <div className="mt-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100 ring-inset">
                                                 <div className="mb-2 flex items-center justify-between">
                                                     <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
@@ -441,7 +426,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                 <div className="flex flex-col gap-3">
                                                     {isExpanded ||
                                                     !hasMultipleItems ? (
-                                                        // Show all items (if expanded or only 1 exists)
                                                         order.items?.map(
                                                             (
                                                                 item: any,
@@ -480,12 +464,11 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                     </span>
                                                                                 )}
                                                                             </div>
-
                                                                             <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] text-slate-400">
                                                                                 <span>
                                                                                     {t(
                                                                                         'Seller: ',
-                                                                                    )}{' '}
+                                                                                    )}
                                                                                     {item
                                                                                         .product
                                                                                         ?.seller
@@ -522,7 +505,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                             ),
                                                         )
                                                     ) : (
-                                                        // Show compressed view (if multiple items exist but not expanded)
                                                         <div className="flex flex-col items-start gap-2">
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 <Package
@@ -541,7 +523,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                             'Archived Product',
                                                                         )}
                                                                 </span>
-
                                                                 {archivedItemsCount >
                                                                     0 && (
                                                                     <span className="inline-flex shrink-0 items-center rounded bg-rose-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase ring-1 ring-rose-200 ring-inset">
@@ -600,7 +581,7 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                 })}
                             </div>
 
-                            {/* --- 2. DESKTOP TABLE VIEW --- */}
+                            {/* --- DESKTOP VIEW --- */}
                             <div className="hidden overflow-x-auto lg:block">
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                     <thead>
@@ -642,7 +623,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                     <tr
                                                         className={`transition-colors ${isExpanded ? 'bg-slate-50/50' : 'hover:bg-slate-50/50'} ${order.status === 'cancelled' ? 'opacity-75 grayscale' : ''}`}
                                                     >
-                                                        {/* Expand Chevron Column */}
                                                         <td className="w-12 px-5 py-5 align-top">
                                                             {hasMultipleItems && (
                                                                 <button
@@ -671,7 +651,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                 </button>
                                                             )}
                                                         </td>
-
                                                         <td className="px-5 py-5 align-top">
                                                             <div className="font-bold text-slate-900">
                                                                 #{order.id}
@@ -684,7 +663,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                 )}
                                                             </div>
                                                         </td>
-
                                                         <td className="px-5 py-5 align-top">
                                                             <div className="flex flex-col items-start">
                                                                 <div className="font-medium text-slate-700">
@@ -709,7 +687,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                 )}
                                                             </div>
                                                         </td>
-
                                                         <td className="px-5 py-5 align-top">
                                                             <div className="flex flex-col items-start gap-1.5">
                                                                 {order.items &&
@@ -723,7 +700,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                 }
                                                                                 className="shrink-0 text-slate-400"
                                                                             />
-
                                                                             <span
                                                                                 className="max-w-45 truncate text-sm font-medium text-slate-700"
                                                                                 title={
@@ -747,7 +723,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                                         'Archived Product',
                                                                                     )}
                                                                             </span>
-
                                                                             {(order
                                                                                 .items[0]
                                                                                 .product
@@ -765,14 +740,14 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                     )}
                                                                 {hasMultipleItems && (
                                                                     <span className="mt-1 text-[10px] font-medium text-slate-400 italic">
-                                                                        +
-                                                                        Various
-                                                                        Creators
+                                                                        +{' '}
+                                                                        {t(
+                                                                            'Various Creators',
+                                                                        )}
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         </td>
-
                                                         <td className="px-6 py-3.5 font-medium text-indigo-600">
                                                             <div className="flex flex-col">
                                                                 <span>
@@ -802,19 +777,16 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                 )}
                                                             </div>
                                                         </td>
-
                                                         <td className="px-5 py-5 align-top text-base font-black text-emerald-600">
                                                             {formatCurrency(
                                                                 order.total_amount,
                                                             )}
                                                         </td>
-
                                                         <td className="px-5 py-5 align-top">
                                                             <div className="flex flex-col items-start gap-2">
                                                                 {getStatusBadge(
                                                                     order.status,
                                                                 )}
-
                                                                 {order.status ===
                                                                     'pending' && (
                                                                     <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-100 bg-amber-50/80 px-2 py-0.5 shadow-sm">
@@ -835,7 +807,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                                 )}
                                                             </div>
                                                         </td>
-
                                                         <td className="px-5 py-5 text-right align-top">
                                                             {order.status ===
                                                             'pending' ? (
@@ -871,7 +842,6 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                                                         </td>
                                                     </tr>
 
-                                                    {/* --- DESKTOP NESTED DETAILS ROW --- */}
                                                     {isExpanded &&
                                                         hasMultipleItems && (
                                                             <tr>
@@ -1007,30 +977,10 @@ export default function AdminOrders({ orders, stats, filters }: any) {
                     )}
 
                     {/* Pagination */}
-                    {orders.links && orders.links.length > 3 && (
-                        <div className="border-t border-slate-100 bg-slate-50/30 px-6 py-6 sm:px-8">
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {orders.links.map(
-                                    (link: any, index: number) => (
-                                        <Link
-                                            key={index}
-                                            href={link.url || '#'}
-                                            preserveScroll
-                                            preserveState
-                                            className={`flex h-10 min-w-10 items-center justify-center rounded-xl px-4 text-sm font-bold transition-all ${link.active ? 'bg-slate-900 text-white' : !link.url ? 'opacity-50' : 'bg-white text-slate-600 ring-1 ring-slate-200/60 hover:bg-slate-50'}`}
-                                            dangerouslySetInnerHTML={{
-                                                __html: link.label,
-                                            }}
-                                        />
-                                    ),
-                                )}
-                            </div>
-                        </div>
-                    )}
+                    <Pagination links={orders.links} />
                 </div>
             </main>
 
-            {/* --- CANCEL CONFIRMATION MODAL --- */}
             <ConfirmModal
                 isOpen={cancelModalConfig.isOpen}
                 onClose={() =>

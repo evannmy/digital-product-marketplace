@@ -17,6 +17,7 @@ import {
 import { useState, useEffect } from 'react';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
+import Pagination from '@/components/pagination';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
 // --- ADDED: Translation Hook ---
@@ -771,24 +772,10 @@ export default function PurchasesIndex({
                             </div>
                         )}
 
-                        {transactions.links &&
-                            transactions.links.length > 3 && (
-                                <div className="mt-10 flex flex-wrap justify-center gap-2">
-                                    {transactions.links.map(
-                                        (link: any, index: number) => (
-                                            <Link
-                                                key={index}
-                                                href={link.url || '#'}
-                                                preserveScroll
-                                                className={`flex h-10 min-w-10 items-center justify-center rounded-xl px-4 text-sm font-bold transition-all ${link.active ? 'bg-slate-900 text-white shadow-md' : !link.url ? 'cursor-not-allowed bg-slate-100 text-slate-400 opacity-50' : 'bg-white text-slate-600 ring-1 ring-slate-200/60 hover:bg-slate-50'}`}
-                                                dangerouslySetInnerHTML={{
-                                                    __html: link.label,
-                                                }}
-                                            />
-                                        ),
-                                    )}
-                                </div>
-                            )}
+                        {/* Pagination */}
+                        <div className="mt-10 flex justify-center">
+                            <Pagination links={transactions?.links || []} />
+                        </div>
                     </div>
                 </main>
             </div>
