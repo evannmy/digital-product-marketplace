@@ -77,6 +77,84 @@ class ProductController extends Controller
         ]);
     }
 
+    public function flashSale(Request $request)
+    {
+        // 1. CEK GLOBAL: Apakah ada SETIDAKNYA SATU produk yang sedang diskon saat ini?
+        $hasActiveFlashSale = \App\Models\Product::where('is_active', true)
+            ->where('is_locked', false)
+            ->whereNotNull('discount_price')
+            ->where('discount_price', '>', 0)
+            ->whereNotNull('discount_starts_at')
+            ->whereNotNull('discount_ends_at')
+            ->where('discount_starts_at', '<=', now())
+            ->where('discount_ends_at', '>=', now())
+            ->exists();
+
+        // 2. JIKA TIDAK ADA: Langsung tendang ke halaman beranda (Early Return)
+        if (!$hasActiveFlashSale) {
+            // Pesan ini akan ditangkap oleh flash prop di React dan dimunculkan sebagai Toast Error
+            return redirect('/')->with('error', 'Flash Sale is currently unavailable.');
+        }
+
+        // 3. JIKA ADA: Lanjutkan eksekusi query seperti biasa
+        $query = \App\Models\Product::with(['seller', 'media', 'category'])
+            ->where('is_active', true)
+            ->where('is_locked', false)
+            ->whereNotNull('discount_price')
+            ->where('discount_price', '>', 0)
+            ->whereNotNull('discount_starts_at')
+            ->whereNotNull('discount_ends_at')
+            ->where('discount_starts_at', '<=', now())
+            ->where('discount_ends_at', '>=', now());
+
+        // Filter Pencarian
+        if ($request->filled('search')) {
+            $searchTerm = '%' . $request->search . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', $searchTerm)
+                    ->orWhereHas('seller', function ($sellerQuery) use ($searchTerm) {
+                        $sellerQuery->where('name', 'like', $searchTerm);
+                    });
+            });
+        }
+
+        // Filter Kategori
+        if ($request->filled('category')) {
+            $query->whereHas('category', function ($q) use ($request) {
+                $q->where('slug', $request->category);
+            });
+        }
+
+        // Sortir
+        $sort = $request->input('sort', 'newest');
+        match ($sort) {
+            'price_asc' => $query->orderBy('discount_price', 'asc'),
+            'price_desc' => $query->orderBy('discount_price', 'desc'),
+            'rating_desc' => $query->withAvg('reviews', 'rating')->orderByDesc('reviews_avg_rating'),
+            'newest' => $query->latest(),
+            default => $query->latest(),
+        };
+
+        $products = $query->paginate(12)->withQueryString();
+
+        $categories = \App\Models\Category::whereHas('products', function ($q) {
+            $q->where('is_active', true)
+                ->where('is_locked', false)
+                ->whereNotNull('discount_price')
+                ->where('discount_price', '>', 0)
+                ->whereNotNull('discount_starts_at')
+                ->whereNotNull('discount_ends_at')
+                ->where('discount_starts_at', '<=', now())
+                ->where('discount_ends_at', '>=', now());
+        })->get();
+
+        return \Inertia\Inertia::render('flash-sale/index', [
+            'products' => $products,
+            'categories' => $categories,
+            'filters' => $request->only(['search', 'category', 'sort']),
+        ]);
+    }
+
     public function create(): Response
     {
         // Fetch all categories to populate the dropdown menu

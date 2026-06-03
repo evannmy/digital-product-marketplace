@@ -1,17 +1,22 @@
 import { Head, Link, router, usePage, useRemember } from '@inertiajs/react';
 import axios from 'axios';
-import { Search, ChevronDown, Sparkles, PlayCircle } from 'lucide-react';
+import {
+    Search,
+    ChevronDown,
+    Sparkles,
+    PlayCircle,
+    Flame,
+    ArrowRight,
+} from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import BackToTop from '@/components/back-to-top';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
 import { Spinner } from '@/components/ui/spinner';
-// --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
 
-// --- Isolated Product Card Component ---
+// --- Komponen Kartu Produk ---
 function ProductCard({ product, auth }: { product: any; auth: any }) {
-    // Inject translator here
     const { t } = useTranslation();
 
     const hasMedia = product.media && product.media.length > 0;
@@ -113,9 +118,42 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
                         )}
                 </p>
 
-                <div className="mt-auto flex items-end justify-between gap-4 border-t border-slate-100 pt-5">
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-purple-50 text-xs font-bold text-purple-600 ring-1 ring-purple-100">
+                <div className="mt-auto flex flex-col gap-4 border-t border-slate-100 pt-5">
+                    <div className="flex flex-col">
+                        {product.is_discount_active ? (
+                            <>
+                                <div className="mb-1 flex items-center gap-2">
+                                    <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black tracking-wider text-rose-600 uppercase">
+                                        {t('Sale')}
+                                    </span>
+                                    <span className="text-xs font-semibold text-slate-400 line-through">
+                                        Rp{' '}
+                                        {Number(product.price).toLocaleString(
+                                            'id-ID',
+                                        )}
+                                    </span>
+                                </div>
+                                <span className="text-2xl font-black tracking-tight text-rose-600">
+                                    Rp{' '}
+                                    {Math.round(
+                                        Number(product.discount_price),
+                                    ).toLocaleString('id-ID')}
+                                </span>
+                            </>
+                        ) : (
+                            <span className="text-2xl font-black tracking-tight text-purple-600">
+                                Rp{' '}
+                                {product.price
+                                    ? Number(product.price).toLocaleString(
+                                          'id-ID',
+                                      )
+                                    : '0'}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200">
                             {product.seller?.avatar_path &&
                             avatarStatus !== 'error' ? (
                                 <img
@@ -138,10 +176,7 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
                             )}
                         </div>
 
-                        <div className="flex min-w-0 flex-col items-start">
-                            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                                {t('Creator')}
-                            </span>
+                        <div className="flex min-w-0 flex-1 flex-col justify-center">
                             <div className="flex w-full items-center gap-1.5">
                                 <span className="truncate text-sm font-semibold text-slate-900">
                                     {product.seller?.name ||
@@ -154,45 +189,13 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
                                     </span>
                                 )}
                             </div>
+
                             {product.seller?.username && (
                                 <span className="w-full truncate text-xs font-medium text-slate-400">
                                     @{product.seller.username}
                                 </span>
                             )}
                         </div>
-                    </div>
-
-                    <div className="flex shrink-0 flex-col items-end">
-                        {product.is_discount_active ? (
-                            <>
-                                <div className="flex items-center gap-2">
-                                    <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-black text-rose-600 uppercase">
-                                        {t('Sale')}
-                                    </span>
-                                    <span className="text-xl font-black tracking-tight text-rose-600">
-                                        Rp{' '}
-                                        {Math.round(
-                                            Number(product.discount_price),
-                                        ).toLocaleString('id-ID')}
-                                    </span>
-                                </div>
-                                <span className="text-xs font-semibold text-slate-400 line-through">
-                                    Rp{' '}
-                                    {Number(product.price).toLocaleString(
-                                        'id-ID',
-                                    )}
-                                </span>
-                            </>
-                        ) : (
-                            <span className="text-xl font-black tracking-tight text-slate-900">
-                                Rp{' '}
-                                {product.price
-                                    ? Number(product.price).toLocaleString(
-                                          'id-ID',
-                                      )
-                                    : '0'}
-                            </span>
-                        )}
                     </div>
                 </div>
             </div>
@@ -201,7 +204,6 @@ function ProductCard({ product, auth }: { product: any; auth: any }) {
 }
 
 export default function Index({ products, categories, filters }: any) {
-    // Inject translator here
     const { t } = useTranslation();
 
     const { version } = usePage() as any;
@@ -260,6 +262,10 @@ export default function Index({ products, categories, filters }: any) {
     );
 
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    const flashSaleProducts = useMemo(() => {
+        return allProducts.filter((p: any) => p.is_discount_active);
+    }, [allProducts]);
 
     useEffect(() => {
         if (flash?.success) {
@@ -546,7 +552,106 @@ export default function Index({ products, categories, filters }: any) {
                         </div>
                     </div>
 
-                    {/* --- BENTO PRODUCT GRID --- */}
+                    {flashSaleProducts.length > 0 && (
+                        <div className="mb-12 overflow-hidden rounded-3xl border border-rose-200/60 bg-linear-to-br from-rose-50 to-orange-50 shadow-sm ring-1 ring-rose-900/5 ring-inset">
+                            <div className="flex flex-col gap-4 border-b border-rose-100/50 bg-white/50 px-6 py-5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500 text-white shadow-sm shadow-rose-500/20">
+                                        <Flame
+                                            size={20}
+                                            className="animate-pulse fill-white/20"
+                                        />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-black text-rose-600 sm:text-2xl">
+                                            {t('Flash Sale')}
+                                        </h2>
+                                        <p className="text-xs font-medium text-rose-500/80 sm:text-sm">
+                                            {t(
+                                                'Limited time offers on premium assets.',
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <Link
+                                    href="/flash-sale"
+                                    className="inline-flex shrink-0 items-center text-sm font-bold text-rose-600 transition-colors hover:text-rose-700 hover:underline"
+                                >
+                                    {t('View All Deals')} &rarr;
+                                </Link>
+                            </div>
+
+                            <div
+                                className={`py-6 sm:p-8 ${flashSaleProducts.length === 1 ? 'px-6' : 'pr-0 pl-6'}`}
+                            >
+                                <div
+                                    className={`flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-6 sm:pr-0 [&::-webkit-scrollbar]:hidden ${flashSaleProducts.length === 1 ? '' : 'pr-6'}`}
+                                >
+                                    {/* Batasi render hingga 5 produk saja */}
+                                    {flashSaleProducts
+                                        .slice(0, 5)
+                                        .map((product: any) => (
+                                            <div
+                                                key={`flash-${product.id}`}
+                                                className={`shrink-0 snap-start sm:w-[320px] ${
+                                                    flashSaleProducts.length ===
+                                                    1
+                                                        ? 'w-full'
+                                                        : 'w-60'
+                                                }`}
+                                            >
+                                                <ProductCard
+                                                    product={product}
+                                                    auth={auth}
+                                                />
+                                            </div>
+                                        ))}
+
+                                    {/* --- OPSI 1: KARTU PENGISI (FILLER) KHUSUS DESKTOP --- */}
+                                    {flashSaleProducts.length > 0 &&
+                                        flashSaleProducts.length < 4 && (
+                                            // PERUBAHAN: Mengganti 'flex-1' dengan 'w-60 sm:w-[320px]' agar ukurannya seragam dengan produk
+                                            <div className="hidden w-60 shrink-0 snap-start flex-col items-center justify-center rounded-3xl border-2 border-dashed border-rose-200 bg-white/40 p-6 text-center transition-all sm:flex sm:w-[320px]">
+                                                <Sparkles className="mb-3 h-8 w-8 shrink-0 text-rose-300" />
+
+                                                {/* Menambahkan 'px-2' agar teks tidak menempel ke tepi bingkai */}
+                                                <span className="px-2 text-sm font-black tracking-wider text-rose-400 uppercase">
+                                                    {t(
+                                                        'More Deals Coming Soon',
+                                                    )}
+                                                </span>
+
+                                                <span className="mt-2 px-4 text-xs leading-relaxed font-medium text-slate-400">
+                                                    {t(
+                                                        'Stay tuned! New exclusive premium assets will be dropped here shortly.',
+                                                    )}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                    {/* Navigasi 'Lihat Semua' */}
+                                    {flashSaleProducts.length > 5 && (
+                                        <div className="flex w-32 shrink-0 snap-start items-center justify-center sm:w-40">
+                                            <Link
+                                                href="/flash-sale"
+                                                className="group flex flex-col items-center justify-center gap-3 text-rose-500 transition-colors hover:text-rose-600"
+                                            >
+                                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 transition-all duration-300 group-hover:translate-x-1 group-hover:scale-110 group-hover:bg-rose-200 sm:h-14 sm:w-14">
+                                                    <ArrowRight className="h-6 w-6 sm:h-7 sm:w-7" />
+                                                </div>
+
+                                                <span className="text-xs font-black tracking-wider whitespace-nowrap uppercase">
+                                                    {t('View All')}
+                                                </span>
+                                            </Link>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {allProducts.length === 0 ? (
                         <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white/50 py-24 text-center">
                             <Sparkles className="mb-4 h-12 w-12 text-slate-300" />
@@ -571,7 +676,6 @@ export default function Index({ products, categories, filters }: any) {
                         </div>
                     )}
 
-                    {/* --- LOAD MORE BUTTON --- */}
                     {nextPageUrl && (
                         <div className="mt-12 flex justify-center">
                             <button

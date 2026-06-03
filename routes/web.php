@@ -39,6 +39,7 @@ Route::post('/language/{locale}', function ($locale) {
 // 1. PUBLIC ROUTES (Guests & Users)
 // ==========================================
 Route::get('/', [ProductController::class, 'index'])->middleware('not_admin')->name('home');
+Route::get('/flash-sale', [ProductController::class, 'flashSale'])->name('flash-sale');
 Route::get('/creators', [CreatorController::class, 'index'])->name('creators.index');
 Route::get('/creators/@{user:username}', [CreatorController::class, 'show'])->name('creators.show');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
