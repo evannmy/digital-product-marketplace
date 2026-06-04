@@ -335,6 +335,8 @@
     "Unauthorized action. You do not own this product.": "Tindakan tidak sah. Anda bukan pemilik produk ini.",
     "Unauthorized action.": "Tindakan tidak sah.",
     "Unauthorized action. You cannot delete someone else's product.": "Tindakan tidak sah. Anda tidak dapat menghapus produk milik orang lain.",
+    "Are you sure you want to hide \":title\"? It will no longer be visible to buyers.": "Are you sure you want to hide \":title\"? It will no longer be visible to buyers.",
+    "Are you sure you want to publish \":title\"? It will instantly become visible on your store.": "Are you sure you want to publish \":title\"? It will instantly become visible on your store.",
 
     "___PRODUCT_EDIT_PAGE___": "==================================================",
     "Delete this file permanently": "Delete this file permanently",

@@ -335,6 +335,8 @@
     "Unauthorized action. You do not own this product.": "Unauthorized action. You do not own this product.",
     "Unauthorized action.": "Unauthorized action.",
     "Unauthorized action. You cannot delete someone else's product.": "Unauthorized action. You cannot delete someone else's product.",
+    "Are you sure you want to hide \":title\"? It will no longer be visible to buyers.": "Apakah Anda yakin ingin menyembunyikan \":title\"? Produk ini tidak akan terlihat lagi oleh pembeli.",
+    "Are you sure you want to publish \":title\"? It will instantly become visible on your store.": "Apakah Anda yakin ingin memublikasikan \":title\"? Produk ini akan langsung terlihat di toko Anda.",
 
     "___PRODUCT_EDIT_PAGE___": "==================================================",
     "Delete this file permanently": "Hapus file ini secara permanen",
