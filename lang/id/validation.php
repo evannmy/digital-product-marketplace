@@ -189,6 +189,7 @@ return [
         'day'                      => 'hari',
         'deleted_at'               => 'dihapus pada',
         'description'              => 'deskripsi',
+        'discount_percentage'      => 'persentase diskon',
         'display_type'             => 'tipe tampilan',
         'district'                 => 'daerah',
         'duration'                 => 'durasi',

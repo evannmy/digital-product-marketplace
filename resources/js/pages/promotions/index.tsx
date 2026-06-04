@@ -18,18 +18,15 @@ import BackToTop from '@/components/back-to-top';
 import ConfirmModal from '@/components/confirm-modal';
 import Navbar from '@/components/navbar';
 import { toast } from '@/components/toaster';
-// --- ADDED: Translation Hook ---
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function PromotionsIndex({ products }: any) {
-    const { t } = useTranslation(); // Inject translator here
+    const { t } = useTranslation();
 
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // --- ADDED: Ambil flash dari Inertia ---
     const { flash } = usePage().props as any;
 
-    // --- ADDED: Listener otomatis untuk Toast ---
     useEffect(() => {
         if (flash?.success) toast(flash.success, 'success');
 
@@ -56,7 +53,6 @@ export default function PromotionsIndex({ products }: any) {
     const [customHours, setCustomHours] = useState<number | ''>('');
     const [customMinutes, setCustomMinutes] = useState<number | ''>('');
 
-    // --- UX State ---
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<
         'all' | 'active' | 'inactive'
@@ -64,7 +60,6 @@ export default function PromotionsIndex({ products }: any) {
     const [showCustomDates, setShowCustomDates] = useState(false);
     const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
-    // --- LOGIC: Duration Calculator ---
     const applyCustomDuration = () => {
         let baseTime = data.starts_at ? new Date(data.starts_at) : new Date();
         const now = new Date();
@@ -99,7 +94,6 @@ export default function PromotionsIndex({ products }: any) {
         toast(t('Duration calculated and applied!'), 'success');
     };
 
-    // --- LOGIC: Real-time Search & Status Filtering ---
     const filteredProducts = products.filter((product: any) => {
         const matchesSearch = product.title
             .toLowerCase()
@@ -114,12 +108,17 @@ export default function PromotionsIndex({ products }: any) {
         return matchesSearch && matchesStatus;
     });
 
-    const filteredIds = filteredProducts.map((p: any) => p.id);
-    const isAllFilteredSelected =
-        filteredIds.length > 0 &&
-        filteredIds.every((id: number) => data.product_ids.includes(id));
+    // --- LOGIKA BARU: Hanya mengizinkan pemilihan masal untuk produk yang aktif & tidak dikunci
+    const eligibleFilteredIds = filteredProducts
+        .filter((p: any) => p.is_active && !p.is_locked)
+        .map((p: any) => p.id);
 
-    // --- LOGIC: Selection ---
+    const isAllEligibleSelected =
+        eligibleFilteredIds.length > 0 &&
+        eligibleFilteredIds.every((id: number) =>
+            data.product_ids.includes(id),
+        );
+
     const toggleProduct = (id: number) => {
         const selected = data.product_ids;
 
@@ -134,22 +133,25 @@ export default function PromotionsIndex({ products }: any) {
     };
 
     const toggleAll = () => {
-        if (isAllFilteredSelected) {
+        if (isAllEligibleSelected) {
             setData(
                 'product_ids',
-                data.product_ids.filter((id) => !filteredIds.includes(id)),
+                data.product_ids.filter(
+                    (id) => !eligibleFilteredIds.includes(id),
+                ),
             );
         } else {
-            const newSelection = new Set([...data.product_ids, ...filteredIds]);
+            const newSelection = new Set([
+                ...data.product_ids,
+                ...eligibleFilteredIds,
+            ]);
             setData('product_ids', Array.from(newSelection));
         }
     };
 
-    // --- LOGIC: Submission ---
     const submitPromotion = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // SMART UX INTERCEPTION: Kalkulasi otomatis jika pengguna lupa klik "Add"
         transform((currentData) => {
             if (customHours !== '' || customMinutes !== '') {
                 const now = new Date();
@@ -222,7 +224,6 @@ export default function PromotionsIndex({ products }: any) {
         );
     };
 
-    // --- LIVE PREVIEW MATH ---
     const discountValue = Number(data.discount_percentage) || 0;
     const selectedProducts = products.filter((p: any) =>
         data.product_ids.includes(p.id),
@@ -250,7 +251,6 @@ export default function PromotionsIndex({ products }: any) {
 
             <main className="relative z-10 pt-32 pb-24">
                 <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    {/* Header */}
                     <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
                         <div>
                             <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
@@ -273,7 +273,6 @@ export default function PromotionsIndex({ products }: any) {
                                 onSubmit={submitPromotion}
                                 className="flex min-h-0 w-full flex-1 flex-col"
                             >
-                                {/* Form Header */}
                                 <div className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-6 py-5 backdrop-blur-xl">
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
@@ -288,9 +287,7 @@ export default function PromotionsIndex({ products }: any) {
                                     </div>
                                 </div>
 
-                                {/* Scrollable Form Content */}
                                 <div className="flex-1 space-y-6 overflow-y-auto p-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-track]:bg-transparent">
-                                    {/* 1. Discount Input */}
                                     <div>
                                         <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                                             <Percent
@@ -327,7 +324,6 @@ export default function PromotionsIndex({ products }: any) {
                                             </p>
                                         )}
 
-                                        {/* Live Math Preview */}
                                         {discountValue > 0 &&
                                             discountValue < 100 &&
                                             selectedProducts.length > 0 && (
@@ -386,7 +382,6 @@ export default function PromotionsIndex({ products }: any) {
                                             )}
                                     </div>
 
-                                    {/* 2. Schedule Section */}
                                     <div>
                                         <div className="mb-3 flex items-center justify-between">
                                             <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
@@ -401,7 +396,6 @@ export default function PromotionsIndex({ products }: any) {
                                             </span>
                                         </div>
 
-                                        {/* Primary Duration Calculator */}
                                         <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
                                             <label className="mb-2 block text-xs font-bold text-slate-500">
                                                 {t('Set Time Duration')}
@@ -410,21 +404,26 @@ export default function PromotionsIndex({ products }: any) {
                                                 <div className="flex-1">
                                                     <input
                                                         type="number"
-                                                        min="0"
+                                                        min="1" // Ubah min menjadi 1
                                                         value={customHours}
-                                                        onChange={(e) =>
+                                                        onChange={(e) => {
+                                                            const val =
+                                                                e.target.value;
+
+                                                            // Cegah angka 0 diketik tunggal/sebagai awalan
+                                                            if (val === '0')
+                                                                return setCustomHours(
+                                                                    '',
+                                                                );
+
                                                             setCustomHours(
-                                                                e.target
-                                                                    .value ===
-                                                                    ''
+                                                                val === ''
                                                                     ? ''
                                                                     : Number(
-                                                                          e
-                                                                              .target
-                                                                              .value,
+                                                                          val,
                                                                       ),
-                                                            )
-                                                        }
+                                                            );
+                                                        }}
                                                         className="block w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors [-moz-appearance:textfield] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                         placeholder={t('Hours')}
                                                     />
@@ -432,22 +431,27 @@ export default function PromotionsIndex({ products }: any) {
                                                 <div className="flex-1">
                                                     <input
                                                         type="number"
-                                                        min="0"
+                                                        min="1" // Ubah min menjadi 1
                                                         max="59"
                                                         value={customMinutes}
-                                                        onChange={(e) =>
+                                                        onChange={(e) => {
+                                                            const val =
+                                                                e.target.value;
+
+                                                            // Cegah angka 0 diketik tunggal/sebagai awalan
+                                                            if (val === '0')
+                                                                return setCustomMinutes(
+                                                                    '',
+                                                                );
+
                                                             setCustomMinutes(
-                                                                e.target
-                                                                    .value ===
-                                                                    ''
+                                                                val === ''
                                                                     ? ''
                                                                     : Number(
-                                                                          e
-                                                                              .target
-                                                                              .value,
+                                                                          val,
                                                                       ),
-                                                            )
-                                                        }
+                                                            );
+                                                        }}
                                                         className="block w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors [-moz-appearance:textfield] focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                                         placeholder={t(
                                                             'Minutes',
@@ -470,7 +474,6 @@ export default function PromotionsIndex({ products }: any) {
                                             </div>
                                         </div>
 
-                                        {/* Active Schedule Summary */}
                                         {(data.starts_at || data.ends_at) && (
                                             <div className="mb-4 rounded-xl border border-purple-100 bg-purple-50/50 p-4">
                                                 <div className="mb-1 flex justify-between text-xs">
@@ -496,7 +499,6 @@ export default function PromotionsIndex({ products }: any) {
                                             </div>
                                         )}
 
-                                        {/* Progressive Disclosure: Custom Dates Toggle */}
                                         {!showCustomDates ? (
                                             <button
                                                 type="button"
@@ -585,7 +587,6 @@ export default function PromotionsIndex({ products }: any) {
                                     </div>
                                 </div>
 
-                                {/* --- LAUNCH BUTTON --- */}
                                 <div className="z-10 shrink-0 border-t border-slate-100 bg-white/90 p-4 backdrop-blur-md sm:p-5 sm:px-6">
                                     <button
                                         type="submit"
@@ -607,7 +608,6 @@ export default function PromotionsIndex({ products }: any) {
                         {/* RIGHT SIDE: Product List & Bulk Management                */}
                         {/* ========================================================= */}
                         <div className="flex flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-xl ring-1 shadow-slate-900/5 ring-white lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)]">
-                            {/* Header, Search, Filter, and Bulk Clear Action */}
                             <div className="flex shrink-0 flex-col gap-4 border-b border-slate-100 bg-slate-50 px-6 py-5 sm:px-8 sm:py-6">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-black text-slate-900">
@@ -618,13 +618,12 @@ export default function PromotionsIndex({ products }: any) {
                                         onClick={toggleAll}
                                         className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
                                     >
-                                        {isAllFilteredSelected
+                                        {isAllEligibleSelected
                                             ? t('Deselect All')
                                             : t('Select All')}
                                     </button>
                                 </div>
 
-                                {/* Search and Filters */}
                                 <div className="flex flex-col gap-3 sm:flex-row">
                                     <div className="relative flex-1">
                                         <Search
@@ -689,7 +688,6 @@ export default function PromotionsIndex({ products }: any) {
                                 </div>
                             </div>
 
-                            {/* Scrollable Product Grid */}
                             <div className="flex-1 overflow-y-auto p-6">
                                 {filteredProducts.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -714,18 +712,28 @@ export default function PromotionsIndex({ products }: any) {
                                                         product.id,
                                                     );
 
+                                                // LOGIKA BARU: Penentuan produk eligible (memenuhi syarat)
+                                                const isEligible =
+                                                    product.is_active &&
+                                                    !product.is_locked;
+
                                                 return (
                                                     <div
                                                         key={`product-${product.id}`}
-                                                        onClick={() =>
-                                                            toggleProduct(
-                                                                product.id,
-                                                            )
-                                                        }
-                                                        className={`group relative flex cursor-pointer flex-col justify-between gap-4 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 ${
-                                                            isSelected
-                                                                ? 'bg-purple-50/50 shadow-md ring-2 shadow-purple-500/10 ring-purple-500'
-                                                                : 'bg-white shadow-sm ring-1 ring-slate-200 hover:shadow-lg hover:shadow-purple-500/10 hover:ring-purple-300'
+                                                        onClick={() => {
+                                                            if (isEligible) {
+                                                                toggleProduct(
+                                                                    product.id,
+                                                                );
+                                                            }
+                                                        }}
+                                                        // VISUAL BARU: Kartu transparan dan tidak bisa diklik jika tidak eligible
+                                                        className={`group relative flex flex-col justify-between gap-4 rounded-2xl p-5 transition-all duration-300 ${
+                                                            !isEligible
+                                                                ? 'cursor-not-allowed bg-slate-50 opacity-60 grayscale-20'
+                                                                : isSelected
+                                                                  ? 'cursor-pointer bg-purple-50/50 shadow-md ring-2 shadow-purple-500/10 ring-purple-500 hover:-translate-y-1'
+                                                                  : 'cursor-pointer bg-white shadow-sm ring-1 ring-slate-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/10 hover:ring-purple-300'
                                                         }`}
                                                     >
                                                         <div className="flex items-start justify-between gap-3">
@@ -746,41 +754,53 @@ export default function PromotionsIndex({ products }: any) {
                                                                         )}
                                                                     </span>
 
-                                                                    {/* Suspended by Admin Indicator */}
                                                                     {product.is_locked && (
-                                                                        <span className="inline-flex items-center gap-1 rounded-md bg-rose-100 px-2 py-0.5 text-[11px] font-bold tracking-wider text-rose-800 uppercase ring-1 ring-rose-300 ring-inset">
-                                                                            <AlertCircle
-                                                                                size={
-                                                                                    12
-                                                                                }
-                                                                                className="shrink-0"
-                                                                            />{' '}
-                                                                            {t(
-                                                                                'Suspended',
-                                                                            )}
-                                                                        </span>
+                                                                        <div className="flex max-w-full items-start gap-1.5 rounded-md bg-rose-100 px-2.5 py-1.5 text-[11px] leading-relaxed font-bold tracking-wider text-rose-800 uppercase ring-1 ring-rose-300 ring-inset">
+                                                                            <div className="mt-px flex shrink-0 items-center justify-center">
+                                                                                <AlertCircle
+                                                                                    size={
+                                                                                        14
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                            <div className="text-left wrap-break-word">
+                                                                                {t(
+                                                                                    'Disabled by Admin',
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
                                                                     )}
 
-                                                                    {/* Hidden by Seller Indicator */}
                                                                     {!product.is_active &&
                                                                         !product.is_locked && (
-                                                                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold tracking-wider text-amber-900 uppercase ring-1 ring-amber-300 ring-inset">
-                                                                                <EyeOff
-                                                                                    size={
-                                                                                        12
-                                                                                    }
-                                                                                    className="shrink-0"
-                                                                                />{' '}
-                                                                                {t(
-                                                                                    'Hidden',
-                                                                                )}
-                                                                            </span>
+                                                                            <div className="flex max-w-full items-start gap-1.5 rounded-md bg-amber-100 px-2.5 py-1.5 text-[11px] leading-relaxed font-bold tracking-wider text-amber-900 uppercase ring-1 ring-amber-300 ring-inset">
+                                                                                <div className="mt-px flex shrink-0 items-center justify-center">
+                                                                                    <EyeOff
+                                                                                        size={
+                                                                                            14
+                                                                                        }
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="text-left wrap-break-word">
+                                                                                    {t(
+                                                                                        'Hidden',
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
                                                                         )}
                                                                 </div>
                                                             </div>
 
                                                             <div className="absolute top-5 right-5">
-                                                                {isSelected ? (
+                                                                {/* CHECKBOX BARU: Ditampilkan abu-abu jika tidak eligible */}
+                                                                {!isEligible ? (
+                                                                    <Square
+                                                                        size={
+                                                                            22
+                                                                        }
+                                                                        className="text-slate-200"
+                                                                    />
+                                                                ) : isSelected ? (
                                                                     <CheckSquare
                                                                         size={
                                                                             22
@@ -839,7 +859,6 @@ export default function PromotionsIndex({ products }: any) {
                 </div>
             </main>
 
-            {/* Modals & Toasts */}
             <ConfirmModal
                 isOpen={isClearModalOpen}
                 onClose={() => setIsClearModalOpen(false)}
